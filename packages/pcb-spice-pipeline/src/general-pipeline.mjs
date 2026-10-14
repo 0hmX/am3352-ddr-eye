@@ -16,6 +16,7 @@ import {probeWaveformRows,foldProbeEye} from './metrics.mjs'
 import {command,json,sha256,hashes} from './io.mjs'
 import {fail} from './matrices.mjs'
 import {packageRoot} from './runtime.mjs'
+import {validateCircuitRecords} from './circuit-schema.mjs'
 
 const exec=promisify(execFile)
 const safeId=id=>{
@@ -46,6 +47,7 @@ async function loadModelSource(model,baseDir,cache) {
 export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,baseDir=process.cwd(),entryBytes,entryPath,circuitBytes,originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256,project,python,vendorCache=join(packageRoot,'.cache/vendors'),onProgress=()=>{}}) {
   const out=resolve(outputDir)
   try {await stat(out);fail('output_exists',`Use a fresh output directory: ${out}`)} catch(error) {if(error.code!=='ENOENT') throw error}
+  validateCircuitRecords(circuitJson)
   if(typeof converter.convertIbisModelToSpice!=='function'||typeof converter.loadIbisDefinitionSource!=='function') fail('converter_version','Install/build the same-repository general IBIS converter')
   const geometry=geometryFromCircuitJson(circuitJson,modeling),declarations=generalDeclarations(circuitJson,geometry,modeling)
   const electrical=electricalSources(circuitJson,modeling,declarations.nodes)

@@ -63,7 +63,7 @@ test("ambiguous rails and unsupported package/control features fail explicitly",
 }, 30_000)
 
 test("declared separate rail references survive serialization and remain independent", () => {
-  const text = `[IBIS Ver] 4.2\n[Component] C\n[Pin] signal_name model_name\n1 D IN\n2 VDD POWER\n3 VSS GND\n4 PC POWER\n5 GC GND\n[Pin Mapping] pulldown_ref pullup_ref gnd_clamp_ref power_clamp_ref ext_ref\n1 G P CG CP NC\n2 NC P NC NC NC\n3 G NC NC NC NC\n4 NC NC NC CP NC\n5 NC NC CG NC NC\n[Model] IN\nModel_type Input\nC_comp 1p 1p 1p\n[Voltage Range] 3.3 3 3.6\n[End]`
+  const text = `[IBIS Ver] 4.2\n[Component] C\n[Pin] signal_name model_name\n1 D IN\n2 VDD POWER\n3 VSS GND\n4 PC POWER\n5 GC GND\n[Pin Mapping] pulldown_ref pullup_ref gnd_clamp_ref power_clamp_ref ext_ref\n1 G P CG CP NC\n2 NC P NC NC NC\n3 G NC NC NC NC\n4 NC NC NC CP NC\n5 NC NC CG NC NC\n[Model] IN\nModel_type Input\nC_comp 1p 1p 1p\n[Voltage Range] 3.3 3 3.6\n[Power Clamp Reference] 1.8 1.8 1.8\n[Gnd Clamp Reference] 0.5 0.5 0.5\n[Power Clamp]\n-10 -0.1 -0.1 -0.1\n10 0.1 0.1 0.1\n[Gnd Clamp]\n-10 -0.2 -0.2 -0.2\n10 0.2 0.2 0.2\n[End]`
   const definition: IbisModelDefinition = { source: { content: text }, component: "C", pinMap: { "1": "D", "2": "VDD", "3": "VSS", "4": "PC", "5": "GC" }, corner: "typical", packagePolicy: "omit" }
   const converted = convertIbisModelToSpice(text, definition, { duration: "1ns", pinStates: { D: { mode: "input" } }, stimuli: {} })
   expect(converted.metadata.pins[0].references).toEqual({ pullup: "VDD", pulldown: "VSS", powerClamp: "PC", groundClamp: "GC" })
@@ -139,6 +139,9 @@ test("constant enabled output and disabled output require no switching events an
 test("four distinct actual reference rails do not double-apply vendor scalar reference offsets", async () => {
   const text = `[IBIS Ver] 4.2\n[Component] C\n[Pin] signal_name model_name\n1 D IN\n2 VDD POWER\n3 VSS GND\n4 PC POWER\n5 GC GND\n[Model] IN\nModel_type Input\nC_comp 1p 1p 1p\n[Voltage Range] 3.3 3.3 3.3\n[Power Clamp Reference] 1.8 1.8 1.8\n[Gnd Clamp Reference] 0.5 0.5 0.5\n[Power Clamp]\n-10 -0.1 -0.1 -0.1\n10 0.1 0.1 0.1\n[Gnd Clamp]\n-10 -0.2 -0.2 -0.2\n10 0.2 0.2 0.2\n[End]`
   const definition: IbisModelDefinition = { source: { content: text }, component: "C", pinMap: { "1": "D", "2": "VDD", "3": "VSS", "4": "PC", "5": "GC" }, references: { "1": { pullup: "VDD", pulldown: "VSS", powerClamp: "PC", groundClamp: "GC" } }, corner: "typical", packagePolicy: "omit" }
+  const run = { duration: "1ns", pinStates: { D: { mode: "input" as const } }, stimuli: {} }
+  expect(() => convertIbisModelToSpice(text, { ...definition, references: { "1": { pullup: "VDD", pulldown: "VSS" } } }, run)).toThrow("explicit powerClamp reference required")
+  expect(() => convertIbisModelToSpice(text, { ...definition, references: { "1": { pullup: "VDD", pulldown: "VSS", powerClamp: "PC" } } }, run)).toThrow("explicit groundClamp reference required")
   const converted = convertIbisModelToSpice(text, definition, { duration: "1ns", pinStates: { D: { mode: "input" } }, stimuli: {} }), name = converted.source.match(/\.subckt (\S+)/)![1]
   const referenceVoltages: Record<string, number> = { VDD: 3.3, VSS: 0, PC: 1.8, GC: 0.5 }
   const terminals = Object.entries(converted.spicePinMapping).map(([terminal, port]) => terminal.startsWith("PAD") ? "pad" : port.toLowerCase()).join(" ")

@@ -695,7 +695,7 @@ packages:
       typescript: ^5
 
   '@tscircuit/core@file:../../.packages/tscircuit-core-ibis-experimental.tgz':
-    resolution: {integrity: sha512-bgda9aAmYk5RtZVkjk5mJGROJ3+9FIMgjIDPLF8436hxcLhnLYJlm7DBBSfC5+8Xf2y2CGbtInnm2S/YifI8Xg==, tarball: file:../../.packages/tscircuit-core-ibis-experimental.tgz}
+    resolution: {integrity: sha512-dcdcTcOFPIrWkZ7aLZr43Zgqw04do+dPtuQ9dOEUQd/BWTobMTJtZApne4qjUsB5leRAePa4msaZXvSLbSF8vw==, tarball: file:../../.packages/tscircuit-core-ibis-experimental.tgz}
     version: 0.0.2148
     peerDependencies:
       '@tscircuit/cableprinter': 0.0.6
@@ -760,7 +760,7 @@ packages:
       circuit-json: '*'
 
   '@tscircuit/ibis-to-spice@file:../../.packages/ibis-to-spice-0.0.2.tgz':
-    resolution: {integrity: sha512-2ZLPQFFGCSGujO1pxGcimpPZCriWEuELAuVrPu2iyRv+VUdApQYHdXdo9uDXtgAog+aaaYJ74E+zrkuTBQN5KA==, tarball: file:../../.packages/ibis-to-spice-0.0.2.tgz}
+    resolution: {integrity: sha512-d+3ASBNIVW7+0cu2ZMWUCszmfkE470f/cPfcpFDmmux4Zc5mklF4Ts8QWD76Zr5f8dIHN0SCIEYkxSl5+ba8UQ==, tarball: file:../../.packages/ibis-to-spice-0.0.2.tgz}
     version: 0.0.2
     hasBin: true
 
@@ -1088,7 +1088,7 @@ packages:
       typescript: ^5.0.0
 
   circuit-json@file:../../.packages/circuit-json-general-experimental.tgz:
-    resolution: {integrity: sha512-dzpKGXCgruedU/NfWnfWc7W4Rnltt+qEgoZ/dN/qzioBnSR5hSUwQc+c3MRHd9xvRzxf5BiLf2jl8bAKWJ7s4g==, tarball: file:../../.packages/circuit-json-general-experimental.tgz}
+    resolution: {integrity: sha512-vpOJYROiLzcn9dmmat5HmiZ6yD69RGgQCqS/S5lzDQrCzBc3ZdLCmxpsAO7fgwTH9pn69CJW/qO/51dydl8hfQ==, tarball: file:../../.packages/circuit-json-general-experimental.tgz}
     version: 0.0.528
     peerDependencies:
       format-si-unit: '*'

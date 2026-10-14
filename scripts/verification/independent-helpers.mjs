@@ -99,6 +99,12 @@ export function strictTimes(timestamps, label) {
 function physical(value) {
   if (typeof value === 'number') return Math.round(value * 1e10) / 1e10
   if (Array.isArray(value)) return value.map(physical)
+  if (value?.type === 'pcb_plated_hole' && value.shape === 'circular_hole_with_rect_pad') {
+    for (const [key, expected] of [['hole_shape', 'circle'], ['pad_shape', 'rect']]) {
+      if (value[key] !== undefined) assert.equal(value[key], expected, `Legacy ${value.shape}: consistent ${key}`)
+    }
+    value = { ...value, hole_shape: 'circle', pad_shape: 'rect' }
+  }
   if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value)
     .filter(([key]) => !/_ids?$/.test(key) && !['port_hints', 'subcircuit_connectivity_map_key'].includes(key))
     .sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, physical(key === 'layers' && Array.isArray(item) ? [...item].sort() : item)]))

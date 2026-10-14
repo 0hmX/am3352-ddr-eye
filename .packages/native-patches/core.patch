@@ -647,6 +647,19 @@ index 0000000..8a624ec
 +    return { ...this.eyeDiagramDescriptor }
 +  }
 +}
+diff --git a/lib/components/primitive-components/Group/Group.ts b/lib/components/primitive-components/Group/Group.ts
+index d48604e..21f079a 100644
+--- a/lib/components/primitive-components/Group/Group.ts
++++ b/lib/components/primitive-components/Group/Group.ts
+@@ -545,7 +545,7 @@ export class Group<Props extends z.ZodType<any, any, any> = typeof groupProps>
+             trace_clearance: props.autorouter.traceClearance,
+           }
+         : undefined,
+-      anchor_alignment: props.pcbAnchorAlignment ?? null,
++      anchor_alignment: props.pcbAnchorAlignment ?? undefined,
+     })
+     this.pcb_group_id = pcb_group.pcb_group_id
+ 
 diff --git a/lib/components/primitive-components/Group/Group_doInitialSimulationSpiceEngineRender.ts b/lib/components/primitive-components/Group/Group_doInitialSimulationSpiceEngineRender.ts
 index bde7d90..ac0c844 100644
 --- a/lib/components/primitive-components/Group/Group_doInitialSimulationSpiceEngineRender.ts
@@ -1286,6 +1299,20 @@ index 68f9616..1d9d37c 100644
        if (!elm.pcb_trace_id) return true
  
        const pcbTrace = injectionDb.pcb_trace.get(elm.pcb_trace_id)
+diff --git a/lib/components/primitive-components/Hole.ts b/lib/components/primitive-components/Hole.ts
+index f8a91dd..2251a0f 100644
+--- a/lib/components/primitive-components/Hole.ts
++++ b/lib/components/primitive-components/Hole.ts
+@@ -54,7 +54,8 @@ export class Hole extends PrimitiveComponent<typeof holeProps> {
+     const isCoveredWithSolderMask = props.coveredWithSolderMask ?? false
+     const pcb_component_id =
+       this.parent?.pcb_component_id ??
+-      this.getPrimitiveContainer()?.pcb_component_id
++      this.getPrimitiveContainer()?.pcb_component_id ??
++      undefined
+ 
+     this.emitSolderMaskMarginWarning(isCoveredWithSolderMask, soldermaskMargin)
+ 
 diff --git a/lib/components/primitive-components/IbisModel.ts b/lib/components/primitive-components/IbisModel.ts
 new file mode 100644
 index 0000000..0856116
@@ -1431,6 +1458,32 @@ index 0000000..0856116
 +    >)
 +  }
 +}
+diff --git a/lib/components/primitive-components/PlatedHole.ts b/lib/components/primitive-components/PlatedHole.ts
+index 4685d7a..fdefd52 100644
+--- a/lib/components/primitive-components/PlatedHole.ts
++++ b/lib/components/primitive-components/PlatedHole.ts
+@@ -292,6 +292,8 @@ export class PlatedHole extends PrimitiveComponent<typeof platedHoleProps> {
+         rect_pad_width: props.rectPadWidth,
+         rect_pad_height: props.rectPadHeight,
+         shape: "circular_hole_with_rect_pad" as const,
++        hole_shape: "circle",
++        pad_shape: "rect",
+         port_hints: this.getNameAndAliases(),
+         x: position.x,
+         y: position.y,
+diff --git a/lib/components/primitive-components/SilkscreenText.ts b/lib/components/primitive-components/SilkscreenText.ts
+index 3cf358c..8973908 100644
+--- a/lib/components/primitive-components/SilkscreenText.ts
++++ b/lib/components/primitive-components/SilkscreenText.ts
+@@ -148,7 +148,7 @@ export class SilkscreenText extends PrimitiveComponent<
+         layer: maybeFlipLayer(layer) as "top" | "bottom",
+         text: normalizeTextForCircuitJson(text),
+         ccw_rotation: rotation,
+-        pcb_component_id: container.pcb_component_id!,
++        pcb_component_id: container.pcb_component_id ?? undefined,
+         subcircuit_id: subcircuit?.subcircuit_id ?? undefined,
+         pcb_group_id: this.getGroup()?.pcb_group_id ?? undefined,
+         is_knockout: props.isKnockout,
 diff --git a/lib/components/primitive-components/SpiceModel.ts b/lib/components/primitive-components/SpiceModel.ts
 index 14c17ff..c304314 100644
 --- a/lib/components/primitive-components/SpiceModel.ts
@@ -3177,6 +3230,48 @@ index 0000000..cf77838
 +  await expect(circuit.renderUntilSettled()).rejects.toThrow("explicit ibisPinStates entry")
 +  expect(calls).toBe(0)
 +})
+diff --git a/tests/features/general-simulation-real-board-schema-roundtrip.test.tsx b/tests/features/general-simulation-real-board-schema-roundtrip.test.tsx
+new file mode 100644
+index 0000000..51f502f
+--- /dev/null
++++ b/tests/features/general-simulation-real-board-schema-roundtrip.test.tsx
+@@ -0,0 +1,36 @@
++import { expect, test } from "bun:test"
++import { pathToFileURL } from "node:url"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import { assertCircuitJsonSchemaRoundtrip } from "tests/fixtures/assert-circuit-json-schema-roundtrip"
++
++test.skipIf(!process.env.GENERAL_SIMULATION_PROJECT_ENTRY)(
++  "every record from the actual routed DDR example survives registered Circuit JSON serialization",
++  async () => {
++    const entry = await import(
++      pathToFileURL(process.env.GENERAL_SIMULATION_PROJECT_ENTRY!).href
++    )
++    const { circuit } = getTestFixture({
++      platform: {
++        schematicDisabled: true,
++        partsEngineDisabled: true,
++        analogSimulationDisabled: true,
++      },
++    })
++    circuit.add(entry.default())
++    await circuit.renderUntilSettled()
++    const json = circuit.getCircuitJson()
++    assertCircuitJsonSchemaRoundtrip(json)
++    expect(json.filter((record) => record.type === "pcb_trace")).toHaveLength(
++      750,
++    )
++    expect(json.filter((record) => record.type === "pcb_via")).toHaveLength(835)
++    expect(
++      json.filter((record) => record.type === "pcb_plated_hole"),
++    ).toHaveLength(46)
++    expect(json.filter((record) => record.type === "pcb_hole")).toHaveLength(8)
++    expect(
++      json.filter((record) => record.type === "simulation_eye_diagram"),
++    ).toHaveLength(2)
++  },
++  60_000,
++)
 diff --git a/tests/features/general-simulation-roundtrip.test.tsx b/tests/features/general-simulation-roundtrip.test.tsx
 new file mode 100644
 index 0000000..ee92eeb
@@ -4392,6 +4487,131 @@ index 0000000..2b1b5b3
 +  expect(JSON.stringify(imported)).toBe(before)
 +  expect(circuit).toMatchPcbSnapshot(import.meta.path)
 +})
+diff --git a/tests/features/imported-board-schema-roundtrip.test.tsx b/tests/features/imported-board-schema-roundtrip.test.tsx
+new file mode 100644
+index 0000000..99f4be6
+--- /dev/null
++++ b/tests/features/imported-board-schema-roundtrip.test.tsx
+@@ -0,0 +1,69 @@
++import { expect, test } from "bun:test"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import { assertCircuitJsonSchemaRoundtrip } from "tests/fixtures/assert-circuit-json-schema-roundtrip"
++
++test("imported groups, unowned holes/text and rectangular-pad plated holes serialize canonical metadata without changing geometry", async () => {
++  const original = getTestFixture({
++    platform: { schematicDisabled: true },
++  }).circuit
++  original.add(
++    <board routingDisabled width="30mm" height="20mm">
++      <group name="BANK">
++        <chip
++          name="J1"
++          pinLabels={{ pin1: "CONTACT" }}
++          footprint={
++            <footprint>
++              <platedhole
++                shape="circular_hole_with_rect_pad"
++                holeDiameter="1mm"
++                rectPadWidth="1.5mm"
++                rectPadHeight="2mm"
++                portHints={["pin1"]}
++              />
++            </footprint>
++          }
++        />
++      </group>
++      <hole name="MOUNT" diameter="1.2mm" pcbX={5} />
++      <silkscreentext text="board label" pcbY={5} fontSize="1mm" />
++    </board>,
++  )
++  await original.renderUntilSettled()
++  const snapshot = original.getCircuitJson()
++  const { circuit } = getTestFixture({ platform: { schematicDisabled: true } })
++  circuit.add(<board circuitJson={snapshot} routingDisabled />)
++  await circuit.renderUntilSettled()
++  const json = circuit.getCircuitJson()
++  assertCircuitJsonSchemaRoundtrip(json)
++  const holes = json.filter((record) => record.type === "pcb_hole")
++  expect(holes).toHaveLength(1)
++  expect(holes[0]!.pcb_component_id).toBeUndefined()
++  expect(
++    json
++      .filter((record) => record.type === "pcb_silkscreen_text")
++      .every((text) => text.pcb_component_id !== null),
++  ).toBe(true)
++  expect(
++    json
++      .filter((record) => record.type === "pcb_group")
++      .every((group) => group.anchor_alignment !== null),
++  ).toBe(true)
++  const plated = json.find((record) => record.type === "pcb_plated_hole")!
++  expect(plated).toMatchObject({
++    shape: "circular_hole_with_rect_pad",
++    hole_shape: "circle",
++    pad_shape: "rect",
++    hole_diameter: 1,
++    rect_pad_width: 1.5,
++    rect_pad_height: 2,
++  })
++  const sourcePlated = snapshot.find(
++    (record) => record.type === "pcb_plated_hole",
++  )!
++  expect([plated.x, plated.y, plated.layers]).toEqual([
++    sourcePlated.x,
++    sourcePlated.y,
++    sourcePlated.layers,
++  ])
++})
+diff --git a/tests/fixtures/assert-circuit-json-schema-roundtrip.ts b/tests/fixtures/assert-circuit-json-schema-roundtrip.ts
+new file mode 100644
+index 0000000..1eb1f36
+--- /dev/null
++++ b/tests/fixtures/assert-circuit-json-schema-roundtrip.ts
+@@ -0,0 +1,44 @@
++import { expect } from "bun:test"
++import * as schemas from "circuit-json"
++import type { CircuitJson } from "circuit-json"
++import type { ZodTypeAny } from "zod"
++
++/** Check every record with its registered type schema and report concise grouped failures. */
++export function assertCircuitJsonSchemaRoundtrip(
++  circuitJson: CircuitJson,
++): void {
++  const json: CircuitJson = JSON.parse(JSON.stringify(circuitJson))
++  const failures: Record<string, { count: number; examples: unknown[] }> = {}
++  for (const record of json) {
++    const schemaName =
++      record.type === "source_component"
++        ? `source_${record.ftype}`
++        : record.type
++    const schema = schemas[schemaName as keyof typeof schemas]
++    const validator =
++      schema && typeof schema === "object" && "safeParse" in schema
++        ? (schema as ZodTypeAny)
++        : schemas.any_circuit_element
++    const parsed = validator.safeParse(record)
++    if (parsed.success) continue
++    const failure = (failures[record.type] ??= { count: 0, examples: [] })
++    failure.count++
++    if (failure.examples.length < 3)
++      failure.examples.push(
++        parsed.error.issues.map((issue) => ({
++          path: issue.path,
++          code: issue.code,
++          message: issue.message,
++        })),
++      )
++  }
++  expect(
++    failures,
++    `Invalid Circuit JSON records by type: ${JSON.stringify(failures)}`,
++  ).toEqual({})
++  // Each individually valid record must also survive the complete registered union.
++  const canonical = json.map((record) =>
++    schemas.any_circuit_element.parse(record),
++  )
++  expect(canonical).toHaveLength(circuitJson.length)
++}
 diff --git a/tests/fixtures/general-simulation-model.ts b/tests/fixtures/general-simulation-model.ts
 new file mode 100644
 index 0000000..5d940b8

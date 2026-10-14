@@ -6,6 +6,7 @@ import gzip
 import hashlib
 import io
 import json
+import re
 import shutil
 import subprocess
 import tarfile
@@ -44,7 +45,25 @@ shutil.move(str(next((artifacts / 'source').iterdir())), source)
 run('git', 'apply', str(here / 'eval-local-proxy.patch'), cwd=source)
 for file in ('package.json', 'pnpm-workspace.yaml', 'pnpm-lock.yaml'):
     shutil.copyfile(here / file, source / file)
+if refresh:
+    lock = source / 'pnpm-lock.yaml'
+    pattern = re.compile(r'(resolution:\s*\{integrity:\s*)sha512-[A-Za-z0-9+/=]+(,\s*tarball:\s*file:([^}\s]+)\s*\})')
+    def refresh_integrity(match):
+        archive = (source / match[3]).resolve()
+        if archive.parent != project / '.packages':
+            raise RuntimeError('Unexpected local dependency archive')
+        digest = base64.b64encode(hashlib.sha512(archive.read_bytes()).digest()).decode()
+        return match[1] + 'sha512-' + digest + match[2]
+    lock.write_text(pattern.sub(refresh_integrity, lock.read_text()))
 run('pnpm', 'install', '--no-frozen-lockfile' if refresh else '--frozen-lockfile', cwd=source)
+for name, filename in [('core', 'tscircuit-core-ibis-experimental.tgz'), ('props', 'tscircuit-props-ibis-experimental.tgz'), ('ibis-to-spice', 'ibis-to-spice-0.0.2.tgz'), ('circuit-json', 'circuit-json-general-experimental.tgz')]:
+    installed = source / 'node_modules' / (name if name == 'circuit-json' else '@tscircuit/' + name)
+    with tarfile.open(project / '.packages' / filename) as archive:
+        for member in archive.getmembers():
+            if member.isfile():
+                path = installed / Path(member.name).relative_to('package')
+                if path.read_bytes() != archive.extractfile(member).read():
+                    raise RuntimeError('Installed dependency differs from archive: ' + str(path))
 if refresh:
     shutil.copyfile(source / 'pnpm-lock.yaml', here / 'pnpm-lock.yaml')
 run('pnpm', 'exec', 'tsup', '--config', 'tsup-webworker.config.ts', cwd=source)

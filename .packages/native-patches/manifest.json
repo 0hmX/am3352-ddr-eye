@@ -3,7 +3,7 @@
     "url": "https://github.com/tscircuit/core.git",
     "commit": "b97852c69a694bc3bd962cc2d6d6fee866fe467f",
     "patch": "native-patches/core.patch",
-    "patchSha256": "1622788de909a5ba1a6c13e81bfa53653c165b07a8ce8c82bb15aeb873f1f5c5",
+    "patchSha256": "a6edd29e3cdd2c9dc63a6825a137530acef52dbf84e5591a8bd8f2be9837d4b0",
     "buildFiles": [
       {
         "target": "package.json",
@@ -18,11 +18,11 @@
       {
         "target": "pnpm-lock.yaml",
         "path": "native-patches/build/core/pnpm-lock.yaml",
-        "sha256": "8bc31fb916154f8d2527e4ad5d6832ffb38497cc24071af6dce6e30746a4bcc0"
+        "sha256": "a808fcbfdca1e2843068f571eca50917dbb0fa0c73e4b5c83f92c462f246828a"
       }
     ],
     "filename": "tscircuit-core-ibis-experimental.tgz",
-    "sha256": "c2d92df883999d06501ebb58aad33a0d4c69e87608a3b4e94f5fc5297ff57a22"
+    "sha256": "885970ceaea6739bf489f88c9b143d15b1669541cf34003d2f835c3141da2631"
   },
   "props": {
     "url": "https://github.com/tscircuit/props.git",
@@ -43,7 +43,7 @@
       {
         "target": "pnpm-lock.yaml",
         "path": "native-patches/build/props/pnpm-lock.yaml",
-        "sha256": "7c411d9863384e7c19f4050236c17963529e8151a8d9f5b44e2295bd23845e95"
+        "sha256": "6d7e39a85e03ca6c1b0d32d1c747387f4a83545c4e7a1090dd76795b3e73bde5"
       }
     ],
     "filename": "tscircuit-props-ibis-experimental.tgz",
@@ -53,7 +53,7 @@
     "url": "https://github.com/tscircuit/circuit-json.git",
     "commit": "c901a56bdd24713517b81599896accc2c02a6624",
     "patch": "native-patches/circuit-json.patch",
-    "patchSha256": "8a2c263f093d72f8b933c357823a8bca8411044d3602d9ecf093f995820530e1",
+    "patchSha256": "51dc59be391ad26fb62902a9d8741050c2ed36d17c7903f5a1702c585f41337a",
     "buildFiles": [
       {
         "target": "package.json",
@@ -72,10 +72,10 @@
       }
     ],
     "filename": "circuit-json-general-experimental.tgz",
-    "sha256": "8e3435f13c8c3d57a1e9ab076f16f7f00e54ea4194772dde24ce742b4003a371"
+    "sha256": "a75f32e3f2b9fdbc542e5a73365a66ff079a4c79f255ba97db9e85474651a881"
   },
   "converter": {
     "filename": "ibis-to-spice-0.0.2.tgz",
-    "sha256": "ee2a4d5cca749f465cdcfed16907c71f04915d9e94cf0475b1438c0d7dd61e99"
+    "sha256": "0d62f988a2ec9e6bffdd41befc3f518c3e1cdeeb0e6f02953e60044550404d7e"
   }
 }

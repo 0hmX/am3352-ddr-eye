@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
+matplotlib.rcParams["svg.hashsalt"] = "tscircuit-ibis-proof"
 import matplotlib.pyplot as plt
 
 root = Path(sys.argv[1])

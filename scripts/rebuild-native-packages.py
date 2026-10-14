@@ -8,6 +8,7 @@ The browser worker has its own .packages/browser-runtime/rebuild.py command.
 """
 
 import argparse
+import base64
 import gzip
 import hashlib
 import io
@@ -125,6 +126,19 @@ def install_build_environment(key, item, work, prepare):
             raise RuntimeError("Build file target escapes environment")
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
+    if prepare and (directory / "pnpm-lock.yaml").exists():
+        # Intentional local-package changes can retain the same version/name.
+        # Update only their byte integrity, preserving all existing registry and
+        # Git dependency versions instead of discarding the dependency lock.
+        lock = directory / "pnpm-lock.yaml"
+        pattern = re.compile(r"(resolution:\s*\{integrity:\s*)sha512-[A-Za-z0-9+/=]+(,\s*tarball:\s*file:([^}\s]+)\s*\})")
+        def refresh(match):
+            archive = (directory / match[3]).resolve()
+            if not archive.is_relative_to(work / ".packages"):
+                raise RuntimeError("Local build archive escapes the staged package directory")
+            integrity = base64.b64encode(hashlib.sha512(archive.read_bytes()).digest()).decode()
+            return match[1] + "sha512-" + integrity + match[2]
+        lock.write_text(pattern.sub(refresh, lock.read_text()))
     command(["pnpm", "install", "--no-frozen-lockfile" if prepare else "--frozen-lockfile", "--ignore-scripts"], cwd=directory)
     if prepare:
         destination = PATCHES / "build" / key
