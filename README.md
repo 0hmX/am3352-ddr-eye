@@ -4,9 +4,11 @@ This is a normal tscircuit board project. `index.circuit.tsx` is the entrypoint;
 
 The entry imports the exact published **astra/am3352-sbc v0.1.19** board snapshot, attaches TI and Winbond IBIS models to its actual U1/U3 chips, and declares one differential DQS eye. Saved routing is retained. This is the existing board imported through tscircuit's `circuitJson` prop; it does not reconstruct or reroute the historical board source.
 
-Use Node.js 22 or later, pnpm 11.25.0, and Bun (required by this pinned tscircuit package's standard `tsci` launcher):
+Clone this repository, then use Node.js 22 or later, pnpm 11.25.0, and Bun (required by this pinned tscircuit package's standard `tsci` launcher):
 
 ```sh
+git clone https://github.com/0hmX/am3352-ddr-eye.git
+cd am3352-ddr-eye
 pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm dev
@@ -46,4 +48,4 @@ The selected driver pins are U1 P1/P2 (TI AM3352); receiver pins are U3 F3/G3 (W
 
 The eye is a **deterministic clock demonstration**, not DDR data BER or JEDEC compliance. The channel uses actual saved route lengths/widths with straightened stages, assumed constant pair spacing, a finite return bar, homogeneous effective dielectric constants and fixed R/L at 100 MHz. Actual planes, bends, surrounding nets, dielectric loss, copper roughness, via pads/stubs, power-distribution impedance and TI's coupled package are omitted. Winbond pin RLC is included. See the construction file and generated receipts for exact numbers.
 
-The reusable implementation and original proof/source evidence are delivered separately in `ddr-eye-example`; the converter is delivered separately in `ibis-to-spice`. Those repositories are not required to run this project: its dependency tarballs are included. Original board and manufacturer notices are preserved; the original board source is not represented as newly MIT licensed.
+The reusable implementation and original proof/source evidence are in [pcb-spice-pipeline](https://github.com/0hmX/pcb-spice-pipeline); the converter is in [ibis-to-spice](https://github.com/0hmX/ibis-to-spice). Those repositories are not required to run this project: its dependency tarballs are included. Original board and manufacturer notices are preserved; the original board source is not represented as newly MIT licensed.
