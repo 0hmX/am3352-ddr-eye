@@ -1,0 +1,17 @@
+{
+  "experimental": true,
+  "published": false,
+  "sha256": {
+    "fanout-solver-experimental.tgz": "b1d57491aa1649451e7319125930062a7b6e84bf0238cc74abf9a08ca3b387e1",
+    "ibis-to-spice-0.0.1.tgz": "6da6c9aacb4c71f66ed7573d1d6be9d636dd144eabf39e44eba968d8f42feffd",
+    "pcb-spice-pipeline-0.1.0.tgz": "60f969e42a1834af590866b513c12ac77444a9371eafe121e3ef2d18230d213c",
+    "tscircuit-core-ibis-experimental.tgz": "c7767fdf3a52c71e764e39a953e63f48bfe8e8c54cf782b6a7612261277aeba5",
+    "tscircuit-experimental.tgz": "21254319bece099a6372783b40fb0f0b0b80698545d7a9c885e9c9686971876f",
+    "tscircuit-props-ibis-experimental.tgz": "b3131c02b0fa7a001dc2f7b335c524771899e1a6e755821e9bb440d2ee77b149"
+  },
+  "pipelineSourceCommit": "7e50d30e16f976c61480b93906b222f09d7bcacb",
+  "pipelineSourceDistribution": "pcb-spice-pipeline.zip, separately delivered; runtime code included in tarball",
+  "coreAndPropsSourceManifest": "native-patches/manifest.json",
+  "browserRebuild": "browser-runtime/rebuild.py",
+  "fanoutDeclarations": "fanout-solver-experimental-provenance.json"
+}

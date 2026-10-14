@@ -1,0 +1,557 @@
+diff --git a/README.md b/README.md
+index 48d7379..ca677ce 100644
+--- a/README.md
++++ b/README.md
+@@ -55,6 +55,7 @@ resistorProps.parse({ resistance: "10k" } as ResistorPropsInput);
+ | `<differentialpair />`                      | [`DifferentialPairProps`](#differentialpairprops-differentialpair)                                                 |
+ | `<diode />`                                 | [`DiodeProps`](#diodeprops-diode)                                                                                  |
+ | `<drccheck />`                              | [`DrcCheckProps`](#drccheckprops-drccheck)                                                                         |
++| `<eyediagram />`                            | [`EyeDiagramProps`](#eyediagramprops-eyediagram)                                                                   |
+ | `<fabricationnotedimension />`              | [`FabricationNoteDimensionProps`](#fabricationnotedimensionprops-fabricationnotedimension)                         |
+ | `<fabricationnotepath />`                   | [`FabricationNotePathProps`](#fabricationnotepathprops-fabricationnotepath)                                        |
+ | `<fabricationnoterect />`                   | [`FabricationNoteRectProps`](#fabricationnoterectprops-fabricationnoterect)                                        |
+@@ -64,6 +65,7 @@ resistorProps.parse({ resistance: "10k" } as ResistorPropsInput);
+ | `<fuse />`                                  | [`FuseProps`](#fuseprops-fuse)                                                                                     |
+ | `<group />`                                 | [`BaseGroupProps`](#basegroupprops-group)                                                                          |
+ | `<hole />`                                  | [`CircleHoleProps`](#circleholeprops-hole)                                                                         |
++| `<ibis />`                                  | [`IbisModelProps`](#ibismodelprops-ibis)                                                                           |
+ | `<inductor />`                              | [`InductorProps`](#inductorprops-inductor)                                                                         |
+ | `<interconnect />`                          | [`InterconnectProps`](#interconnectprops-interconnect)                                                             |
+ | `<internalcircuit />`                       | [`InternalCircuitProps`](#internalcircuitprops-internalcircuit)                                                    |
+@@ -422,6 +424,8 @@ export interface BoardProps extends Omit<
+   "subcircuit" | "connections" | "outline"
+ > {
+   title?: string;
++  /** Native IBIS annotations keyed by unique chip name in imported circuitJson. */
++  simIbisModels?: Record<string, IbisModelProps>;
+   /** e.g. "NEMA17.backface". */
+   mountedTo?: string;
+   /** Clearance from the mounting face, e.g. "6mm". */
+@@ -716,6 +720,8 @@ export interface ChipPropsSU<
+   noConnect?: readonly PinLabel[] | PinLabel[];
+   connections?: Connections<PinLabel>;
+   spiceModel?: SpiceModelElement;
++  /** Import selected table-based IBIS buffers. Mutually exclusive with spiceModel. */
++  ibisModel?: IbisModelProps;
+   /**
+    * Functional components contained inside this physical chip package,
+    * wrapped in an `<internalcircuit />` element.
+@@ -983,6 +989,29 @@ export interface DrcCheckProps {
+ 
+ [Source](https://github.com/tscircuit/props/blob/main/lib/components/drc-check.ts)
+ 
++### EyeDiagramProps `<eyediagram />`
++
++```ts
++export interface EyeDiagramProps {
++  /** Stable name for this differential eye measurement. */
++  name: string;
++  /** Selector identifying exactly one positive signal port. */
++  positive: string;
++  /** Selector identifying exactly one negative signal port. */
++  negative: string;
++  /** Bit interval. Numbers are seconds; strings require s/ms/us/ns/ps units. */
++  unitInterval: number | string;
++  /** End of the transient simulation. Numbers are seconds. */
++  duration: number | string;
++  /** Maximum transient timestep. Numbers are seconds. */
++  timeStep: number | string;
++  /** Exclude startup before this time. Numbers are seconds. Defaults to 0s. */
++  startTime?: number | string;
++}
++```
++
++[Source](https://github.com/tscircuit/props/blob/main/lib/components/eyediagram.ts)
++
+ ### FabricationNoteDimensionProps `<fabricationnotedimension />`
+ 
+ ```ts
+@@ -1317,6 +1346,14 @@ export interface CircleHoleProps extends PcbLayoutProps {
+ 
+ [Source](https://github.com/tscircuit/props/blob/main/lib/components/hole.ts)
+ 
++### IbisModelProps `<ibis />`
++
++```ts
++export type IbisModelProps = z.input<typeof ibisModelProps>;
++```
++
++[Source](https://github.com/tscircuit/props/blob/main/lib/components/chip/ibis.ts)
++
+ ### InductorProps `<inductor />`
+ 
+ ```ts
+diff --git a/generated/COMPONENT_TYPES.md b/generated/COMPONENT_TYPES.md
+index 1579059..068f052 100644
+--- a/generated/COMPONENT_TYPES.md
++++ b/generated/COMPONENT_TYPES.md
+@@ -269,7 +269,10 @@ export const fanoutProps = z.object({
+   fanoutBoundaryPadding: fanoutBoundaryPadding.optional(),
+   fanoutRoutingLayers: z.array(layer_ref).min(1).optional(),
+   fanoutPourNetMap: z
+-    .record(layer_ref, z.union([z.string(), z.array(z.string()).min(1)]))
++    .record(
++      layer_ref.innerType().options[0],
++      z.union([z.string(), z.array(z.string()).min(1)]),
++    )
+     .optional(),
+ })
+ ```
+@@ -1748,6 +1751,7 @@ export const boardOutlinePoint = z
+ export interface BoardProps
+   extends Omit<SubcircuitGroupProps, "subcircuit" | "connections" | "outline"> {
+   title?: string
++  simIbisModels?: Record<string, IbisModelProps>
+   mountedTo?: string
+   mountGap?: Distance
+   mountRotationAnchor?: BoardMountRotationAnchor
+@@ -1792,6 +1796,7 @@ export interface BoardProps
+ export const boardProps = subcircuitGroupProps
+   .omit({ connections: true })
+   .extend({
++    simIbisModels: z.record(z.string().min(1), ibisModelProps).optional(),
+     mountedTo: z
+       .string()
+       .trim()
+@@ -2130,6 +2135,7 @@ export interface ChipPropsSU<
+   noConnect?: readonly PinLabel[] | PinLabel[]
+   connections?: Connections<PinLabel>
+   spiceModel?: SpiceModelElement
++  ibisModel?: IbisModelProps
+   internalCircuit?: InternalCircuitElement
+ }
+ /**
+@@ -2174,6 +2180,7 @@ export const chipProps = commonComponentProps.extend({
+   noConnect: noConnectProp.optional(),
+   connections: connectionsProp.optional(),
+   spiceModel: spicemodelElement.optional(),
++  ibisModel: ibisModelProps.optional(),
+   internalCircuit: internalCircuitElement.optional(),
+ })
+ ```
+@@ -2628,6 +2635,31 @@ export const drcCheckProps = z.object({
+ })
+ ```
+ 
++### eyediagram
++
++```typescript
++export interface EyeDiagramProps {
++  name: string
++  positive: string
++  negative: string
++  unitInterval: number | string
++  duration: number | string
++  timeStep: number | string
++  startTime?: number | string
++}
++/** Exclude startup before this time. Numbers are seconds. Defaults to 0s. */
++export const eyeDiagramProps = z
++  .object({
++    name: z.string().trim().min(1),
++    positive: z.string().trim().min(1),
++    negative: z.string().trim().min(1),
++    unitInterval: positiveSeconds,
++    duration: positiveSeconds,
++    timeStep: positiveSeconds,
++    startTime: seconds.default("0s"),
++  })
++```
++
+ ### fabrication-note-dimension
+ 
+ ```typescript
+diff --git a/generated/PROPS_OVERVIEW.md b/generated/PROPS_OVERVIEW.md
+index d29cf6e..77e1254 100644
+--- a/generated/PROPS_OVERVIEW.md
++++ b/generated/PROPS_OVERVIEW.md
+@@ -626,6 +626,8 @@ export interface BoardOutlinePoint extends Point {
+ export interface BoardProps
+   extends Omit<SubcircuitGroupProps, "subcircuit" | "connections" | "outline"> {
+   title?: string
++  /** Native IBIS annotations keyed by unique chip name in imported circuitJson. */
++  simIbisModels?: Record<string, IbisModelProps>
+   /** e.g. "NEMA17.backface". */
+   mountedTo?: string
+   /** Clearance from the mounting face, e.g. "6mm". */
+@@ -971,6 +973,8 @@ export interface ChipPropsSU<
+   noConnect?: readonly PinLabel[] | PinLabel[]
+   connections?: Connections<PinLabel>
+   spiceModel?: SpiceModelElement
++  /** Import selected table-based IBIS buffers. Mutually exclusive with spiceModel. */
++  ibisModel?: IbisModelProps
+   /**
+    * Functional components contained inside this physical chip package,
+    * wrapped in an `<internalcircuit />` element.
+@@ -1479,6 +1483,24 @@ export interface EnclosureFdmBoxProps {
+ }
+ 
+ 
++export interface EyeDiagramProps {
++  /** Stable name for this differential eye measurement. */
++  name: string
++  /** Selector identifying exactly one positive signal port. */
++  positive: string
++  /** Selector identifying exactly one negative signal port. */
++  negative: string
++  /** Bit interval. Numbers are seconds; strings require s/ms/us/ns/ps units. */
++  unitInterval: number | string
++  /** End of the transient simulation. Numbers are seconds. */
++  duration: number | string
++  /** Maximum transient timestep. Numbers are seconds. */
++  timeStep: number | string
++  /** Exclude startup before this time. Numbers are seconds. Defaults to 0s. */
++  startTime?: number | string
++}
++
++
+ export interface FabricationNoteDimensionProps
+   extends Omit<
+     PcbLayoutProps,
+diff --git a/lib/common/fanoutProps.ts b/lib/common/fanoutProps.ts
+index 2b9cb24..d1e1645 100644
+--- a/lib/common/fanoutProps.ts
++++ b/lib/common/fanoutProps.ts
+@@ -116,7 +116,10 @@ export const fanoutProps = z.object({
+   fanoutBoundaryPadding: fanoutBoundaryPadding.optional(),
+   fanoutRoutingLayers: z.array(layer_ref).min(1).optional(),
+   fanoutPourNetMap: z
+-    .record(layer_ref, z.union([z.string(), z.array(z.string()).min(1)]))
++    .record(
++      layer_ref.innerType().options[0],
++      z.union([z.string(), z.array(z.string()).min(1)]),
++    )
+     .optional(),
+ })
+ 
+diff --git a/lib/components/board.ts b/lib/components/board.ts
+index dcc3b0f..8993405 100644
+--- a/lib/components/board.ts
++++ b/lib/components/board.ts
+@@ -5,6 +5,7 @@ import { type Point, point } from "lib/common/point"
+ import { expectTypesMatch } from "lib/typecheck"
+ import { z } from "zod"
+ import { subcircuitGroupProps, type SubcircuitGroupProps } from "./group"
++import { ibisModelProps, type IbisModelProps } from "./chip/ibis"
+ import {
+   boardMountOrientation,
+   boardMountRotation,
+@@ -85,6 +86,8 @@ export const boardOutlinePoint = z
+ export interface BoardProps
+   extends Omit<SubcircuitGroupProps, "subcircuit" | "connections" | "outline"> {
+   title?: string
++  /** Native IBIS annotations keyed by unique chip name in imported circuitJson. */
++  simIbisModels?: Record<string, IbisModelProps>
+   /** e.g. "NEMA17.backface". */
+   mountedTo?: string
+   /** Clearance from the mounting face, e.g. "6mm". */
+@@ -170,6 +173,7 @@ export interface BoardProps
+ export const boardProps = subcircuitGroupProps
+   .omit({ connections: true })
+   .extend({
++    simIbisModels: z.record(z.string().min(1), ibisModelProps).optional(),
+     mountedTo: z
+       .string()
+       .trim()
+diff --git a/lib/components/chip.ts b/lib/components/chip.ts
+index 9cda0e9..a16ab26 100644
+--- a/lib/components/chip.ts
++++ b/lib/components/chip.ts
+@@ -2,6 +2,7 @@ import { distance, supplier_name } from "circuit-json"
+ import type { Distance } from "lib/common/distance"
+ import type { InternalCircuitProps } from "lib/components/internal-circuit"
+ import type { SpiceModelProps } from "lib/components/spicemodel"
++import { ibisModelProps, type IbisModelProps } from "lib/components/chip/ibis"
+ import {
+   type CommonComponentProps,
+   commonComponentProps,
+@@ -83,6 +84,8 @@ export interface ChipPropsSU<
+   noConnect?: readonly PinLabel[] | PinLabel[]
+   connections?: Connections<PinLabel>
+   spiceModel?: SpiceModelElement
++  /** Import selected table-based IBIS buffers. Mutually exclusive with spiceModel. */
++  ibisModel?: IbisModelProps
+   /**
+    * Functional components contained inside this physical chip package,
+    * wrapped in an `<internalcircuit />` element.
+@@ -194,6 +197,7 @@ export const chipProps = commonComponentProps.extend({
+   noConnect: noConnectProp.optional(),
+   connections: connectionsProp.optional(),
+   spiceModel: spicemodelElement.optional(),
++  ibisModel: ibisModelProps.optional(),
+   internalCircuit: internalCircuitElement.optional(),
+ })
+ 
+diff --git a/lib/components/chip/ibis.ts b/lib/components/chip/ibis.ts
+new file mode 100644
+index 0000000..f7d6278
+--- /dev/null
++++ b/lib/components/chip/ibis.ts
+@@ -0,0 +1,73 @@
++import { z } from "zod"
++
++/** Numeric clock times are seconds; string values must include a time unit. */
++const clockTime = z.union([
++  z.number().finite().positive(),
++  z.string().regex(/^\s*\d+(?:\.\d+)?(?:e[+-]?\d+)?\s*(?:s|ms|us|ns|ps)\s*$/i),
++])
++const ibisClock = z.object({
++  type: z.literal("clock"),
++  period: clockTime,
++  duration: clockTime,
++  inverted: z.boolean().optional(),
++})
++
++/** Parent port names are keys; `pin` is the physical pin in the IBIS component. */
++const ibisPinBinding = z.discriminatedUnion("mode", [
++  z
++    .object({
++      pin: z.string().min(1),
++      model: z.string().min(1).optional(),
++      mode: z.literal("input"),
++    })
++    .strict(),
++  z.object({
++    pin: z.string().min(1),
++    model: z.string().min(1).optional(),
++    mode: z.literal("output"),
++    stimulus: ibisClock,
++  }),
++])
++
++/** Table-based IBIS import. Package policy and buffer supply bank are explicit. */
++export const ibisModelProps = z
++  .object({
++    source: z.string().min(1).optional(),
++    sourceUrl: z.string().url().optional(),
++    archivePath: z.string().min(1).optional(),
++    sha256: z
++      .string()
++      .regex(/^[a-f0-9]{64}$/i)
++      .optional(),
++    component: z.string().min(1),
++    pins: z
++      .record(z.string(), ibisPinBinding)
++      .refine(
++        (pins) => Object.keys(pins).length > 0,
++        "Select at least one IBIS pin",
++      ),
++    power: z.object({ vdd: z.string().min(1), vss: z.string().min(1) }),
++    corner: z.enum(["typical", "minimum", "maximum"]).optional(),
++    packageModel: z.enum(["none", "pin_rlc"]),
++  })
++  .superRefine((model, context) => {
++    if (Boolean(model.source) === Boolean(model.sourceUrl))
++      context.addIssue({
++        code: z.ZodIssueCode.custom,
++        message: "Provide exactly one of source or sourceUrl",
++      })
++    if (model.sourceUrl && !model.sha256)
++      context.addIssue({
++        code: z.ZodIssueCode.custom,
++        path: ["sha256"],
++        message: "URL imports require the SHA-256 of the extracted .ibs bytes",
++      })
++    if (model.power.vdd === model.power.vss)
++      context.addIssue({
++        code: z.ZodIssueCode.custom,
++        path: ["power"],
++        message: "VDD and VSS must map to different ports",
++      })
++  })
++
++export type IbisModelProps = z.input<typeof ibisModelProps>
+diff --git a/lib/components/eyediagram.ts b/lib/components/eyediagram.ts
+new file mode 100644
+index 0000000..40cd874
+--- /dev/null
++++ b/lib/components/eyediagram.ts
+@@ -0,0 +1,68 @@
++import { expectTypesMatch } from "lib/typecheck"
++import { z } from "zod"
++
++export interface EyeDiagramProps {
++  /** Stable name for this differential eye measurement. */
++  name: string
++  /** Selector identifying exactly one positive signal port. */
++  positive: string
++  /** Selector identifying exactly one negative signal port. */
++  negative: string
++  /** Bit interval. Numbers are seconds; strings require s/ms/us/ns/ps units. */
++  unitInterval: number | string
++  /** End of the transient simulation. Numbers are seconds. */
++  duration: number | string
++  /** Maximum transient timestep. Numbers are seconds. */
++  timeStep: number | string
++  /** Exclude startup before this time. Numbers are seconds. Defaults to 0s. */
++  startTime?: number | string
++}
++
++const timeScale = { s: 1, ms: 1e-3, us: 1e-6, ns: 1e-9, ps: 1e-12 }
++const timePattern =
++  /^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)\s*(s|ms|us|ns|ps)$/i
++const seconds = z
++  .union([z.number().finite(), z.string().trim().regex(timePattern)])
++  .transform((time) => {
++    if (typeof time === "number") return time
++    const [, magnitude, unit] = time.match(timePattern)!
++    return (
++      Number(magnitude) *
++      timeScale[unit!.toLowerCase() as keyof typeof timeScale]
++    )
++  })
++  .refine(Number.isFinite, "Time must be finite")
++
++const positiveSeconds = seconds.refine(
++  (time) => time > 0,
++  "Time must be positive",
++)
++
++export const eyeDiagramProps = z
++  .object({
++    name: z.string().trim().min(1),
++    positive: z.string().trim().min(1),
++    negative: z.string().trim().min(1),
++    unitInterval: positiveSeconds,
++    duration: positiveSeconds,
++    timeStep: positiveSeconds,
++    startTime: seconds.default("0s"),
++  })
++  .superRefine((eye, context) => {
++    const invalid = (path: keyof EyeDiagramProps, message: string) =>
++      context.addIssue({ code: z.ZodIssueCode.custom, path: [path], message })
++    if (eye.positive === eye.negative)
++      invalid("negative", "EyeDiagram requires two distinct signal ports")
++    if (
++      eye.startTime < 0 ||
++      eye.duration - eye.startTime < 2 * eye.unitInterval
++    )
++      invalid(
++        "startTime",
++        "Recording must include at least two unit intervals after a nonnegative startTime",
++      )
++    if (eye.timeStep > eye.unitInterval / 2)
++      invalid("timeStep", "timeStep must not exceed half the unitInterval")
++  })
++
++expectTypesMatch<EyeDiagramProps, z.input<typeof eyeDiagramProps>>(true)
+diff --git a/lib/index.ts b/lib/index.ts
+index ecb3756..6e242e7 100644
+--- a/lib/index.ts
++++ b/lib/index.ts
+@@ -35,6 +35,7 @@ export * from "./components/panel"
+ export * from "./components/subpanel"
+ export * from "./components/breakout"
+ export * from "./components/chip"
++export * from "./components/chip/ibis"
+ export * from "./components/pinout"
+ export * from "./components/jumper"
+ export * from "./components/solderjumper"
+@@ -78,6 +79,7 @@ export * from "./components/push-button"
+ export * from "./components/subcircuit"
+ export * from "./components/analogsimulation"
+ export * from "./components/analogtransientsimulation"
++export * from "./components/eyediagram"
+ export * from "./components/analogdcoperatingpointsimulation"
+ export * from "./components/analogdcsweepsimulation"
+ export * from "./components/analogacsweepsimulation"
+diff --git a/tests/eyediagram.test.ts b/tests/eyediagram.test.ts
+new file mode 100644
+index 0000000..d952358
+--- /dev/null
++++ b/tests/eyediagram.test.ts
+@@ -0,0 +1,42 @@
++import { expect, test } from "bun:test"
++import { eyeDiagramProps } from "../lib/components/eyediagram"
++
++const eye = {
++  name: "DQS",
++  positive: ".U3 > .DQS",
++  negative: ".U3 > .DQSn",
++  unitInterval: "2.5ns",
++  duration: "100ns",
++  timeStep: "10ps",
++  startTime: "20ns",
++} as const
++
++test("eye times normalize strings and raw seconds without modifying input", () => {
++  const input = Object.freeze({ ...eye })
++  const parsed = eyeDiagramProps.parse(input)
++  expect(parsed.unitInterval).toBeCloseTo(2.5e-9, 18)
++  expect(parsed.duration).toBeCloseTo(1e-7, 18)
++  expect(parsed.timeStep).toBeCloseTo(1e-11, 18)
++  expect(parsed.startTime).toBeCloseTo(2e-8, 18)
++  expect(input).toEqual(eye)
++  expect(eyeDiagramProps.parse({ ...eye, duration: 1e-7 }).duration).toBe(1e-7)
++  expect(
++    eyeDiagramProps.parse({ ...eye, startTime: undefined }).startTime,
++  ).toBe(0)
++})
++
++test("eye props reject missing units, invalid timing and degenerate measurements", () => {
++  for (const changes of [
++    { unitInterval: "2.5" },
++    { unitInterval: 0 },
++    { duration: Infinity },
++    { timeStep: "2ns" },
++    { startTime: "98ns" },
++    { startTime: -1 },
++    { negative: eye.positive },
++    { name: " " },
++  ])
++    expect(eyeDiagramProps.safeParse({ ...eye, ...changes }).success).toBe(
++      false,
++    )
++})
+diff --git a/tests/ibismodel.test.tsx b/tests/ibismodel.test.tsx
+new file mode 100644
+index 0000000..fef6eba
+--- /dev/null
++++ b/tests/ibismodel.test.tsx
+@@ -0,0 +1,46 @@
++import { expect, test } from "bun:test"
++import { chipProps, ibisModelProps, type ChipProps } from "lib"
++
++const ibisModel = {
++  source: "[IBIS Ver] 4.2\n[End]\n",
++  component: "Controller",
++  pins: {
++    OUT: {
++      pin: "P1",
++      mode: "output" as const,
++      stimulus: { type: "clock" as const, period: "5ns", duration: "40ns" },
++    },
++  },
++  power: { vdd: "VDD", vss: "GND" },
++  packageModel: "none" as const,
++}
++test("chip ibisModel parses explicit bindings without mutating input", () => {
++  const raw: ChipProps = { name: "U1", ibisModel }
++  const before = JSON.stringify(raw)
++  expect(chipProps.parse(raw).ibisModel).toEqual(ibisModel)
++  expect(JSON.stringify(raw)).toBe(before)
++})
++test("IBIS URL, source and supply conflicts are actionable", () => {
++  expect(() =>
++    ibisModelProps.parse({
++      ...ibisModel,
++      source: undefined,
++      sourceUrl: "https://example.test/model.ibs",
++    }),
++  ).toThrow("SHA-256")
++  expect(() =>
++    ibisModelProps.parse({
++      ...ibisModel,
++      sourceUrl: "https://example.test/model.ibs",
++    }),
++  ).toThrow("exactly one")
++  expect(() =>
++    ibisModelProps.parse({ ...ibisModel, power: { vdd: "GND", vss: "GND" } }),
++  ).toThrow("different ports")
++  expect(() =>
++    ibisModelProps.parse({
++      ...ibisModel,
++      pins: { OUT: { pin: "P1", mode: "output" } },
++    }),
++  ).toThrow()
++})

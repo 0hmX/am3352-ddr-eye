@@ -1,0 +1,32 @@
+{
+  "name": "am3352-ddr-eye",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsci dev",
+    "build": "tsci build --disable-parts-engine",
+    "typecheck": "tsc --noEmit",
+    "simulate:setup": "pcb-spice-pipeline --setup",
+    "simulate": "pcb-spice-pipeline index.circuit.tsx",
+    "simulate:repeat": "pcb-spice-pipeline --repeat index.circuit.tsx"
+  },
+  "dependencies": {
+    "tscircuit": "file:.packages/tscircuit-experimental.tgz",
+    "@tscircuit/core": "file:.packages/tscircuit-core-ibis-experimental.tgz",
+    "@tscircuit/props": "file:.packages/tscircuit-props-ibis-experimental.tgz",
+    "@tscircuit/ibis-to-spice": "file:.packages/ibis-to-spice-0.0.1.tgz",
+    "react": "19.2.4"
+  },
+  "devDependencies": {
+    "@tscircuit/cli": "0.1.2237",
+    "@tscircuit/eval": "0.0.1538",
+    "@types/react": "19.3.0",
+    "typescript": "5.9.3",
+    "pcb-spice-pipeline": "file:.packages/pcb-spice-pipeline-0.1.0.tgz"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "tscircuit": {
+    "version": "0.0.2744",
+    "commit": "8f83367c9f77dbbad75f8e5286f66fd50071d16b",
+    "nodeCliExportsPreserved": true,
+    "dependencyMetadataPreserved": true
+  },
+  "eval": {
+    "version": "0.0.1538",
+    "commit": "1f3cc31db71c66c50a8593241f709665adbc85a1",
+    "entrypoint": "webworker/entrypoint.ts",
+    "workerSha256": "86c2f8eb60d9ddfc9e4f57fc8734c0a694d69fa815c1b1b75c046159cdee8b11",
+    "configChange": "dts:false for runtime-only webworker build",
+    "sourcesUnmodified": false,
+    "sourcePatch": "browser-runtime/eval-local-proxy.patch"
+  },
+  "corePackageSha256": "c7767fdf3a52c71e764e39a953e63f48bfe8e8c54cf782b6a7612261277aeba5",
+  "propsPackageSha256": "b3131c02b0fa7a001dc2f7b335c524771899e1a6e755821e9bb440d2ee77b149",
+  "build": "pnpm exec tsup --config tsup-webworker.config.ts",
+  "assembly": "Official tscircuit copy-runframe-standalone semantics: replace exact embedded original eval worker with rebuilt eval worker; preserve published runframe UI. Replace exported webworker.min.js with same rebuilt worker."
+}

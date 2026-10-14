@@ -1,0 +1,14 @@
+{
+  "core": {
+    "url": "https://github.com/tscircuit/core.git",
+    "commit": "b97852c69a694bc3bd962cc2d6d6fee866fe467f",
+    "patch": "native-patches/core.patch",
+    "patchSha256": "c35c573306be0896ec6444e37e55fa1f9623d7d903fdd14250055884acebd9fa"
+  },
+  "props": {
+    "url": "https://github.com/tscircuit/props.git",
+    "commit": "0d3138b7b51af5d7d134bde7a206c1fb7417495e",
+    "patch": "native-patches/props.patch",
+    "patchSha256": "555354cbab34635f5ad023b51788f9c2eee6ca3d65c0c7a0a130d9824d489913"
+  }
+}

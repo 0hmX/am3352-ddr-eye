@@ -1,0 +1,32 @@
+{
+  "status": "Selected working construction and explicit simulation assumptions; not measured or manufacturer-approved",
+  "source": "https://raw.githubusercontent.com/tscircuit/am3352-sbc/837245bceb6ac898fd5451507d6b2b8024095fe7/design/fabrication-stackup.json",
+  "stackupCode": "JLC04161H-3313",
+  "nominalBoardThicknessMm": 1.6,
+  "copperAndDielectricThicknessMm": 1.5642,
+  "frame": "Copper/dielectric z in mm, positive toward top; z=0 at the upper face of bottom copper. PCB XY is the original board world frame in mm.",
+  "copperLayers": [
+    {"name": "bottom", "zMinMm": -0.035, "zMaxMm": 0},
+    {"name": "inner2", "zMinMm": 0.0994, "zMaxMm": 0.1146},
+    {"name": "inner1", "zMinMm": 1.3796, "zMaxMm": 1.3948},
+    {"name": "top", "zMinMm": 1.4942, "zMaxMm": 1.5292}
+  ],
+  "dielectrics": [
+    {"material": "3313 RC57%", "zMinMm": 0, "zMaxMm": 0.0994, "relativePermittivity": 4.1},
+    {"material": "NP-155F core", "zMinMm": 0.1146, "zMaxMm": 1.3796, "relativePermittivity": 4.42},
+    {"material": "3313 RC57%", "zMinMm": 1.3948, "zMaxMm": 1.4942, "relativePermittivity": 4.1}
+  ],
+  "extractionAssumptions": {
+    "conductivitySm": 58000000,
+    "viaPlatingMm": 0.025,
+    "viaEquivalentWidthMm": 0.1,
+    "omitThroughViaStubs": true,
+    "profileSource": "simulation.json profiles",
+    "signalCenterSeparationMm": 0.75,
+    "separationStatus": "Uniform equivalent-channel assumption; not the real varying pair spacing. The original route coordinates and documented 0.12mm nominal pair edge gap remain saved separately.",
+    "returnConductor": "Finite 2mm-wide, 35um-thick parallel return bar per stage at declared profile offset, replacing the actual power/ground copper geometry",
+    "permittivity": "Homogeneous effective er=2.55 on top and 4.1 for inner1/via; the full layered dielectric arrangement is documented but not solved by this reduced channel",
+    "frequencyHz": 100000000,
+    "omissions": ["Actual plane shape/cutouts and reference stitching", "Bend/meander and neighboring-net coupling", "Via pads, antipads and unused barrel stubs", "Dielectric loss and copper roughness", "Broadband R/L dispersion", "Power-distribution impedance", "TI coupled package model"]
+  }
+}

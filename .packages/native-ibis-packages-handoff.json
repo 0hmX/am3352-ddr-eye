@@ -1,0 +1,83 @@
+{
+  "converterCommit": "4292a5a23ce6b33ade8abbd238685c1790845bb7",
+  "manifest": {
+    "core": {
+      "url": "https://github.com/tscircuit/core.git",
+      "commit": "b97852c69a694bc3bd962cc2d6d6fee866fe467f",
+      "patch": "native-patches/core.patch",
+      "patchSha256": "c35c573306be0896ec6444e37e55fa1f9623d7d903fdd14250055884acebd9fa"
+    },
+    "props": {
+      "url": "https://github.com/tscircuit/props.git",
+      "commit": "0d3138b7b51af5d7d134bde7a206c1fb7417495e",
+      "patch": "native-patches/props.patch",
+      "patchSha256": "555354cbab34635f5ad023b51788f9c2eee6ca3d65c0c7a0a130d9824d489913"
+    }
+  },
+  "experimental": true,
+  "published": false,
+  "installedNodeNativeIbisModelSmokePassed": true,
+  "packages": {
+    "core": {
+      "filename": "tscircuit-core-ibis-experimental.tgz",
+      "sha256": "c7767fdf3a52c71e764e39a953e63f48bfe8e8c54cf782b6a7612261277aeba5"
+    },
+    "props": {
+      "filename": "tscircuit-props-ibis-experimental.tgz",
+      "sha256": "b3131c02b0fa7a001dc2f7b335c524771899e1a6e755821e9bb440d2ee77b149"
+    },
+    "converter": {
+      "sha256": "6da6c9aacb4c71f66ed7573d1d6be9d636dd144eabf39e44eba968d8f42feffd"
+    }
+  },
+  "nativeEye": {
+    "element": "eyediagram",
+    "retrieval": "circuit.selectAll(\"eyediagram\").map(eye => eye.getEyeDiagramDescriptor())",
+    "timeUnits": "seconds for numbers; s/ms/us/ns/ps strings",
+    "descriptorFields": [
+      "name",
+      "positiveSelector",
+      "negativeSelector",
+      "positiveSourcePortId",
+      "negativeSourcePortId",
+      "unitIntervalSeconds",
+      "durationSeconds",
+      "timeStepSeconds",
+      "startTimeSeconds"
+    ],
+    "nativeRendererTestsPassed": 12,
+    "propsTestsPassed": 2,
+    "coreTypecheckPassed": true,
+    "propsTypecheckPassed": true,
+    "fullOriginalBoardInflationPassedInBunAndNode": true,
+    "importedBoardAnnotation": "simIbisModels: Record<unique chip name, IbisModelProps>",
+    "runnerOwnsSimulation": true,
+    "nativeRendererAssertions": 107,
+    "existingRealVendorIbisRegressionTestsPassed": 6,
+    "propsFanoutRegressionTestsPassed": 29,
+    "independentPhysicalGeometryAuditPassed": true,
+    "physicalGeometryComparisonToleranceMillimeters": 1e-10,
+    "originalPhysicalCounts": {
+      "pcb_trace": 750,
+      "pcb_via": 835,
+      "pcb_smtpad": 1056,
+      "pcb_plated_hole": 46,
+      "pcb_hole": 8,
+      "pcb_copper_pour": 27,
+      "pcb_keepout": 1,
+      "source_manually_placed_via": 319
+    },
+    "traceCopperPourReferencesResolved": 186,
+    "danglingCopperPourReferences": 0,
+    "compatibilityRegressions": {
+      "requestedTests": 10,
+      "passed": 9,
+      "preExistingVisualSnapshotFailures": 1,
+      "baselineConfirmed": true,
+      "snapshotDifferencePercent": 0.01,
+      "primitiveDataAssertionsPassed": 33,
+      "nativeAnnotationsPreserveLegacyImports": true,
+      "unroutedImportFallbackSuppressedOnlyWhenRoutingDisabled": true
+    }
+  }
+}
