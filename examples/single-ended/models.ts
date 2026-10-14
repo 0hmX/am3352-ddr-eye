@@ -2,8 +2,8 @@ import type { IbisModelDefinition } from "@tscircuit/props"
 import lock from "../vendor-models.lock.json"
 
 const vendor = lock.models.cmos
-const source = { url: vendor.url, sha256: vendor.sha256,
-  archive: { member: vendor.archivePath, sha256: vendor.archiveSha256 } }
+const source = { url: vendor.url, sha256: vendor.archiveSha256,
+  archive: { member: vendor.archivePath, memberSha256: vendor.sha256 } }
 
 export const outputPad: IbisModelDefinition = {
   source, component: vendor.component,

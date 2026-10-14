@@ -396,7 +396,7 @@ packages:
     engines: {node: '>= 14.16.0'}
 
   circuit-json@file:../.packages/circuit-json-general-experimental.tgz:
-    resolution: {integrity: sha512-vpOJYROiLzcn9dmmat5HmiZ6yD69RGgQCqS/S5lzDQrCzBc3ZdLCmxpsAO7fgwTH9pn69CJW/qO/51dydl8hfQ==, tarball: file:../.packages/circuit-json-general-experimental.tgz}
+    resolution: {integrity: sha512-nZZew1PLq+nyD63Yx4qQnZAAfTt2Pnxza0ZhQJEwd8+FpyMn6709F4SaecSQLIssuvwIXh+lQIJn99UXVKN7tg==, tarball: file:../.packages/circuit-json-general-experimental.tgz}
     version: 0.0.528
     peerDependencies:
       format-si-unit: '*'

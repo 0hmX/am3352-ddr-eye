@@ -105,8 +105,8 @@ export interface ConvertedIbisComponent {
 /** General API times are milliseconds when numeric; strings have explicit units. */
 export type IbisTimeInput = number | string
 export type IbisSource =
-  | { url: string; sha256: string; archive?: { member: string; sha256?: string }; file?: never; content?: never }
-  | { file: string; sha256?: string; archive?: { member: string; sha256?: string }; url?: never; content?: never }
+  | { url: string; sha256: string; archive?: { member: string; memberSha256?: string }; file?: never; content?: never }
+  | { file: string; sha256?: string; archive?: { member: string; memberSha256?: string }; url?: never; content?: never }
   | { content: string; sha256?: string; url?: never; file?: never; archive?: never }
 export interface IbisReferencePorts {
   pullup?: string

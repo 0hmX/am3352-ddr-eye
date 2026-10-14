@@ -1,5 +1,6 @@
 import { CONVERTER_VERSION, convertIbisBuffer, seconds, sourceHash, spiceNumber } from "./convert"
 import { cornerValue, IbisError, parseIbis } from "./parse-ibis"
+import { validateIbisDefinitionSource } from "./validate-source"
 import type { ConvertedBuffer, ConvertedGeneralIbisComponent, IbisBitsStimulus, IbisBuffer, IbisComponent, IbisConversionMetadata, IbisCorner, IbisModelDefinition, IbisReferencePorts, IbisRunConfig, IbisTimeInput } from "./types"
 
 /** The TSX API uses milliseconds; legacy converter APIs continue to use seconds. */
@@ -120,12 +121,11 @@ function pinPackage(component: IbisComponent, physicalPin: string, corner: IbisC
 
 /** Assemble reusable electrical definitions and one explicit run without protocol assumptions. */
 export function convertIbisModelToSpice(input: string | Uint8Array, definition: IbisModelDefinition, run: IbisRunConfig): ConvertedGeneralIbisComponent {
+  validateIbisDefinitionSource(definition.source)
   const hash = sourceHash(input), text = typeof input === "string" ? input : new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(input)
-  const forms = [definition.source.url, definition.source.file, definition.source.content].filter((value) => value !== undefined)
-  if (forms.length !== 1) throw new IbisError("invalid_source", "Provide exactly one reusable IBIS source form")
-  if (definition.source.url !== undefined && !/^[a-f0-9]{64}$/i.test(definition.source.sha256 ?? "")) throw new IbisError("missing_hash", "URL-based IBIS definition requires the extracted bytes SHA-256")
   if (definition.source.content !== undefined && sourceHash(definition.source.content) !== hash) throw new IbisError("source_mismatch", "Resolved inline IBIS bytes differ from the electrical definition")
-  if (definition.source.sha256 && hash !== definition.source.sha256.toLowerCase()) throw new IbisError("hash_mismatch", "IBIS source does not match the electrical definition's SHA-256")
+  const expectedInputHash = definition.source.archive ? definition.source.archive.memberSha256 : definition.source.sha256
+  if (expectedInputHash && hash !== expectedInputHash.toLowerCase()) throw new IbisError("hash_mismatch", "Resolved IBIS bytes do not match the electrical definition's member/direct SHA-256")
   if (!["vendor", "omit"].includes(definition.packagePolicy)) throw new IbisError("missing_package_policy", "Select packagePolicy=vendor or omit explicitly")
   if (!["typical", "minimum", "maximum"].includes(definition.corner)) throw new IbisError("invalid_corner", "Select an explicit IBIS corner")
   const duration = ibisTimeSeconds(run.duration), document = parseIbis(text), component = document.components[definition.component]

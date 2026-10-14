@@ -837,7 +837,7 @@ packages:
       typescript: ^5
 
   '@tscircuit/core@file:.packages/tscircuit-core-ibis-experimental.tgz':
-    resolution: {integrity: sha512-dcdcTcOFPIrWkZ7aLZr43Zgqw04do+dPtuQ9dOEUQd/BWTobMTJtZApne4qjUsB5leRAePa4msaZXvSLbSF8vw==, tarball: file:.packages/tscircuit-core-ibis-experimental.tgz}
+    resolution: {integrity: sha512-Obfto2eU8wiWClEJxA+nHLSxkytKLiaxos/97A2LuFuqvJf1bwHjHWkJpS+pwCkw6yyfxpxhiBi7jMuXSKgq3g==, tarball: file:.packages/tscircuit-core-ibis-experimental.tgz}
     version: 0.0.2148
     peerDependencies:
       '@tscircuit/cableprinter': 0.0.6
@@ -954,7 +954,7 @@ packages:
     version: 0.0.1
 
   '@tscircuit/props@file:.packages/tscircuit-props-ibis-experimental.tgz':
-    resolution: {integrity: sha512-x3ghiuEYO44S4G7yVeC9dy4Ff2THwFhS2jZD5h54dxCTlNFxbh2PLM4cgS+tcGchscIbDdCzfkHocUkMkLDClQ==, tarball: file:.packages/tscircuit-props-ibis-experimental.tgz}
+    resolution: {integrity: sha512-HfooWeanuJSvc2x99EOZh5UaYOH/xIjqKQl7qsTBjXAn0AL95UN+jIGLsYLM6T7QG5UmX83uDQBgcuv4CJuOKw==, tarball: file:.packages/tscircuit-props-ibis-experimental.tgz}
     version: 0.0.702
     peerDependencies:
       circuit-json: '*'
@@ -1206,7 +1206,7 @@ packages:
       typescript: ^5.0.0
 
   circuit-json@file:.packages/circuit-json-general-experimental.tgz:
-    resolution: {integrity: sha512-vpOJYROiLzcn9dmmat5HmiZ6yD69RGgQCqS/S5lzDQrCzBc3ZdLCmxpsAO7fgwTH9pn69CJW/qO/51dydl8hfQ==, tarball: file:.packages/circuit-json-general-experimental.tgz}
+    resolution: {integrity: sha512-nZZew1PLq+nyD63Yx4qQnZAAfTt2Pnxza0ZhQJEwd8+FpyMn6709F4SaecSQLIssuvwIXh+lQIJn99UXVKN7tg==, tarball: file:.packages/circuit-json-general-experimental.tgz}
     version: 0.0.528
     peerDependencies:
       format-si-unit: '*'
@@ -1980,7 +1980,7 @@ packages:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
 
   tscircuit@file:.packages/tscircuit-experimental.tgz:
-    resolution: {integrity: sha512-gWJF4FS4HJr5+ScAJljvHcldyXGHrPu/sYaw7ruV3S7I0aEYuWEJZ3E7XnF1OEdFvGEm8vlKP/akZag0rqRmMw==, tarball: file:.packages/tscircuit-experimental.tgz}
+    resolution: {integrity: sha512-o6LUPHg2mBgIWQnc3xHHqYv1vF0PmVo3A0zGkOqdXoD5jBt6QueT2Gz0G7gIYRZjuZG9LbtI61zHbgRWWKT0Ow==, tarball: file:.packages/tscircuit-experimental.tgz}
     version: 0.0.2744
     hasBin: true
     peerDependencies:

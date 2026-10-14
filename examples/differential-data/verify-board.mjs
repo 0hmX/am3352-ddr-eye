@@ -18,8 +18,9 @@ for (const name of ["TX", "RX"]) {
   const model = one("simulation_ibis_model", x => x.source_component_id === chip(name).source_component_id)
   assert.equal(model.component, vendor.component)
   assert.equal(model.package_policy, "omit")
-  assert.equal(model.source.sha256, vendor.sha256)
-  assert.equal(model.source.archive.sha256, vendor.archiveSha256)
+  assert.equal(model.source.sha256, vendor.archiveSha256, 'Raw ZIP resource checksum')
+  assert.equal(model.source.archive.memberSha256, vendor.sha256, 'Extracted IBIS member checksum')
+  assert.ok(!Object.hasOwn(model.source.archive, 'sha256'), 'Legacy archive.sha256 is rejected')
   const signals = scenario === "rs485" ? { "6": "A", "7": "B" } : name === "TX" ? { "4": "Y" } : { "2": "A" }
   const vccPin = scenario === "rs485" ? "8" : "5", gndPin = scenario === "rs485" ? "5" : "3"
   for (const [physical, hint] of Object.entries({ ...signals, [vccPin]: "VCC", [gndPin]: "GND" })) {

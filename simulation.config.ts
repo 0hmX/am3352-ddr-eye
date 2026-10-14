@@ -8,8 +8,8 @@ const [ti, winbond] = vendorModels
 
 export const driver: IbisModelDefinition = {
   source: {
-    url: ti.url, sha256: ti.sha256,
-    archive: { member: ti.archivePath, sha256: ti.archiveSha256 },
+    url: ti.url, sha256: ti.archiveSha256,
+    archive: { member: ti.archivePath, memberSha256: ti.sha256 },
   },
   component: "am335x_zcz",
   pinMap: { P1: "P1", P2: "P2", E5: "E5", A1: "A1" },
@@ -24,8 +24,8 @@ export const driver: IbisModelDefinition = {
 
 export const receiver: IbisModelDefinition = {
   source: {
-    url: winbond.url, sha256: winbond.sha256,
-    archive: { member: winbond.archivePath, sha256: winbond.archiveSha256 },
+    url: winbond.url, sha256: winbond.archiveSha256,
+    archive: { member: winbond.archivePath, memberSha256: winbond.sha256 },
   },
   component: "W631GG6MB-12",
   pinMap: { F3: "F3", G3: "G3", A1: "A1", B1: "B1" },

@@ -9,6 +9,28 @@ function one(elements, predicate, label) {
   return matches[0]
 }
 
+export async function auditIbisSource(out, definition, source, ibsBytes) {
+  const ibsSha256 = sha256(ibsBytes)
+  assert.ok(typeof source.rawSourceFile === 'string' && source.rawSourceFile, 'Exact raw source file is captured')
+  const rawBytes = await readFile(join(out, source.rawSourceFile))
+  const rawSourceSha256 = sha256(rawBytes)
+  assert.equal(rawSourceSha256, source.rawSourceSha256, 'Recorded raw download/read/inline bytes')
+  if (definition.url) assert.ok(definition.sha256, 'Remote raw vendor bytes have a declared content lock')
+  if (definition.sha256) assert.equal(rawSourceSha256, definition.sha256.toLowerCase(), 'source.sha256 verifies raw resource bytes')
+  if (definition.archive) {
+    assert.ok(!Object.hasOwn(definition.archive, 'sha256'), 'Legacy archive.sha256 is rejected; use source.sha256 for the raw resource')
+    const archive = await readFile(join(out, source.archiveFile))
+    assert.deepEqual(archive, rawBytes, 'Archived input is the exact raw downloaded/read resource')
+    assert.equal(sha256(archive), source.archiveSha256, 'Original ZIP container fingerprint')
+    assert.equal(sha256(zipMember(archive, definition.archive.member)), ibsSha256, 'Original archive independently decodes the exact executed IBIS bytes')
+    if (definition.archive.memberSha256) assert.equal(ibsSha256, definition.archive.memberSha256.toLowerCase(), 'archive.memberSha256 verifies the extracted member bytes')
+  } else {
+    assert.deepEqual(rawBytes, ibsBytes, 'Plain IBIS input retains exact raw bytes')
+    if (definition.content !== undefined) assert.deepEqual(rawBytes, Buffer.from(definition.content, 'utf8'), 'Inline checksum refers to UTF-8 content bytes')
+  }
+  return { ibsSha256, rawSourceSha256, archiveSha256: definition.archive ? rawSourceSha256 : null }
+}
+
 export async function auditIbis(out, experimentDir, circuit, run) {
   const assemblies = await json(join(experimentDir, 'native-ibis-assembly.json'))
   const declaredModels = circuit.filter(element => element.type === 'simulation_ibis_model')
@@ -37,14 +59,7 @@ export async function auditIbis(out, experimentDir, circuit, run) {
     assert.equal(digest, source.sourceSha256)
     assert.equal(digest, assembly.sourceSha256)
     assert.equal(digest, metadata.sourceSha256)
-    if (definition.source.sha256) assert.equal(digest, definition.source.sha256.toLowerCase())
-    if (definition.source.url) assert.ok(definition.source.sha256, 'Remote vendor bytes have a declared content lock')
-    if (definition.source.archive) {
-      const archive = await readFile(join(out, source.archiveFile))
-      assert.equal(sha256(archive), source.archiveSha256)
-      if (definition.source.archive.sha256) assert.equal(sha256(archive), definition.source.archive.sha256.toLowerCase())
-      assert.equal(sha256(zipMember(archive, definition.source.archive.member)), digest, 'Original archive independently decodes the exact executed IBIS bytes')
-    }
+    const checksums = await auditIbisSource(out, definition.source, source, bytes)
     const lib = await readFile(join(experimentDir, `${assembly.simulationIbisModelId}.lib`))
     assert.equal(sha256(lib), assembly.spiceSha256, 'Executed model-library bytes')
     const wrapper = lib.toString('utf8').match(/^\.subckt\s+(\S+)\s+([^\r\n]+)/mi)
@@ -100,7 +115,7 @@ export async function auditIbis(out, experimentDir, circuit, run) {
       } else assert.equal(pin.stimulusHash, undefined)
       pins.push({ ...original, sourcePortId: pin.port, runState: pin.runState, enableControlLevel: pin.enableControlLevel, references: pin.references, stimulus: schedule })
     }
-    evidence.push({ modelId: assembly.simulationIbisModelId, sourceComponentId: declared.source_component_id, component: definition.component, source: definition.source, sourceSha256: digest, packagePolicy: definition.packagePolicy, omissions: metadata.omissions, differentialPins: metadata.differentialPins, packageData: metadata.packageData, pins, vendorSupplyPins: vendor.filter(pin => pin.supplyType) })
+    evidence.push({ modelId: assembly.simulationIbisModelId, sourceComponentId: declared.source_component_id, component: definition.component, source: definition.source, sourceSha256: digest, checksums, packagePolicy: definition.packagePolicy, omissions: metadata.omissions, differentialPins: metadata.differentialPins, packageData: metadata.packageData, pins, vendorSupplyPins: vendor.filter(pin => pin.supplyType) })
   }
   return evidence
 }

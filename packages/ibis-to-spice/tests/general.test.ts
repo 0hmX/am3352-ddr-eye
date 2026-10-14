@@ -71,19 +71,48 @@ test("declared separate rail references survive serialization and remain indepen
   expect(converted.source).toContain("PU_REF PD_REF PC_REF GC_REF")
 })
 
-test("general file/text/archive sources verify extracted and original bytes", async () => {
+test("general source hashes verify original bytes before extraction and member hashes verify extracted bytes", async () => {
   const content = "[IBIS Ver] 4.2\n[End]\n", bytes = new TextEncoder().encode(content)
+  const archive = zipSync({ "vendor/test.ibs": bytes }), rawHash = sourceHash(archive), memberHash = sourceHash(bytes)
+  expect(rawHash).not.toBe(memberHash)
   expect(await loadIbisDefinitionSource({ content, sha256: sourceHash(bytes) })).toBe(content)
+  await expect(loadIbisDefinitionSource({ content, sha256: "0".repeat(64) })).rejects.toThrow("Inline IBIS source")
   expect(await loadIbisDefinitionSource({ file: "models/test.ibs", sha256: sourceHash(bytes) }, { readFile: async (path) => { expect(path).toBe("models/test.ibs"); return bytes } })).toBe(content)
+  await expect(loadIbisDefinitionSource({ file: "test.ibs", sha256: "0".repeat(64) }, { readFile: async () => bytes })).rejects.toThrow("Original source bytes")
   await expect(loadIbisDefinitionSource({ file: "test.ibs" })).rejects.toThrow("file reader")
   await expect(loadIbisDefinitionSource({ url: "https://vendor.test/a.ibs", sha256: "0".repeat(64) }, { fetcher: async () => new Response(bytes) })).rejects.toThrow("SHA-256")
-  await expect(loadIbisDefinitionSource({ url: "https://vendor.test/a.zip", sha256: sourceHash(bytes), archive: { member: "test.ibs", sha256: "0".repeat(64) } }, { fetcher: async () => new Response(bytes) })).rejects.toThrow("Original archive")
-  const archive = zipSync({ "vendor/test.ibs": bytes })
-  expect(await loadIbisDefinitionSource({ url: "https://vendor.test/a.zip", sha256: sourceHash(bytes), archive: { member: "vendor/test.ibs", sha256: sourceHash(archive) } }, { fetcher: async () => new Response(new Uint8Array(archive)) })).toBe(content)
+  expect(await loadIbisDefinitionSource({ url: "https://vendor.test/a.ibs", sha256: memberHash }, { fetcher: async () => new Response(bytes) })).toBe(content)
+  const zipped = { url: "https://vendor.test/a.zip", sha256: rawHash, archive: { member: "vendor/test.ibs", memberSha256: memberHash } }
+  const fetcher = async () => new Response(new Uint8Array(archive))
+  expect(await loadIbisDefinitionSource(zipped, { fetcher })).toBe(content)
+  expect(await loadIbisDefinitionSource({ file: "model.zip", sha256: rawHash, archive: zipped.archive }, { readFile: async () => archive })).toBe(content)
+  await expect(loadIbisDefinitionSource({ ...zipped, sha256: memberHash }, { fetcher })).rejects.toThrow("Original source bytes")
+  await expect(loadIbisDefinitionSource(zipped, { fetcher: async () => new Response(new Uint8Array([0x50, 0x4b, 0])) })).rejects.toThrow("Original source bytes")
+  await expect(loadIbisDefinitionSource({ ...zipped, archive: { ...zipped.archive, memberSha256: "0".repeat(64) } }, { fetcher })).rejects.toThrow("Extracted archive member")
+  // Runtime JSON must fail for the removed key, even when its value is undefined.
+  await expect(loadIbisDefinitionSource({ ...zipped, archive: { ...zipped.archive, sha256: undefined } } as unknown as IbisModelDefinition["source"], { fetcher })).rejects.toThrow("archive.sha256 is unsupported")
   const bomBytes = new Uint8Array([0xef, 0xbb, 0xbf, ...bytes])
   const loaded = await loadIbisDefinitionSource({ file: "with-bom.ibs", sha256: sourceHash(bomBytes) }, { readFile: async () => bomBytes })
   expect(sourceHash(loaded)).toBe(sourceHash(bomBytes))
   expect(parseIbis(loaded).version).toBe("4.2")
+})
+
+test("resolved archive conversion checks only the member hash and reports the IBIS digest", async () => {
+  const content = lvcSource(), bytes = new TextEncoder().encode(content)
+  const archive = zipSync({ "vendor/lvc.ibs": bytes }), rawHash = sourceHash(archive), memberHash = sourceHash(bytes)
+  const source = { url: "https://vendor.test/lvc.zip", sha256: rawHash, archive: { member: "vendor/lvc.ibs", memberSha256: memberHash } }
+  const definition = { ...lvcDefinition(), source }
+  const run = { duration: "50ns", pinStates: { Y: { mode: "output" as const, enabled: true } }, stimuli: { Y: bits("0", { startTime: "0ns" }) } }
+  const resolved = await loadIbisDefinitionSource(source, { fetcher: async () => new Response(new Uint8Array(archive)) })
+  const converted = convertIbisModelToSpice(resolved, definition, run)
+  expect(converted.sourceSha256).toBe(memberHash)
+  expect(converted.metadata.sourceSha256).toBe(memberHash)
+  expect(converted.sourceSha256).not.toBe(rawHash)
+  expect(convertIbisModelToSpice(bytes, { ...definition, source: { ...source, archive: { member: source.archive.member } } }, run).sourceSha256).toBe(memberHash)
+  expect(() => convertIbisModelToSpice(bytes, { ...definition, source: { ...source, archive: { ...source.archive, memberSha256: "0".repeat(64) } } }, run)).toThrow("member/direct SHA-256")
+  expect(() => convertIbisModelToSpice(bytes, { ...definition, source: { file: "direct.ibs", sha256: rawHash } }, run)).toThrow("member/direct SHA-256")
+  expect(convertIbisModelToSpice(bytes, { ...definition, source: { file: "direct.ibs", sha256: memberHash } }, run).sourceSha256).toBe(memberHash)
+  expect(() => convertIbisModelToSpice(bytes, { ...definition, source: { ...source, archive: { ...source.archive, sha256: rawHash } } as unknown as IbisModelDefinition["source"] }, run)).toThrow("archive.sha256 is unsupported")
 })
 
 test("real LVC electrical waveform matches both original vendor fixtures with arbitrary bits", async () => {

@@ -1,9 +1,9 @@
 diff --git a/docs/GENERAL_IBIS_SIMULATION.md b/docs/GENERAL_IBIS_SIMULATION.md
 new file mode 100644
-index 0000000..e38aa5e
+index 0000000..4b8cb41
 --- /dev/null
 +++ b/docs/GENERAL_IBIS_SIMULATION.md
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,61 @@
 +# General IBIS simulation declarations
 +
 +The general API declares electrical models, per-experiment digital controls, and voltage measurements. Native rendering serializes these into registered Circuit JSON records. An explicit external runner resolves resources, extracts the routed PCB, assembles SPICE and executes the pending experiment. Rendering these declarations does not launch a solver or download model bytes.
@@ -39,7 +39,20 @@ index 0000000..e38aa5e
 +/>
 +```
 +
-+`electricalDefinition` contains a structured `source` (`url`, `file`, or `content`), exact vendor `component`, physical-pin-to-local-port `pinMap`, optional per-physical-pin `modelSelections` and `references`, required `corner`, and explicit `packagePolicy` (`vendor` or `omit`). URL sources require the SHA-256 of the extracted IBIS bytes. Archive metadata identifies the member and optional archive hash. File resolution belongs to the runner's project-entry context or explicit resource resolver; a React element does not identify its declaring source filename.
++`electricalDefinition` contains a structured `source` (`url`, `file`, or `content`), exact vendor `component`, physical-pin-to-local-port `pinMap`, optional per-physical-pin `modelSelections` and `references`, required `corner`, and explicit `packagePolicy` (`vendor` or `omit`). `source.sha256` checks the raw downloaded URL bytes, raw file bytes, or UTF-8 inline content before extraction. URL sources require this checksum; file and inline checksums are optional. Archive metadata is `{ member, memberSha256? }`: `memberSha256` checks the extracted member bytes. For a ZIP source, the outer checksum identifies the ZIP, and the optional member checksum identifies the selected `.ibs` file. Neither schema defaults a checksum or changes the supplied value.
++
++```tsx
++source: {
++  url: "https://www.ti.com/lit/zip/sprm552",
++  sha256: "f99cb588a07b2d77d4c52a3189933c8175467d8829b94d118173943b286990aa",
++  archive: {
++    member: "sprm552c.ibs",
++    memberSha256: "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
++  },
++}
++```
++
++The former experimental `archive.sha256` key is rejected. When migrating an archived source, put the raw archive hash in `source.sha256` and the extracted IBIS hash in `archive.memberSha256`; merely renaming the old archive key would reverse their meanings. File resolution belongs to the runner's project-entry context or explicit resource resolver; a React element does not identify its declaring source filename.
 +
 +Attach a model to an imported chip using `<ibismodel componentRef=".bank > .U1" {...electricalDefinition} />` inside its imported board. Component, probe, simulation and physical-port selectors must resolve exactly once in the nearest subcircuit. Enter nested subcircuits through a named qualified path. Bare reference designators are not global keys. Local reference ports must be represented in `pinMap`; conflicting model attachments and duplicate physical pin aliases fail.
 +
@@ -4614,7 +4627,7 @@ index 0000000..1eb1f36
 +}
 diff --git a/tests/fixtures/general-simulation-model.ts b/tests/fixtures/general-simulation-model.ts
 new file mode 100644
-index 0000000..5d940b8
+index 0000000..d4ad8e0
 --- /dev/null
 +++ b/tests/fixtures/general-simulation-model.ts
 @@ -0,0 +1,25 @@
@@ -4624,11 +4637,11 @@ index 0000000..5d940b8
 +export const generalSimulationModel: IbisModelDefinition = {
 +  source: {
 +    url: "https://www.ti.com/lit/zip/sprm552",
-+    sha256: "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
++    sha256: "f99cb588a07b2d77d4c52a3189933c8175467d8829b94d118173943b286990aa",
 +    archive: {
 +      member: "sprm552c.ibs",
-+      sha256:
-+        "f99cb588a07b2d77d4c52a3189933c8175467d8829b94d118173943b286990aa",
++      memberSha256:
++        "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
 +    },
 +  },
 +  component: "am335x_zcz",

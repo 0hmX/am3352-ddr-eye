@@ -23,25 +23,29 @@ const safeId=id=>{
   if(typeof id!=='string'||!/^[a-zA-Z0-9_-]+$/.test(id)) fail('simulation_id','Serialized simulation IDs must be safe stable identifiers')
   return id
 }
-async function loadModelSource(model,baseDir,cache) {
+export async function loadModelSource(model,baseDir,cache) {
   const original=model.source,source=original.file?{...original,file:resolve(baseDir,original.file)}:original
   let downloaded
   const fetcher=async url=>{
-    if(!source.sha256) fail('vendor_hash','URL imports require exact extracted IBIS SHA-256')
+    if(!source.sha256) fail('vendor_hash','URL imports require source.sha256 for the raw downloaded bytes')
     await mkdir(cache,{recursive:true})
-    const path=join(cache,sha256(`${url}:${source.sha256}:${source.archive?.sha256??''}`)+'.source')
+    const path=join(cache,sha256(JSON.stringify([url,source.sha256.toLowerCase()]))+'.source')
+    let fresh=false
     try {downloaded=await readFile(path)} catch(error) {
       if(error.code!=='ENOENT') throw error
       const response=await fetch(url)
       if(!response.ok) fail('vendor_download',`IBIS source HTTP ${response.status}: ${url}`)
-      downloaded=Buffer.from(await response.arrayBuffer());await writeFile(path,downloaded)
+      downloaded=Buffer.from(await response.arrayBuffer());fresh=true
     }
+    if(sha256(downloaded)!==source.sha256.toLowerCase()) fail('vendor_hash','Downloaded or cached raw source bytes differ from source.sha256')
+    if(fresh) await writeFile(path,downloaded)
     return new Response(downloaded,{status:200})
   }
   const reader=async path=>{downloaded=await readFile(path);return downloaded}
   const text=await converter.loadIbisDefinitionSource(source,{fetcher,readFile:reader}),bytes=Buffer.from(text,'utf8')
   const id=safeId(model.pipelineId)
-  return {text,bytes,archive:source.archive?downloaded:null,evidence:{simulationIbisModelId:id,source:original,ibsFile:`inputs/ibis/${id}.ibs`,sourceSha256:sha256(bytes),archiveFile:source.archive?`inputs/ibis/${id}.zip`:null,archiveSha256:source.archive&&downloaded?sha256(downloaded):null}}
+  const ibsFile=`inputs/ibis/${id}.ibs`,archiveFile=source.archive?`inputs/ibis/${id}.zip`:null
+  return {text,bytes,archive:source.archive?downloaded:null,evidence:{simulationIbisModelId:id,source:original,rawSourceFile:archiveFile??ibsFile,rawSourceSha256:sha256(downloaded??bytes),ibsFile,sourceSha256:sha256(bytes),archiveFile,archiveSha256:source.archive&&downloaded?sha256(downloaded):null}}
 }
 
 export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,baseDir=process.cwd(),entryBytes,entryPath,circuitBytes,originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256,project,python,vendorCache=join(packageRoot,'.cache/vendors'),onProgress=()=>{}}) {

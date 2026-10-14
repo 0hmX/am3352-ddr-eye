@@ -9,13 +9,13 @@
     "version": "0.0.1538",
     "commit": "1f3cc31db71c66c50a8593241f709665adbc85a1",
     "entrypoint": "webworker/entrypoint.ts",
-    "workerSha256": "224b4d6ba5a8a0b02ddd2f29abb45c19c4d4b789623cbd9d2518fc44d8350852",
+    "workerSha256": "b49e500069e4c52e6a24feca4932e9beee6747abf4bcedae2160e7102a1927a2",
     "configChange": "dts:false for runtime-only webworker build",
     "sourcesUnmodified": false,
     "sourcePatch": "browser-runtime/eval-local-proxy.patch"
   },
-  "corePackageSha256": "885970ceaea6739bf489f88c9b143d15b1669541cf34003d2f835c3141da2631",
-  "propsPackageSha256": "c49c8e93e192d362043de9fca1e857f2aee541e194c3ab9aa4856a1640d8e757",
+  "corePackageSha256": "12484340ce339d6727509d32ec567cd60fcf0f3975b0b430bac6634584e430fa",
+  "propsPackageSha256": "442b0e8090a6f6466218fdf6c0a6ba3ddf3c400fd9c276e9ada4e8fa8f446098",
   "build": "pnpm exec tsup --config tsup-webworker.config.ts",
   "assembly": "Official tscircuit copy-runframe-standalone semantics: replace exact embedded original eval worker with rebuilt eval worker; preserve published runframe UI. Replace exported webworker.min.js with same rebuilt worker.",
   "nativeApi": {
@@ -25,6 +25,6 @@
     "execution": "external pending declarations; native CLI pipeline executes solver",
     "timeUnits": "milliseconds for raw numbers; unit-aware strings"
   },
-  "converterPackageSha256": "113e49691f4ad00d9e163dd1501e665c5e57c0b3ec100d1fb295160ddb636f55",
-  "circuitJsonPackageSha256": "a75f32e3f2b9fdbc542e5a73365a66ff079a4c79f255ba97db9e85474651a881"
+  "converterPackageSha256": "066756e28faeae0d29bd8cbe727e982c124c78b86556effa3a57ea847358c414",
+  "circuitJsonPackageSha256": "a7de57a8960c5e8679d625263144755c969b9b4f690537d4e2ce3746c5680737"
 }

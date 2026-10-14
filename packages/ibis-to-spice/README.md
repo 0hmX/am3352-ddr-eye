@@ -28,10 +28,10 @@ import {
 const definition: IbisModelDefinition = {
   source: {
     url: "https://www.ti.com/lit/zip/sllm183",
-    sha256: "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e",
+    sha256: "935ce893dc388969a3e1319153daaa81e1486d786b87eed6a7d543b5f5dbfcba",
     archive: {
       member: "SN65HVD72_IBIS/sn65hvd72.ibs",
-      sha256: "935ce893dc388969a3e1319153daaa81e1486d786b87eed6a7d543b5f5dbfcba",
+      memberSha256: "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e",
     },
   },
   component: "SN65HVD72D",
@@ -59,7 +59,9 @@ const result = convertIbisModelToSpice(source, definition, {
 
 `pinMap` maps physical vendor pins to local TSX ports. `modelSelections` chooses a permitted model for each ambiguous vendor selector. Per-pin `references` may explicitly name pullup, pulldown, power-clamp and ground-clamp ports. Otherwise, inference requires unambiguous mapped vendor power/ground pins or `[Pin Mapping]` networks. Independent rail terminals preserve different reference voltages; callers supply the actual rail sources. Die capacitance is modeled against the pulldown reference. Nonzero supply/reference-pin package impedance is unsupported and makes the vendor package policy fail.
 
-Source forms are exactly one of `url`, `file` or `content`. URL sources require the extracted IBIS SHA-256; ZIP sources require an explicit archive member and optionally verify original archive SHA-256. File sources require a caller-owned `readFile(path)` callback so resolution is relative to the declaring project file. Strings preserve vendor bytes, including CRLF and UTF-8 BOM.
+Source forms are exactly one of `url`, `file` or `content`. `source.sha256` verifies the original downloaded, read or inline UTF-8 bytes **before extraction**; URL sources require it. ZIP sources select `archive.member` and can additionally pin the extracted bytes with `archive.memberSha256`. The old `archive.sha256` key is rejected. File sources require a caller-owned `readFile(path)` callback so resolution is relative to the declaring project file. Strings preserve vendor bytes, including CRLF and UTF-8 BOM.
+
+`convertIbisModelToSpice` accepts the already-resolved IBIS bytes: it checks `archive.memberSha256` for an archive definition, or `source.sha256` for a direct definition. The loader owns original archive verification. Returned `sourceSha256` and `metadata.sourceSha256` always identify the IBIS bytes used for conversion, even when `source.sha256` identifies a ZIP file. The legacy `loadIbisSource` API retains its existing checksum contract.
 
 New numeric time inputs are **milliseconds**, matching tscircuit's transient API; strings accept explicit `s`, `ms`, `us`, `ns` and `ps`. Stimuli drive the selected electrical buffer's logical control. Explicit caller inversion applies to the initial state and all pattern bits once; declared vendor `Polarity` applies separately once. Repeated equal bits hold their state without another transition. Nonrepeating bits must cover the run. Missing vendor polarity uses an explicitly reported noninverting pad-control convention; this does not infer a chip's functional truth table. `[Diff Pin]` does not invent another driver or complement a separately controlled leg.
 

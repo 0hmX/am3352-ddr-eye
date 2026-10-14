@@ -24,8 +24,8 @@ for (const model of lock) {
   }
   const source = await loadIbisDefinitionSource({
     url: model.url,
-    archive: { member: model.archivePath, sha256: model.archiveSha256 },
-    sha256: model.sha256,
+    archive: { member: model.archivePath, memberSha256: model.sha256 },
+    sha256: model.archiveSha256,
   })
   await writeFile(path, source)
   console.log(`Downloaded and verified ${model.vendor}: ${model.file}`)

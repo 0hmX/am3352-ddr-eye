@@ -690,7 +690,7 @@ index 9cda0e9..685d21c 100644
  
 diff --git a/lib/components/chip/ibis.ts b/lib/components/chip/ibis.ts
 new file mode 100644
-index 0000000..a371d16
+index 0000000..fa77728
 --- /dev/null
 +++ b/lib/components/chip/ibis.ts
 @@ -0,0 +1,151 @@
@@ -772,10 +772,10 @@ index 0000000..a371d16
 +const portName = z.string().trim().min(1)
 +const sha256 = z.string().regex(/^[a-f0-9]{64}$/i)
 +const archive = z
-+  .object({ member: portName, sha256: sha256.optional() })
++  .object({ member: portName, memberSha256: sha256.optional() })
 +  .strict()
 +
-+/** SHA-256 identifies the exact extracted IBIS bytes, not the archive. */
++/** source.sha256 covers raw URL/file bytes or UTF-8 content; archive.memberSha256 covers the extracted member. */
 +export const ibisSource = z.union([
 +  z
 +    .object({ url: z.string().url(), sha256, archive: archive.optional() })
@@ -1018,10 +1018,10 @@ index 0000000..e165431
 +})
 diff --git a/tests/general-simulation.test.tsx b/tests/general-simulation.test.tsx
 new file mode 100644
-index 0000000..7d18c0c
+index 0000000..a7af36d
 --- /dev/null
 +++ b/tests/general-simulation.test.tsx
-@@ -0,0 +1,151 @@
+@@ -0,0 +1,192 @@
 +import { expect, test } from "bun:test"
 +import {
 +  analogDigitalStimulusProps,
@@ -1029,6 +1029,7 @@ index 0000000..7d18c0c
 +  analogTransientSimulationProps,
 +  chipProps,
 +  eyeDiagramProps,
++  ibisSource,
 +  ibisModelDefinitionProps,
 +  ibismodelProps,
 +  type AnalogEyeDiagramProps,
@@ -1117,13 +1118,53 @@ index 0000000..7d18c0c
 +      ...model,
 +      source: {
 +        file: "models/vendor.zip",
-+        archive: { member: "buffer.ibs", sha256: "a".repeat(64) },
++        archive: { member: "buffer.ibs", memberSha256: "a".repeat(64) },
 +      },
 +    }).source,
 +  ).toEqual({
 +    file: "models/vendor.zip",
-+    archive: { member: "buffer.ibs", sha256: "a".repeat(64) },
++    archive: { member: "buffer.ibs", memberSha256: "a".repeat(64) },
 +  })
++})
++
++test("raw source and extracted member checksums remain distinct and the old archive key is rejected", () => {
++  const rawHash = "a".repeat(64)
++  const memberHash = "b".repeat(64)
++  for (const source of [
++    {
++      url: "https://example.test/vendor.zip",
++      sha256: rawHash,
++      archive: { member: "buffer.ibs", memberSha256: memberHash },
++    },
++    {
++      file: "vendor.zip",
++      sha256: rawHash,
++      archive: { member: "buffer.ibs", memberSha256: memberHash },
++    },
++    { file: "vendor.zip", archive: { member: "buffer.ibs" } },
++    { content: "[IBIS Ver] 4.2\n[End]\n", sha256: rawHash },
++  ]) {
++    expect(ibisSource.parse(source)).toEqual(source)
++    expect(ibisModelDefinitionProps.parse({ ...model, source }).source).toEqual(
++      source,
++    )
++  }
++  for (const resource of [
++    { url: "https://example.test/vendor.zip", sha256: rawHash },
++    { file: "vendor.zip", sha256: rawHash },
++  ]) {
++    for (const archive of [
++      { member: "buffer.ibs", sha256: memberHash },
++      { member: "buffer.ibs", memberSha256: memberHash, sha256: rawHash },
++      { member: "buffer.ibs", memberSha256: "invalid" },
++    ]) {
++      expect(ibisSource.safeParse({ ...resource, archive }).success).toBe(false)
++      expect(
++        ibismodelProps.safeParse({ ...model, source: { ...resource, archive } })
++          .success,
++      ).toBe(false)
++    }
++  }
 +})
 +
 +test("digital controls validate binary sequences and fixed pin-state discriminants", () => {

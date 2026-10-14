@@ -56,8 +56,8 @@ A chip's `ibisModel` is reusable electrical data. It does not contain traffic or
 ```tsx
 <chip name="TX" pinLabels={pins} footprint={<Soic8Pads />}
   ibisModel={<ibismodel
-    source={{ url: vendorUrl, sha256: modelHash,
-      archive: { member: "model.ibs", sha256: archiveHash } }}
+    source={{ url: vendorUrl, sha256: archiveHash,
+      archive: { member: "model.ibs", memberSha256: modelHash } }}
     component="SN65HVD72D"
     pinMap={{ "6": "A", "7": "B", "8": "VCC", "5": "GND" }}
     modelSelections={{ "6": "a_b_p", "7": "a_b_n" }}
@@ -70,6 +70,8 @@ A chip's `ibisModel` is reusable electrical data. It does not contain traffic or
 ```
 
 `source` accepts one of `{url, sha256}`, `{file, sha256?}`, or `{content, sha256?}`. Local file paths are relative to the board entrypoint directory (or absolute), including definitions imported from shared modules. Archives require an exact member; URL resources require content hashes in this repeatable pipeline. Physical IBIS pin numbers map explicitly to local TSX port labels. Model selectors, corner and reference rails are explicit. A standalone `<ibismodel componentRef=".U1" {...definition} />` attaches the same definition to a chip on an imported board without changing its routing.
+
+`source.sha256` checks the original bytes downloaded from `url`, read from `file`, or supplied as UTF-8 `content`, before any extraction. For ZIP sources this is the ZIP checksum; `archive.memberSha256` checks the extracted member separately. For a direct `.ibs` resource, omit `archive` and put the IBIS checksum in `source.sha256`. The former `archive.sha256` key is rejected; migrate both the field name and the two checksum values together.
 
 A transient experiment owns buffer state and enabled/disabled output state. Digital stimuli own the bit sequence; probes own the electrical quantity; eyes own folding and observation time:
 

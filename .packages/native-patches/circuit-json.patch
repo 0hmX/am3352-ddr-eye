@@ -1211,7 +1211,7 @@ index 78ab5db..b6fbfae 100644
      dc_sweep_start: z.number().optional(),
 diff --git a/src/simulation/simulation_signal_integrity.ts b/src/simulation/simulation_signal_integrity.ts
 new file mode 100644
-index 0000000..34149b8
+index 0000000..b32b0fb
 --- /dev/null
 +++ b/src/simulation/simulation_signal_integrity.ts
 @@ -0,0 +1,148 @@
@@ -1220,10 +1220,10 @@ index 0000000..34149b8
 +
 +const sha256 = z.string().regex(/^[a-f0-9]{64}$/i)
 +const archive = z
-+  .object({ member: z.string().min(1), sha256: sha256.optional() })
++  .object({ member: z.string().min(1), memberSha256: sha256.optional() })
 +  .strict()
 +
-+/** Resource identity; archive hashes cover original bytes, outer hash covers IBS. */
++/** source.sha256 covers raw URL/file bytes or UTF-8 content; archive.memberSha256 covers the extracted member. */
 +export const simulation_ibis_source = z.union([
 +  z
 +    .object({ url: z.string().url(), sha256, archive: archive.optional() })
@@ -1385,10 +1385,10 @@ index 8a732bb..7a943d8 100644
      timestamps_ms: z.array(z.number()).optional(),
 diff --git a/tests/simulation-signal-integrity.test.ts b/tests/simulation-signal-integrity.test.ts
 new file mode 100644
-index 0000000..e5da512
+index 0000000..5b11952
 --- /dev/null
 +++ b/tests/simulation-signal-integrity.test.ts
-@@ -0,0 +1,137 @@
+@@ -0,0 +1,214 @@
 +import { expect, test } from "bun:test"
 +import {
 +  any_circuit_element,
@@ -1405,7 +1405,7 @@ index 0000000..e5da512
 +      source: {
 +        url: "https://example.com/vendor.zip",
 +        sha256: "a".repeat(64),
-+        archive: { member: "vendor.ibs", sha256: "b".repeat(64) },
++        archive: { member: "vendor.ibs", memberSha256: "b".repeat(64) },
 +      },
 +      component: "PART",
 +      pin_to_source_port_map: { "4": "signal", "5": "vdd" },
@@ -1472,6 +1472,56 @@ index 0000000..e5da512
 +  ).toEqual(definitions)
 +})
 +
++test("IBIS source serialization keeps raw and member hashes distinct and rejects archive.sha256", () => {
++  const rawHash = "a".repeat(64)
++  const memberHash = "b".repeat(64)
++  const model = {
++    type: "simulation_ibis_model",
++    source_component_id: "chip",
++    component: "PART",
++    pin_to_source_port_map: { "4": "signal" },
++    corner: "typical",
++    package_policy: "omit",
++  }
++  for (const source of [
++    {
++      url: "https://example.com/vendor.zip",
++      sha256: rawHash,
++      archive: { member: "vendor.ibs", memberSha256: memberHash },
++    },
++    {
++      file: "vendor.zip",
++      sha256: rawHash,
++      archive: { member: "vendor.ibs", memberSha256: memberHash },
++    },
++    { file: "vendor.zip", archive: { member: "vendor.ibs" } },
++    { content: "[IBIS Ver] 4.2\n[End]\n", sha256: rawHash },
++  ]) {
++    expect(simulation_ibis_source.parse(source)).toEqual(source)
++    expect(
++      any_circuit_element.parse(
++        JSON.parse(JSON.stringify({ ...model, source })),
++      ),
++    ).toMatchObject({ source })
++  }
++  for (const resource of [
++    { url: "https://example.com/vendor.zip", sha256: rawHash },
++    { file: "vendor.zip", sha256: rawHash },
++  ]) {
++    for (const archive of [
++      { member: "vendor.ibs", sha256: memberHash },
++      { member: "vendor.ibs", memberSha256: memberHash, sha256: rawHash },
++      { member: "vendor.ibs", memberSha256: "invalid" },
++    ]) {
++      const source = { ...resource, archive }
++      expect(simulation_ibis_source.safeParse(source).success).toBe(false)
++      expect(any_circuit_element.safeParse({ ...model, source }).success).toBe(
++        false,
++      )
++    }
++  }
++})
++
 +test("invalid source ambiguity, output enable and bit patterns are rejected", () => {
 +  expect(() =>
 +    simulation_ibis_source.parse({
@@ -1516,13 +1566,40 @@ index 0000000..e5da512
 +})
 +
 +test("native numeric PCB display offsets retain millimeter values", () => {
-+  const component = { type: "pcb_component", pcb_component_id: "pcb", source_component_id: "chip", center: { x: -3, y: 3 }, layer: "top", rotation: 0, width: 1, height: 1, display_offset_x: -3, display_offset_y: 3 }
-+  expect(any_circuit_element.parse(component)).toMatchObject({ display_offset_x: -3, display_offset_y: 3 })
++  const component = {
++    type: "pcb_component",
++    pcb_component_id: "pcb",
++    source_component_id: "chip",
++    center: { x: -3, y: 3 },
++    layer: "top",
++    rotation: 0,
++    width: 1,
++    height: 1,
++    display_offset_x: -3,
++    display_offset_y: 3,
++  }
++  expect(any_circuit_element.parse(component)).toMatchObject({
++    display_offset_x: -3,
++    display_offset_y: 3,
++  })
 +})
 +
 +test("board silkscreen has no invented component owner", () => {
-+  const text = { type: "pcb_silkscreen_text", pcb_silkscreen_text_id: "note", text: "BOARD NOTE", layer: "top", font: "tscircuit2024", font_size: 1, anchor_position: { x: 0, y: 0 }, anchor_alignment: "center" }
++  const text = {
++    type: "pcb_silkscreen_text",
++    pcb_silkscreen_text_id: "note",
++    text: "BOARD NOTE",
++    layer: "top",
++    font: "tscircuit2024",
++    font_size: 1,
++    anchor_position: { x: 0, y: 0 },
++    anchor_alignment: "center",
++  }
 +  expect(any_circuit_element.parse(text)).not.toHaveProperty("pcb_component_id")
-+  expect(any_circuit_element.parse({ ...text, pcb_component_id: "chip" })).toHaveProperty("pcb_component_id", "chip")
-+  expect(() => any_circuit_element.parse({ ...text, pcb_component_id: null })).toThrow()
++  expect(
++    any_circuit_element.parse({ ...text, pcb_component_id: "chip" }),
++  ).toHaveProperty("pcb_component_id", "chip")
++  expect(() =>
++    any_circuit_element.parse({ ...text, pcb_component_id: null }),
++  ).toThrow()
 +})
