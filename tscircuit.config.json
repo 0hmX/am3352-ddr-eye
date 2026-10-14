@@ -6,6 +6,7 @@
     "examples/single-ended/index.circuit.tsx"
   ],
   "siteDefaultComponentPath": "index.circuit.tsx",
+  "ignoredFiles": ["dist/**"],
   "platformConfig": {
     "partsEngineDisabled": true
   }

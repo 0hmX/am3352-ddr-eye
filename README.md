@@ -23,7 +23,7 @@ pnpm build
 pnpm dev --port 3091
 ```
 
-Open the ordinary file selector to preview either example TSX. Supplier metadata lookup is disabled in `tscircuit.config.json`; the build uses the standard `--disable-parts-engine` flag.
+Open the ordinary file selector to preview either example TSX. Generated `dist/**` files are ignored by the dev server so saved simulation output does not enter its source watcher. Supplier metadata lookup is disabled in `tscircuit.config.json`; the build uses the standard `--disable-parts-engine` flag.
 
 For simulation, also install Python **3.11**, Git and a C/C++ compiler. macOS needs Homebrew and Xcode command-line tools. Setup builds pinned FastHenry, FasterCap and ngspice and installs the pinned plotting environment. Setup installs native dependencies through Homebrew on macOS or apt on Linux; this delivery was executed on macOS arm64.
 
