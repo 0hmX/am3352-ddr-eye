@@ -1,0 +1,61 @@
+{
+  "circuitJsonUnits": "mm",
+  "reduction": "straightened-stages",
+  "conductivitySm": 58000000,
+  "sections": 12,
+  "extraction": {
+    "minimumHz": 1,
+    "maximumHz": 1000000000.0,
+    "modelHz": 100000000.0,
+    "filaments": 7,
+    "capTolerance": 0.02,
+    "maxPanelLengthMm": 2,
+    "reciprocityTolerance": 0.025,
+    "dcResistanceTolerance": 0.002,
+    "refinementFilaments": 11,
+    "convergenceTolerance": 0.05
+  },
+  "profiles": {
+    "top": {
+      "spacingMm": 0.75,
+      "relativePermittivity": 2.55,
+      "return": {
+        "widthMm": 2.0,
+        "thicknessMm": 0.035,
+        "lengthFactor": 1.0,
+        "centerYMm": 0,
+        "centerZMm": -0.2
+      }
+    }
+  },
+  "stackup": [
+    {
+      "name": "top",
+      "zMinMm": 0,
+      "zMaxMm": 0.035
+    }
+  ],
+  "lanes": [
+    {
+      "port": "DQS",
+      "sourceTraceId": "s0",
+      "from": {
+        "sourcePortId": "p0"
+      },
+      "to": {
+        "sourcePortId": "p2"
+      }
+    },
+    {
+      "port": "DQSn",
+      "sourceTraceId": "s1",
+      "from": {
+        "sourcePortId": "p1"
+      },
+      "to": {
+        "sourcePortId": "p3"
+      }
+    }
+  ],
+  "description": "10mm synthetic coupled channel; finite return, homogeneous effective er=2.55; TI/Winbond buffers"
+}

@@ -15,27 +15,6 @@
     "refinementFilaments": 11,
     "convergenceTolerance": 0.05
   },
-  "simulation": {
-    "supplyV": 1.5
-  },
-  "vendors": [
-    {
-      "vendor": "Texas Instruments",
-      "url": "https://www.ti.com/lit/zip/sprm552",
-      "archivePath": "sprm552c.ibs",
-      "archiveSha256": "f99cb588a07b2d77d4c52a3189933c8175467d8829b94d118173943b286990aa",
-      "sha256": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
-      "file": "sprm552c.ibs"
-    },
-    {
-      "vendor": "Winbond",
-      "url": "https://www.winbond.com/resource-files/w631gg6mb_ibis.zip",
-      "archivePath": "W631GG6MB-12.ibs",
-      "archiveSha256": "7d58de6c5cfaef3cff5f8f157c1b73f1e55b876a0f0659c194b764add50851e7",
-      "sha256": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859",
-      "file": "W631GG6MB-12.ibs"
-    }
-  ],
   "profiles": {
     "top": {
       "spacingMm": 0.75,
@@ -100,7 +79,7 @@
     }
   ],
   "circuit": "am3352.circuit.json",
-  "description": "AM3352 v0.1.19 DQS pair; normal tscircuit project, native IBIS/eye, explicit reduced channel",
+  "description": "AM3352 saved routed DQS pair; general model/stimulus/probe/eye API and explicit reduced channel",
   "viaPlatingMm": 0.025,
   "viaEquivalentWidthMm": 0.1,
   "omitThroughViaStubs": true,
@@ -110,7 +89,5 @@
     "originalJsonSha256": "c9d7059fe536865784f175855e0dcc76510972319eec848c18b0ef6dcd2adb40",
     "boardSource": "https://tscircuit.com/astra/am3352-sbc#files",
     "stackupStatus": "Selected repository assumption, not manufacturing sign-off"
-  },
-  "requireNativeIbis": true,
-  "requireNativeEye": true
+  }
 }

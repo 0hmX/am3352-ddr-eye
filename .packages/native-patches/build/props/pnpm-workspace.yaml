@@ -1,0 +1,8 @@
+packages:
+  - .
+blockExoticSubdeps: false
+allowBuilds:
+  esbuild: true
+  sharp: false
+overrides:
+  "circuit-json": "file:../.packages/circuit-json-general-experimental.tgz"

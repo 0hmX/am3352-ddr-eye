@@ -1,0 +1,12 @@
+packages:
+  - .
+blockExoticSubdeps: false
+allowBuilds:
+  esbuild: true
+  sharp: false
+overrides:
+  "@tscircuit/ibis-to-spice": "file:../.packages/ibis-to-spice-0.0.2.tgz"
+  "@tscircuit/props": "file:../.packages/tscircuit-props-ibis-experimental.tgz"
+  "circuit-json": "file:../.packages/circuit-json-general-experimental.tgz"
+minimumReleaseAgeExclude:
+  - '@tscircuit/checks@0.0.253'

@@ -1,0 +1,95 @@
+{
+  "circuitJsonUnits": "mm",
+  "reduction": "straightened-stages",
+  "conductivitySm": 58000000,
+  "sections": 12,
+  "extraction": {
+    "minimumHz": 1,
+    "maximumHz": 1000000000.0,
+    "modelHz": 100000000.0,
+    "filaments": 7,
+    "capTolerance": 0.02,
+    "maxPanelLengthMm": 2,
+    "reciprocityTolerance": 0.025,
+    "dcResistanceTolerance": 0.002,
+    "refinementFilaments": 11,
+    "convergenceTolerance": 0.05
+  },
+  "profiles": {
+    "top": {
+      "spacingMm": 0.75,
+      "relativePermittivity": 2.55,
+      "return": {
+        "widthMm": 2.0,
+        "thicknessMm": 0.035,
+        "lengthFactor": 1.0,
+        "centerYMm": 0,
+        "centerZMm": -0.2
+      }
+    },
+    "inner1": {
+      "spacingMm": 0.75,
+      "relativePermittivity": 4.1,
+      "return": {
+        "widthMm": 2.0,
+        "thicknessMm": 0.035,
+        "lengthFactor": 1.0,
+        "centerYMm": 0,
+        "centerZMm": 0.1245
+      }
+    },
+    "via": {
+      "spacingMm": 0.75,
+      "relativePermittivity": 4.1,
+      "return": {
+        "widthMm": 2.0,
+        "thicknessMm": 0.035,
+        "lengthFactor": 1.0,
+        "centerYMm": 0,
+        "centerZMm": -0.2
+      }
+    }
+  },
+  "stackup": [
+    {
+      "name": "top",
+      "zMinMm": 1.4942,
+      "zMaxMm": 1.5292
+    },
+    {
+      "name": "inner1",
+      "zMinMm": 1.3796,
+      "zMaxMm": 1.3948
+    }
+  ],
+  "lanes": [
+    {
+      "port": "DQS",
+      "sourceTraceId": "source_trace_15",
+      "from": {
+        "component": "U1",
+        "port": "P1"
+      },
+      "to": {
+        "component": "U3",
+        "port": "F3"
+      }
+    },
+    {
+      "port": "DQSn",
+      "sourceTraceId": "source_trace_16",
+      "from": {
+        "component": "U1",
+        "port": "P2"
+      },
+      "to": {
+        "component": "U3",
+        "port": "G3"
+      }
+    }
+  ],
+  "description": "Actual routed AM3352 DQS stage lengths; explicit straightened finite-return reduction, NOT full-board extraction",
+  "viaPlatingMm": 0.025,
+  "viaEquivalentWidthMm": 0.1,
+  "omitThroughViaStubs": true
+}

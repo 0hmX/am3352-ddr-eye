@@ -1,9 +1,9 @@
-These are local experimental npm dependencies, selected through the normal project's pnpm-workspace.yaml overrides. They have not been published or merged upstream.
+These local experimental dependencies are selected by the ordinary project's pnpm overrides. They are not published or claimed to be merged upstream.
 
-- tscircuit-core-ibis-experimental.tgz and tscircuit-props-ibis-experimental.tgz: native ibisModel/eyediagram and faithful imported-board support.
-- tscircuit-experimental.tgz: official tscircuit browser/eval runtime rebuilt with those features; Node exports and standard CLI are retained. Browser vendor downloads use the existing local CLI proxy.
-- fanout-solver-experimental.tgz: exact published 0.0.78 runtime sources, with real generated declaration files added for strict consumer type checking. Runtime source bytes are unchanged.
-- ibis-to-spice-0.0.1.tgz: reusable table-based converter.
-- pcb-spice-pipeline-0.1.0.tgz: reusable extraction, assembly, native solver execution and plotting CLI. Its implementation is included in the tarball; it is not a project-specific runner.
+- `tscircuit-core-ibis-experimental.tgz` and `tscircuit-props-ibis-experimental.tgz`: reusable model definitions, explicit experiment/stimulus state and probe-based eye declarations. Imported boards retain saved physical geometry.
+- `circuit-json-general-experimental.tgz`: registered model, state, digital stimulus and eye records, plus probe-bound transient results.
+- `tscircuit-experimental.tgz`: official browser/eval runtime rebuilt with those dependencies. Node exports and the standard CLI remain available. Rendering serializes the declarations; the local pipeline runs the electrical workflow.
+- `ibis-to-spice-0.0.2.tgz`: browser build input from `../packages/ibis-to-spice`. Node uses that workspace package directly.
+- `fanout-solver-experimental.tgz`: published 0.0.78 runtime with generated declarations for strict typechecking. Runtime source bytes are unchanged.
 
-Package hashes and source/build provenance are recorded beside these archives. A future upstream release can replace these file dependencies without changing the project layout or board entrypoint. The real-board snapshot retains its original attribution and licensing status; vendor model notices are retained when the manufacturer's archives are downloaded.
+The source converter and pipeline are part of this repository, including tests and solver setup. `manifest.json` records archive hashes. `native-patches/manifest.json` records upstream bases and patches. `browser-runtime/` records official downloads, the dependency lock and worker build. Rebuild commands are in the root README. Manufacturer archives are downloaded on demand and hash checked; vendor notices are retained locally.

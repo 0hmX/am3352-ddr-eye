@@ -3,12 +3,79 @@
     "url": "https://github.com/tscircuit/core.git",
     "commit": "b97852c69a694bc3bd962cc2d6d6fee866fe467f",
     "patch": "native-patches/core.patch",
-    "patchSha256": "c35c573306be0896ec6444e37e55fa1f9623d7d903fdd14250055884acebd9fa"
+    "patchSha256": "1622788de909a5ba1a6c13e81bfa53653c165b07a8ce8c82bb15aeb873f1f5c5",
+    "buildFiles": [
+      {
+        "target": "package.json",
+        "path": "native-patches/build/core/package.json",
+        "sha256": "30699e790da76d8ac512e8b44945dd55bf7fae50906dc7d5582b77708c09c1e6"
+      },
+      {
+        "target": "pnpm-workspace.yaml",
+        "path": "native-patches/build/core/pnpm-workspace.yaml",
+        "sha256": "6ef2c52b64ee81ba24446ae23736350ab1bcec2a75948fc6359e00c587c96764"
+      },
+      {
+        "target": "pnpm-lock.yaml",
+        "path": "native-patches/build/core/pnpm-lock.yaml",
+        "sha256": "8bc31fb916154f8d2527e4ad5d6832ffb38497cc24071af6dce6e30746a4bcc0"
+      }
+    ],
+    "filename": "tscircuit-core-ibis-experimental.tgz",
+    "sha256": "c2d92df883999d06501ebb58aad33a0d4c69e87608a3b4e94f5fc5297ff57a22"
   },
   "props": {
     "url": "https://github.com/tscircuit/props.git",
     "commit": "0d3138b7b51af5d7d134bde7a206c1fb7417495e",
     "patch": "native-patches/props.patch",
-    "patchSha256": "555354cbab34635f5ad023b51788f9c2eee6ca3d65c0c7a0a130d9824d489913"
+    "patchSha256": "af8bfbc5257e18ecd3b5616a0fee5cdd4c4d80ecd7edb76c3cae80e8f13d5012",
+    "buildFiles": [
+      {
+        "target": "package.json",
+        "path": "native-patches/build/props/package.json",
+        "sha256": "b881293dbc660cd1e7dce8f59486ed3b51fcf19bc51b26ee2e59431008f6810e"
+      },
+      {
+        "target": "pnpm-workspace.yaml",
+        "path": "native-patches/build/props/pnpm-workspace.yaml",
+        "sha256": "fb42dd2d646784128ff801ca54f86995b0c01ff3cda9ee631249a722eaaaecd6"
+      },
+      {
+        "target": "pnpm-lock.yaml",
+        "path": "native-patches/build/props/pnpm-lock.yaml",
+        "sha256": "7c411d9863384e7c19f4050236c17963529e8151a8d9f5b44e2295bd23845e95"
+      }
+    ],
+    "filename": "tscircuit-props-ibis-experimental.tgz",
+    "sha256": "c49c8e93e192d362043de9fca1e857f2aee541e194c3ab9aa4856a1640d8e757"
+  },
+  "circuitJson": {
+    "url": "https://github.com/tscircuit/circuit-json.git",
+    "commit": "c901a56bdd24713517b81599896accc2c02a6624",
+    "patch": "native-patches/circuit-json.patch",
+    "patchSha256": "8a2c263f093d72f8b933c357823a8bca8411044d3602d9ecf093f995820530e1",
+    "buildFiles": [
+      {
+        "target": "package.json",
+        "path": "native-patches/build/circuitJson/package.json",
+        "sha256": "aa77123de127f8b0dde80437c6939e648b300396946097b11679a9023e800ef0"
+      },
+      {
+        "target": "pnpm-workspace.yaml",
+        "path": "native-patches/build/circuitJson/pnpm-workspace.yaml",
+        "sha256": "2803e7eb97afe796b15110118734ff1a34651e16ff34f0db1ccd27d24416f61f"
+      },
+      {
+        "target": "pnpm-lock.yaml",
+        "path": "native-patches/build/circuitJson/pnpm-lock.yaml",
+        "sha256": "099fafcb57e3f8e826b8b855b76f789681b28c51d36176be4f3c9866a13e4f52"
+      }
+    ],
+    "filename": "circuit-json-general-experimental.tgz",
+    "sha256": "8e3435f13c8c3d57a1e9ab076f16f7f00e54ea4194772dde24ce742b4003a371"
+  },
+  "converter": {
+    "filename": "ibis-to-spice-0.0.2.tgz",
+    "sha256": "ee2a4d5cca749f465cdcfed16907c71f04915d9e94cf0475b1438c0d7dd61e99"
   }
 }

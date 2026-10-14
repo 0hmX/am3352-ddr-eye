@@ -1,0 +1,82 @@
+{
+  "formatVersion": 1,
+  "vendorFilesRedistributed": false,
+  "models": {
+    "rs485": {
+      "vendor": "Texas Instruments",
+      "part": "SN65HVD72",
+      "productUrl": "https://www.ti.com/product/SN65HVD72",
+      "datasheetUrl": "https://www.ti.com/lit/ds/symlink/sn65hvd72.pdf",
+      "url": "https://www.ti.com/lit/zip/sllm183",
+      "archivePath": "SN65HVD72_IBIS/sn65hvd72.ibs",
+      "archiveSha256": "935ce893dc388969a3e1319153daaa81e1486d786b87eed6a7d543b5f5dbfcba",
+      "archiveBytes": 44224,
+      "sha256": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e",
+      "fileBytes": 201681,
+      "component": "SN65HVD72D",
+      "signalPins": {
+        "6": {
+          "signal": "A",
+          "model": "a_b_p",
+          "modelType": "I/O"
+        },
+        "7": {
+          "signal": "B",
+          "model": "a_b_n",
+          "modelType": "I/O"
+        }
+      },
+      "supplyPins": {
+        "8": "VCC",
+        "5": "GND"
+      },
+      "supplyV": 3.3,
+      "diffPin": {
+        "positive": "6",
+        "negative": "7",
+        "thresholdV": 0.2,
+        "delaysSeconds": [
+          0,
+          0,
+          0
+        ]
+      },
+      "licenseStatus": "Manufacturer copyright; fetched locally, not redistributed",
+      "selectedModelEvidence": "Both bus models have two rising and two falling resistive fixtures, R_fixture=27 Ohm, V_fixture=0/VDD. Both specify Non-Inverting polarity; explicit B stimulus owns complement."
+    },
+    "cmos": {
+      "vendor": "Texas Instruments",
+      "part": "SN74LVC1G04",
+      "productUrl": "https://www.ti.com/product/SN74LVC1G04",
+      "datasheetUrl": "https://www.ti.com/lit/ds/symlink/sn74lvc1g04.pdf",
+      "url": "https://www.ti.com/lit/zip/scem216c",
+      "archivePath": "SN74LVC1G04_IBIS/sn74lvc1g04.ibs",
+      "archiveSha256": "8092b150c132800895d01cf1e416bd3dd510bb29dd68d93c01ed41e226d8acb8",
+      "archiveBytes": 46471,
+      "sha256": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+      "fileBytes": 254207,
+      "component": "LVC1G04_DCK",
+      "signalPins": {
+        "2": {
+          "signal": "A",
+          "model": "LVC1G04_IN_33",
+          "modelType": "Input",
+          "selector": "LVC1G04_IN"
+        },
+        "4": {
+          "signal": "Y",
+          "model": "LVC1G04_OUT_33",
+          "modelType": "Output",
+          "selector": "LVC1G04_OUT"
+        }
+      },
+      "supplyPins": {
+        "5": "VCC",
+        "3": "GND"
+      },
+      "supplyV": 3.3,
+      "licenseStatus": "Manufacturer explicitly prohibits unauthorized redistribution; fetched locally, not redistributed",
+      "selectedModelEvidence": "3.3-V output has two rising and two falling resistive fixtures, R_fixture=50 Ohm, V_fixture=0/VDD. No Polarity keyword: the example drives output buffer state directly, and does not simulate inverter core logic."
+    }
+  }
+}

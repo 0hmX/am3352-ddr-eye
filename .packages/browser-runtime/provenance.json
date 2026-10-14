@@ -9,18 +9,18 @@
     "version": "0.0.1538",
     "commit": "1f3cc31db71c66c50a8593241f709665adbc85a1",
     "entrypoint": "webworker/entrypoint.ts",
-    "workerSha256": "86c2f8eb60d9ddfc9e4f57fc8734c0a694d69fa815c1b1b75c046159cdee8b11",
+    "workerSha256": "fa0d15c11b6139263ca291b781e1b94bb1bf8a6787c1284330ec8231542cb0f6",
     "configChange": "dts:false for runtime-only webworker build",
     "sourcesUnmodified": false,
     "sourcePatch": "browser-runtime/eval-local-proxy.patch"
   },
-  "corePackageSha256": "c7767fdf3a52c71e764e39a953e63f48bfe8e8c54cf782b6a7612261277aeba5",
-  "propsPackageSha256": "b3131c02b0fa7a001dc2f7b335c524771899e1a6e755821e9bb440d2ee77b149",
+  "corePackageSha256": "c2d92df883999d06501ebb58aad33a0d4c69e87608a3b4e94f5fc5297ff57a22",
+  "propsPackageSha256": "c49c8e93e192d362043de9fca1e857f2aee541e194c3ab9aa4856a1640d8e757",
   "build": "pnpm exec tsup --config tsup-webworker.config.ts",
   "assembly": "Official tscircuit copy-runframe-standalone semantics: replace exact embedded original eval worker with rebuilt eval worker; preserve published runframe UI. Replace exported webworker.min.js with same rebuilt worker.",
   "outputTarball": ".packages/tscircuit-experimental.tgz",
-  "outputSha256": "21254319bece099a6372783b40fb0f0b0b80698545d7a9c885e9c9686971876f",
-  "outputBytes": 13463228,
+  "outputSha256": "c380082b5064e6b24e3c0580ddd1ede8058b271d1cc3a004f9986b15316969b3",
+  "outputBytes": 13479823,
   "downloads": {
     "evalSource": {
       "url": "https://github.com/tscircuit/eval/archive/1f3cc31db71c66c50a8593241f709665adbc85a1.tar.gz",
@@ -36,5 +36,7 @@
     }
   },
   "patchSha256": "81c6dc01079de02c63287fbf4809ac9a875ffb6540e648ec3b811ac48cc70f7e",
-  "dependencyLockSha256": "abad4c7a1d753d49838a7f60977742690c8b7838f6daf3270bd3bdd7f1bc135e"
+  "dependencyLockSha256": "be18a8753d75c476df4724d6946535b03d733a08b50be58d3580fe75e903b581",
+  "converterPackageSha256": "ee2a4d5cca749f465cdcfed16907c71f04915d9e94cf0475b1438c0d7dd61e99",
+  "circuitJsonPackageSha256": "8e3435f13c8c3d57a1e9ab076f16f7f00e54ea4194772dde24ce742b4003a371"
 }

@@ -14,6 +14,8 @@
   },
   "include": [
     "index.circuit.tsx",
-    "simulation.config.ts"
+    "simulation.config.ts",
+    "examples/**/*.tsx",
+    "examples/**/*.ts"
   ]
 }

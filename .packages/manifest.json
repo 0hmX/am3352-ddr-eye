@@ -1,17 +1,29 @@
 {
   "experimental": true,
-  "published": false,
+  "npmPublished": false,
+  "upstreamMerged": false,
   "sha256": {
+    "circuit-json-general-experimental.tgz": "8e3435f13c8c3d57a1e9ab076f16f7f00e54ea4194772dde24ce742b4003a371",
     "fanout-solver-experimental.tgz": "b1d57491aa1649451e7319125930062a7b6e84bf0238cc74abf9a08ca3b387e1",
-    "ibis-to-spice-0.0.1.tgz": "6da6c9aacb4c71f66ed7573d1d6be9d636dd144eabf39e44eba968d8f42feffd",
-    "pcb-spice-pipeline-0.1.0.tgz": "60f969e42a1834af590866b513c12ac77444a9371eafe121e3ef2d18230d213c",
-    "tscircuit-core-ibis-experimental.tgz": "c7767fdf3a52c71e764e39a953e63f48bfe8e8c54cf782b6a7612261277aeba5",
-    "tscircuit-experimental.tgz": "21254319bece099a6372783b40fb0f0b0b80698545d7a9c885e9c9686971876f",
-    "tscircuit-props-ibis-experimental.tgz": "b3131c02b0fa7a001dc2f7b335c524771899e1a6e755821e9bb440d2ee77b149"
+    "ibis-to-spice-0.0.2.tgz": "ee2a4d5cca749f465cdcfed16907c71f04915d9e94cf0475b1438c0d7dd61e99",
+    "tscircuit-core-ibis-experimental.tgz": "c2d92df883999d06501ebb58aad33a0d4c69e87608a3b4e94f5fc5297ff57a22",
+    "tscircuit-experimental.tgz": "c380082b5064e6b24e3c0580ddd1ede8058b271d1cc3a004f9986b15316969b3",
+    "tscircuit-props-ibis-experimental.tgz": "c49c8e93e192d362043de9fca1e857f2aee541e194c3ab9aa4856a1640d8e757"
   },
-  "pipelineSourceCommit": "7e50d30e16f976c61480b93906b222f09d7bcacb",
-  "pipelineSourceDistribution": "pcb-spice-pipeline.zip, separately delivered; runtime code included in tarball",
-  "coreAndPropsSourceManifest": "native-patches/manifest.json",
+  "workspaceSources": {
+    "converter": "packages/ibis-to-spice",
+    "pipeline": "packages/pcb-spice-pipeline"
+  },
+  "nativeSourceManifest": "native-patches/manifest.json",
+  "nativeRebuild": "../scripts/rebuild-native-packages.py",
   "browserRebuild": "browser-runtime/rebuild.py",
-  "fanoutDeclarations": "fanout-solver-experimental-provenance.json"
+  "fanoutDeclarations": "fanout-solver-experimental-provenance.json",
+  "api": {
+    "models": "chip.ibisModel or standalone ibismodel with componentRef",
+    "experiment": "analog.transientsimulation with explicit ibisPinStates",
+    "stimulus": "analog.digitalstimulus with explicit bits and initialState",
+    "measurement": "voltageprobe plus analog.eyediagram",
+    "generalNumericTimeUnits": "milliseconds",
+    "execution": "external local pipeline; rendering serializes registered declarations"
+  }
 }

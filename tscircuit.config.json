@@ -1,7 +1,9 @@
 {
   "mainEntrypoint": "index.circuit.tsx",
   "includeBoardFiles": [
-    "index.circuit.tsx"
+    "index.circuit.tsx",
+    "examples/differential-data/index.circuit.tsx",
+    "examples/single-ended/index.circuit.tsx"
   ],
   "siteDefaultComponentPath": "index.circuit.tsx",
   "platformConfig": {

@@ -1,3 +1,57 @@
+diff --git a/docs/GENERAL_IBIS_SIMULATION.md b/docs/GENERAL_IBIS_SIMULATION.md
+new file mode 100644
+index 0000000..e38aa5e
+--- /dev/null
++++ b/docs/GENERAL_IBIS_SIMULATION.md
+@@ -0,0 +1,48 @@
++# General IBIS simulation declarations
++
++The general API declares electrical models, per-experiment digital controls, and voltage measurements. Native rendering serializes these into registered Circuit JSON records. An explicit external runner resolves resources, extracts the routed PCB, assembles SPICE and executes the pending experiment. Rendering these declarations does not launch a solver or download model bytes.
++
++```tsx
++<chip name="U1" ibisModel={<ibismodel {...electricalDefinition} />} />
++<voltageprobe name="RX" connectsTo=".U2 > .IN" referenceTo=".U2 > .GND" />
++<analog.transientsimulation
++  name="SI"
++  duration="100ns"
++  timePerStep="10ps"
++  ibisPinStates={{
++    ".U1 > .OUT": { mode: "output", enabled: true },
++    ".U2 > .IN": { mode: "input" },
++  }}
++/>
++<analog.digitalstimulus
++  name="DATA"
++  simulationRef=".SI"
++  drives=".U1 > .OUT"
++  unitInterval="2.5ns"
++  startTime="0ns"
++  initialState={0}
++  pattern={{ type: "bits", bits: "001101", repeat: true }}
++/>
++<analog.eyediagram
++  name="RX_eye"
++  probeRef=".RX"
++  simulationRef=".SI"
++  unitInterval="2.5ns"
++  timeOrigin="0ns"
++  startTime="20ns"
++/>
++```
++
++`electricalDefinition` contains a structured `source` (`url`, `file`, or `content`), exact vendor `component`, physical-pin-to-local-port `pinMap`, optional per-physical-pin `modelSelections` and `references`, required `corner`, and explicit `packagePolicy` (`vendor` or `omit`). URL sources require the SHA-256 of the extracted IBIS bytes. Archive metadata identifies the member and optional archive hash. File resolution belongs to the runner's project-entry context or explicit resource resolver; a React element does not identify its declaring source filename.
++
++Attach a model to an imported chip using `<ibismodel componentRef=".bank > .U1" {...electricalDefinition} />` inside its imported board. Component, probe, simulation and physical-port selectors must resolve exactly once in the nearest subcircuit. Enter nested subcircuits through a named qualified path. Bare reference designators are not global keys. Local reference ports must be represented in `pinMap`; conflicting model attachments and duplicate physical pin aliases fail.
++
++New numeric times are **milliseconds**, matching `analog.transientsimulation`; prefer unit strings. `timeOrigin` fixes the bit-boundary epoch relative to simulation time zero. Observation gates do not change the origin. Fold only complete `[boundary-UI/2, boundary+3UI/2]` windows within the gate and recorded waveform, retaining actual timestamps. Do not realign each transition, infer protocol levels, or treat a plot as a compliance test. Multiple eyes can consume one experiment's recorded probes.
++
++An enabled output requires exactly one explicit digital stimulus. Input and disabled-output pins cannot have a stimulus. `initialState` is the pre-pattern logical state; `inverted` requests one complement of both initial state and bits in the external runner. Vendor polarity and enable polarity are separate model semantics. Nonrepeating bits must cover the experiment. Native binding can check selected signal pins without fetching IBIS; the runner validates vendor membership, model type, rail semantics and backend capabilities after reading the source.
++
++The serialized declarations are `simulation_ibis_model`, `simulation_ibis_pin_state`, `simulation_digital_stimulus`, and `simulation_eye_diagram`. They reference source component/port, voltage probe and experiment IDs. Experiments carry `execution_mode: "external"`, `execution_status: "pending"`, owner `subcircuit_id`, and requested `spice_engine`. These declarations remain present when platform `analogSimulationDisabled` is true. External results use the registered `simulation_voltage_probe_id` on transient voltage graphs; consumers must not associate results by display name or ordering.
++
++The old seconds-based eye syntax and clock-bearing `ibisModel` objects remain parseable for migration. Their numerical units and behavior are unchanged. Do not mix legacy `positive`/`negative`/`duration`/`timeStep` eye props with `probeRef`/`simulationRef`. The old descriptor getter applies only to legacy eyes; the new API is consumed from Circuit JSON. Replace global `board.simIbisModels` maps with scoped standalone model annotations.
++
++The native API accepts measurement intent independently of a particular extraction/conversion backend. Unsupported vendor packages, buffer controls, source features or PCB extraction scopes must produce explicit capability errors in the external runner. The current local runner's supported subset does not define universal IBIS support.
 diff --git a/lib/components/base-components/Renderable.ts b/lib/components/base-components/Renderable.ts
 index 035a343..4049179 100644
 --- a/lib/components/base-components/Renderable.ts
@@ -20,14 +74,17 @@ index 035a343..4049179 100644
      "FetchPartFootprint",
    ],
 diff --git a/lib/components/index.ts b/lib/components/index.ts
-index a59c0a4..2c02a7c 100644
+index a59c0a4..59cd245 100644
 --- a/lib/components/index.ts
 +++ b/lib/components/index.ts
-@@ -107,6 +107,7 @@ export { SymbolComponent as Symbol } from "./primitive-components/Symbol"
+@@ -107,6 +107,10 @@ export { SymbolComponent as Symbol } from "./primitive-components/Symbol"
  export { AnalogSimulation } from "./primitive-components/AnalogSimulation"
  export { AnalogAnalysisSimulation } from "./primitive-components/AnalogAnalysisSimulation"
  export { AnalogTransientSimulation } from "./primitive-components/AnalogTransientSimulation"
 +export { EyeDiagram, type EyeDiagramDescriptor } from "./primitive-components/EyeDiagram"
++export { EyeDiagram as AnalogEyeDiagram } from "./primitive-components/EyeDiagram"
++export { IbisModel } from "./primitive-components/IbisModel"
++export { AnalogDigitalStimulus } from "./primitive-components/AnalogDigitalStimulus"
  export { AnalogDcOperatingPointSimulation } from "./primitive-components/AnalogDcOperatingPointSimulation"
  export { AnalogDcSweepSimulation } from "./primitive-components/AnalogDcSweepSimulation"
  export { AnalogAcSweepSimulation } from "./primitive-components/AnalogAcSweepSimulation"
@@ -193,14 +250,16 @@ index ec4b958..5a5b55b 100644
    override doInitialSourceDesignRuleChecks(): void {
 diff --git a/lib/components/normal-components/Chip_doInitialIbisModelRender.ts b/lib/components/normal-components/Chip_doInitialIbisModelRender.ts
 new file mode 100644
-index 0000000..9646e03
+index 0000000..7f59981
 --- /dev/null
 +++ b/lib/components/normal-components/Chip_doInitialIbisModelRender.ts
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,68 @@
 +import { IbisError, createIbisModelResolver } from "@tscircuit/ibis-to-spice"
 +import type { IRootCircuit } from "lib/IRootCircuit"
 +import { SpiceModel } from "../primitive-components/SpiceModel"
 +import type { Chip } from "./Chip"
++import { isValidElement } from "react"
++import { IbisModel } from "../primitive-components/IbisModel"
 +
 +const resolvers = new WeakMap<
 +  IRootCircuit,
@@ -219,18 +278,26 @@ index 0000000..9646e03
 +
 +export function Chip_doInitialIbisModelRender(chip: Chip) {
 +  const { ibisModel, spiceModel } = chip._parsedProps
-+  if (
-+    !ibisModel ||
-+    chip._hasStartedIbisModelLoad ||
-+    chip.getInheritedProperty("analogSimulationDisabled")
-+  )
-+    return
++  if (!ibisModel || chip._hasStartedIbisModelLoad) return
 +  chip._hasStartedIbisModelLoad = true
 +  if (spiceModel) {
++    if (isValidElement(ibisModel) || "pinMap" in ibisModel)
++      chip.renderError(
++        `Chip "${chip.name}" has conflicting IBIS and SPICE model attachments`,
++      )
 +    chip._ibisModelError =
 +      "Use either ibisModel or spiceModel on a chip, not both."
 +    return
 +  }
++  if (isValidElement(ibisModel)) {
++    chip.add(new IbisModel(ibisModel.props))
++    return
++  }
++  if ("pinMap" in ibisModel) {
++    chip.add(new IbisModel(ibisModel))
++    return
++  }
++  if (chip.getInheritedProperty("analogSimulationDisabled")) return
 +  chip._queueAsyncEffect("convert-ibis-model", async () => {
 +    try {
 +      const root = chip.root!
@@ -255,12 +322,184 @@ index 0000000..9646e03
 +    }
 +  })
 +}
+diff --git a/lib/components/normal-components/VoltageSource.ts b/lib/components/normal-components/VoltageSource.ts
+index 8e31c66..bae52ae 100644
+--- a/lib/components/normal-components/VoltageSource.ts
++++ b/lib/components/normal-components/VoltageSource.ts
+@@ -56,8 +56,8 @@ export class VoltageSource extends NormalComponent<
+   initPorts() {
+     super.initPorts({
+       additionalAliases: {
+-        pin1: ["terminal1"],
+-        pin2: ["terminal2"],
++        pin1: ["terminal1", "pos"],
++        pin2: ["terminal2", "neg"],
+       },
+     })
+   }
+diff --git a/lib/components/primitive-components/AnalogDigitalStimulus.ts b/lib/components/primitive-components/AnalogDigitalStimulus.ts
+new file mode 100644
+index 0000000..69b5552
+--- /dev/null
++++ b/lib/components/primitive-components/AnalogDigitalStimulus.ts
+@@ -0,0 +1,55 @@
++import { analogDigitalStimulusProps } from "@tscircuit/props"
++import {
++  markExternalSimulation,
++  resolveSimulationPort,
++  resolveTransientSimulation,
++} from "lib/utils/simulation/resolveSimulationSelector"
++import { PrimitiveComponent } from "../base-components/PrimitiveComponent"
++
++export class AnalogDigitalStimulus extends PrimitiveComponent<
++  typeof analogDigitalStimulusProps
++> {
++  get config() {
++    return {
++      componentName: "AnalogDigitalStimulus",
++      zodProps: analogDigitalStimulusProps,
++    }
++  }
++
++  doInitialSimulationRender() {
++    const {
++      name,
++      simulationRef,
++      drives,
++      unitInterval,
++      startTime,
++      initialState,
++      inverted,
++      pattern,
++    } = this._parsedProps
++    const experiment = resolveTransientSimulation(this, simulationRef)
++    const port = resolveSimulationPort(this, drives)
++    if (startTime > experiment.end_time_ms!)
++      this.renderError(
++        `Digital stimulus "${name}" starts after the transient experiment ends`,
++      )
++    if (
++      !pattern.repeat &&
++      startTime + pattern.bits.length * unitInterval < experiment.end_time_ms!
++    )
++      this.renderError(
++        `Digital stimulus "${name}" does not cover the transient experiment; provide more bits or enable repeat`,
++      )
++    this.root!.db.simulation_digital_stimulus.insert({
++      name,
++      simulation_experiment_id: experiment.simulation_experiment_id,
++      source_port_id: port.source_port_id!,
++      unit_interval_ms: unitInterval,
++      start_time_ms: startTime,
++      initial_state: initialState,
++      inverted: inverted ?? false,
++      pattern,
++    })
++    markExternalSimulation(this, experiment)
++  }
++}
+diff --git a/lib/components/primitive-components/AnalogSimulation.ts b/lib/components/primitive-components/AnalogSimulation.ts
+index c44d48f..8bad380 100644
+--- a/lib/components/primitive-components/AnalogSimulation.ts
++++ b/lib/components/primitive-components/AnalogSimulation.ts
+@@ -22,8 +22,9 @@ export class AnalogSimulation extends PrimitiveComponent<
+   }
+ 
+   doInitialSimulationRender(): void {
++    if (this.simulation_experiment_id) return
+     const { db } = this.root!
+-    const { duration, name, startTime, timePerStep, spiceOptions } =
++    const { duration, name, startTime, timePerStep, spiceOptions, spiceEngine } =
+       this._parsedProps
+ 
+     const durationMs = duration || 10 // ms
+@@ -31,14 +32,23 @@ export class AnalogSimulation extends PrimitiveComponent<
+ 
+     const simulationExperiment = db.simulation_experiment.insert({
+       name: name ?? "spice_transient_analysis",
++      subcircuit_id: this.getSubcircuit().subcircuit_id ?? undefined,
+       experiment_type: "spice_transient_analysis" as const,
+       end_time_ms: durationMs,
+       start_time_ms: startTime,
+       time_per_step: timePerStepMs,
+       spice_options: spiceOptions,
++      spice_engine: spiceEngine,
+     })
+ 
+     this.simulation_experiment_id =
+       simulationExperiment.simulation_experiment_id
+   }
++
++  getOrCreateSimulationExperiment() {
++    this.doInitialSimulationRender()
++    return this.root!.db.simulation_experiment.get(
++      this.simulation_experiment_id!,
++    )
++  }
+ }
+diff --git a/lib/components/primitive-components/AnalogTransientSimulation.ts b/lib/components/primitive-components/AnalogTransientSimulation.ts
+index 1c7c59e..d591c5d 100644
+--- a/lib/components/primitive-components/AnalogTransientSimulation.ts
++++ b/lib/components/primitive-components/AnalogTransientSimulation.ts
+@@ -1,5 +1,6 @@
+ import { analogTransientSimulationProps } from "@tscircuit/props"
+ import { AnalogAnalysisSimulation } from "./AnalogAnalysisSimulation"
++import { resolveSimulationPort } from "lib/utils/simulation/resolveSimulationSelector"
+ 
+ export class AnalogTransientSimulation extends AnalogAnalysisSimulation<
+   typeof analogTransientSimulationProps
+@@ -13,16 +14,42 @@ export class AnalogTransientSimulation extends AnalogAnalysisSimulation<
+ 
+   protected insertSimulationExperiment() {
+     const { db } = this.root!
+-    const { duration, name, startTime, timePerStep, spiceOptions } =
+-      this._parsedProps
++    const {
++      duration,
++      name,
++      startTime,
++      timePerStep,
++      spiceOptions,
++      spiceEngine,
++      ibisPinStates,
++    } = this._parsedProps
+ 
+-    return db.simulation_experiment.insert({
++    const experiment = db.simulation_experiment.insert({
+       name: name ?? "spice_transient_analysis",
++      subcircuit_id: this.getSubcircuit().subcircuit_id ?? undefined,
+       experiment_type: "spice_transient_analysis",
+       end_time_ms: duration,
+       start_time_ms: startTime,
+       time_per_step: timePerStep,
+       spice_options: spiceOptions,
++      spice_engine: spiceEngine,
++      execution_mode: ibisPinStates ? "external" : undefined,
++      execution_status: ibisPinStates ? "pending" : undefined,
+     })
++    const seenSourcePorts = new Set<string>()
++    for (const [selector, state] of Object.entries(ibisPinStates ?? {})) {
++      const port = resolveSimulationPort(this, selector)
++      if (seenSourcePorts.has(port.source_port_id!))
++        this.renderError(
++          `Transient simulation "${name ?? "unnamed simulation"}": ibisPinStates contains duplicate aliases for physical port "${selector}"`,
++        )
++      seenSourcePorts.add(port.source_port_id!)
++      db.simulation_ibis_pin_state.insert({
++        simulation_experiment_id: experiment.simulation_experiment_id,
++        source_port_id: port.source_port_id!,
++        ...state,
++      })
++    }
++    return experiment
+   }
+ }
 diff --git a/lib/components/primitive-components/EyeDiagram.ts b/lib/components/primitive-components/EyeDiagram.ts
 new file mode 100644
-index 0000000..ba7a95d
+index 0000000..8a624ec
 --- /dev/null
 +++ b/lib/components/primitive-components/EyeDiagram.ts
-@@ -0,0 +1,96 @@
+@@ -0,0 +1,147 @@
 +import { eyeDiagramProps } from "@tscircuit/props"
 +import type { SourcePort } from "circuit-json"
 +import { selectAll } from "css-select"
@@ -268,6 +507,12 @@ index 0000000..ba7a95d
 +import { cssSelectPrimitiveComponentAdapter } from "../base-components/PrimitiveComponent/cssSelectPrimitiveComponentAdapter"
 +import { preprocessSelector } from "../base-components/PrimitiveComponent/preprocessSelector"
 +import type { Port } from "./Port"
++import type { VoltageProbe } from "./VoltageProbe"
++import {
++  markExternalSimulation,
++  resolveSimulationSelector,
++  resolveTransientSimulation,
++} from "lib/utils/simulation/resolveSimulationSelector"
 +
 +type SourcePortId = SourcePort["source_port_id"]
 +
@@ -292,6 +537,51 @@ index 0000000..ba7a95d
 +  }
 +
 +  doInitialSimulationRender() {
++    if ("probeRef" in this._parsedProps) {
++      const {
++        name,
++        probeRef,
++        simulationRef,
++        unitInterval,
++        timeOrigin,
++        startTime,
++        endTime,
++      } = this._parsedProps
++      const experiment = resolveTransientSimulation(this, simulationRef)
++      const probe = resolveSimulationSelector<VoltageProbe>(this, probeRef, [
++        "VoltageProbe",
++      ])
++      probe.doInitialSimulationRender()
++      const gateStart = Math.max(
++        startTime ?? experiment.start_time_ms ?? 0,
++        experiment.start_time_ms ?? 0,
++      )
++      const gateEnd = Math.min(
++        endTime ?? experiment.end_time_ms!,
++        experiment.end_time_ms!,
++      )
++      const firstBoundary = Math.ceil(
++        (gateStart + unitInterval / 2 - timeOrigin) / unitInterval - 1e-10,
++      )
++      const lastBoundary = Math.floor(
++        (gateEnd - 1.5 * unitInterval - timeOrigin) / unitInterval + 1e-10,
++      )
++      if (firstBoundary > lastBoundary)
++        this.renderError(
++          `EyeDiagram "${name}" has no complete two-unit-interval windows inside its observation gate and transient recording`,
++        )
++      this.root!.db.simulation_eye_diagram.insert({
++        name,
++        simulation_experiment_id: experiment.simulation_experiment_id,
++        simulation_voltage_probe_id: probe.simulation_voltage_probe_id!,
++        unit_interval_ms: unitInterval,
++        time_origin_ms: timeOrigin,
++        start_time_ms: startTime,
++        end_time_ms: endTime,
++      })
++      markExternalSimulation(this, experiment)
++      return
++    }
 +    const {
 +      name,
 +      positive,
@@ -348,29 +638,49 @@ index 0000000..ba7a95d
 +    }
 +  }
 +
-+  /** Call after renderUntilSettled(). This declares a measurement; the runner executes it. */
++  /** @deprecated Legacy seconds-based declarations only. New eyes are serialized simulation_eye_diagram records. */
 +  getEyeDiagramDescriptor(): EyeDiagramDescriptor {
 +    if (!this.eyeDiagramDescriptor)
 +      throw new Error(
-+        `EyeDiagram "${this._parsedProps.name}" has not resolved; render the circuit before reading its descriptor`,
++        `EyeDiagram "${this._parsedProps.name}" has no legacy descriptor; render the circuit and read its simulation_eye_diagram record`,
 +      )
 +    return { ...this.eyeDiagramDescriptor }
 +  }
 +}
 diff --git a/lib/components/primitive-components/Group/Group_doInitialSimulationSpiceEngineRender.ts b/lib/components/primitive-components/Group/Group_doInitialSimulationSpiceEngineRender.ts
-index bde7d90..45447ca 100644
+index bde7d90..ac0c844 100644
 --- a/lib/components/primitive-components/Group/Group_doInitialSimulationSpiceEngineRender.ts
 +++ b/lib/components/primitive-components/Group/Group_doInitialSimulationSpiceEngineRender.ts
-@@ -9,6 +9,7 @@ import { getTransientVoltageGraphNamesFromSpiceNetlist } from "lib/utils/simulat
+@@ -7,8 +7,10 @@ import type {
+ import Debug from "debug"
+ import { getTransientVoltageGraphNamesFromSpiceNetlist } from "lib/utils/simulation/get-transient-voltage-graph-names-from-spice-netlist"
  import { resetSimulationColorState } from "lib/utils/simulation/getSimulationColorForId"
++import { markExternalIbisExperiments, validateExternalSimulationDeclarations } from "lib/utils/simulation/validateExternalSimulationDeclarations"
  import { getSpiceyEngine } from "../../../spice/get-spicey-engine"
  import type { Ammeter } from "../../normal-components/Ammeter"
 +import type { Chip } from "../../normal-components/Chip"
  import type { AnalogAcSweepSimulation } from "../AnalogAcSweepSimulation"
  import type { AnalogDcOperatingPointSimulation } from "../AnalogDcOperatingPointSimulation"
  import type { AnalogDcSweepSimulation } from "../AnalogDcSweepSimulation"
-@@ -177,6 +178,19 @@ export function Group_doInitialSimulationSpiceEngineRender(group: Group<any>) {
+@@ -133,10 +135,12 @@ const getCircuitJsonForAnalogSimulation = ({
+ }
+ 
+ export function Group_doInitialSimulationSpiceEngineRender(group: Group<any>) {
+-  if (group.getInheritedProperty("analogSimulationDisabled")) return
+ 
+   // Only run spice simulation for subcircuits
+   if (!group.isSubcircuit) return
++  markExternalIbisExperiments(group)
++  validateExternalSimulationDeclarations(group)
++  if (group.getInheritedProperty("analogSimulationDisabled")) return
+ 
+   const { root } = group
+   if (!root) return
+@@ -175,8 +179,22 @@ export function Group_doInitialSimulationSpiceEngineRender(group: Group<any>) {
+       debug("No simulation experiment found, skipping simulation")
+       continue
      }
++    if (simulationExperiment.execution_mode === "external") continue
  
      const simulationScope = analogSimulation.getGroup() ?? group
 +    const ibisErrors = root.db.source_invalid_component_property_error
@@ -389,8 +699,17 @@ index bde7d90..45447ca 100644
      const voltageProbes =
        simulationScope.selectAll<VoltageProbe>("voltageprobe")
      const ammeters = simulationScope.selectAll<Ammeter>("ammeter")
+@@ -348,6 +366,8 @@ export function Group_doInitialSimulationSpiceEngineRender(group: Group<any>) {
+                   probeMatch.color ?? undefined
+                 simulationResultWithSweepCoordinate.source_probe_id =
+                   probeMatch.simulation_voltage_probe_id ?? undefined
++                simulationResultWithSweepCoordinate.simulation_voltage_probe_id =
++                  probeMatch.simulation_voltage_probe_id ?? undefined
+               }
+             } else if (
+               isSimulationVoltageResult(simulationResultWithSweepCoordinate)
 diff --git a/lib/components/primitive-components/Group/Subcircuit/InflatorFn.ts b/lib/components/primitive-components/Group/Subcircuit/InflatorFn.ts
-index 54ec34d..0566f09 100644
+index 54ec34d..cb0f3ec 100644
 --- a/lib/components/primitive-components/Group/Subcircuit/InflatorFn.ts
 +++ b/lib/components/primitive-components/Group/Subcircuit/InflatorFn.ts
 @@ -1,5 +1,11 @@
@@ -406,11 +725,13 @@ index 54ec34d..0566f09 100644
  import type { SubcircuitI } from "./SubcircuitI"
  import type { NormalComponent } from "lib/components/base-components/NormalComponent"
  import type { Group } from "../Group"
-@@ -12,6 +18,13 @@ export interface InflatorContext {
+@@ -12,6 +18,15 @@ export interface InflatorContext {
  
    normalComponent?: NormalComponent
    groupsMap?: Map<SourceGroupId, Group<any>>
 +  simIbisModels?: Readonly<Record<string, IbisModelProps>>
++  /** Preserve source physical aliases when binding explicit simulation annotations. */
++  sourcePortLabelsForSimulation?: boolean
 +  importedViaSelectors?: Map<
 +    SourceManuallyPlacedVia["source_manually_placed_via_id"],
 +    string
@@ -646,7 +967,7 @@ index 0000000..d7a18f3
 +  }
 +}
 diff --git a/lib/components/primitive-components/Group/Subcircuit/inflators/inflateSourceChip.ts b/lib/components/primitive-components/Group/Subcircuit/inflators/inflateSourceChip.ts
-index 13f5cc7..e0e0694 100644
+index 13f5cc7..9a11118 100644
 --- a/lib/components/primitive-components/Group/Subcircuit/inflators/inflateSourceChip.ts
 +++ b/lib/components/primitive-components/Group/Subcircuit/inflators/inflateSourceChip.ts
 @@ -1,11 +1,17 @@
@@ -683,7 +1004,7 @@ index 13f5cc7..e0e0694 100644
    inflatorContext: InflatorContext,
  ) => {
    const { injectionDb, subcircuit, groupsMap } = inflatorContext
-@@ -54,28 +64,41 @@ export const inflateSourceChip = (
+@@ -54,28 +64,43 @@ export const inflateSourceChip = (
      source_component_id: sourceElm.source_component_id,
    }) as SchematicComponent | null
  
@@ -726,13 +1047,15 @@ index 13f5cc7..e0e0694 100644
      manufacturerPartNumber: sourceElm.manufacturer_part_number,
      supplierPartNumbers: sourceElm.supplier_part_numbers ?? undefined,
 -    pinLabels: schematicElm?.port_labels ?? undefined,
-+    pinLabels: inflatorContext.simIbisModels && Object.keys(pinLabels).length
-+      ? pinLabels
-+      : (schematicElm?.port_labels ?? undefined),
++    pinLabels:
++      inflatorContext.sourcePortLabelsForSimulation &&
++      Object.keys(pinLabels).length
++        ? pinLabels
++        : (schematicElm?.port_labels ?? undefined),
      schWidth: schematicElm?.size?.width,
      schHeight: schematicElm?.size?.height,
      schPinSpacing: schematicElm?.pin_spacing,
-@@ -88,13 +111,41 @@ export const inflateSourceChip = (
+@@ -88,13 +113,41 @@ export const inflateSourceChip = (
      doNotPlace: pcbElm?.do_not_place,
      obstructsWithinBounds: pcbElm?.obstructs_within_bounds,
      internallyConnectedPins,
@@ -963,6 +1286,151 @@ index 68f9616..1d9d37c 100644
        if (!elm.pcb_trace_id) return true
  
        const pcbTrace = injectionDb.pcb_trace.get(elm.pcb_trace_id)
+diff --git a/lib/components/primitive-components/IbisModel.ts b/lib/components/primitive-components/IbisModel.ts
+new file mode 100644
+index 0000000..0856116
+--- /dev/null
++++ b/lib/components/primitive-components/IbisModel.ts
+@@ -0,0 +1,139 @@
++import { ibismodelProps } from "@tscircuit/props"
++import type { SimulationIbisModelInput, SourcePort } from "circuit-json"
++import type { Chip } from "../normal-components/Chip"
++import { PrimitiveComponent } from "../base-components/PrimitiveComponent"
++import type { Port } from "./Port"
++import { resolveSimulationSelector } from "lib/utils/simulation/resolveSimulationSelector"
++
++type SourcePortId = SourcePort["source_port_id"]
++
++/** Electrical definition only. Resources and conversion are owned by the external runner. */
++export class IbisModel extends PrimitiveComponent<typeof ibismodelProps> {
++  get config() {
++    return { componentName: "IbisModel", zodProps: ibismodelProps }
++  }
++
++  doInitialSimulationRender() {
++    const {
++      componentRef,
++      source,
++      component,
++      pinMap,
++      modelSelections,
++      references,
++      corner,
++      packagePolicy,
++    } = this._parsedProps
++    let chip: Chip
++    if (this.parent?.componentName === "Chip") {
++      if (componentRef)
++        this.renderError(
++          "An ibismodel attached through chip.ibisModel must omit componentRef",
++        )
++      chip = this.parent as Chip
++    } else {
++      if (!componentRef)
++        this.renderError(
++          "A standalone ibismodel requires componentRef identifying an existing chip",
++        )
++      chip = resolveSimulationSelector<Chip>(this, componentRef!, ["Chip"])
++    }
++    if (!chip.source_component_id)
++      this.renderError(`IBIS target "${chip.name}" has not rendered`)
++    if (
++      chip._parsedProps.spiceModel ||
++      chip.children.some((child) => child.componentName === "SpiceModel")
++    )
++      this.renderError(
++        `Chip "${chip.name}" has conflicting IBIS and SPICE model attachments`,
++      )
++    const db = this.root!.db
++    if (
++      db.simulation_ibis_model
++        .list()
++        .some((model) => model.source_component_id === chip.source_component_id)
++    )
++      this.renderError(
++        `Chip "${chip.name}" has more than one IBIS model attachment`,
++      )
++
++    const resolveLocalPort = (portName: string): SourcePortId => {
++      const ports = chip
++        .selectAll<Port>("port")
++        .filter(
++          (port) =>
++            port.getParentNormalComponent() === chip &&
++            port.isMatchingAnyOf([portName]),
++        )
++      if (ports.length !== 1 || !ports[0]!.source_port_id)
++        this.renderError(
++          `IBIS model on "${chip.name}": local port "${portName}" must identify exactly one physical port; found ${ports.length}`,
++        )
++      return ports[0]!.source_port_id!
++    }
++    const pinToSourcePortMap: Record<string, SourcePortId> = {}
++    for (const [physicalPin, localPort] of Object.entries(pinMap)) {
++      const sourcePortId = resolveLocalPort(localPort)
++      if (Object.values(pinToSourcePortMap).includes(sourcePortId))
++        this.renderError(
++          `IBIS model on "${chip.name}": physical pin "${physicalPin}" duplicates another pin's local port "${localPort}"`,
++        )
++      pinToSourcePortMap[physicalPin] = sourcePortId
++    }
++    for (const physicalPin of Object.keys(modelSelections ?? {}))
++      if (!pinToSourcePortMap[physicalPin])
++        this.renderError(
++          `IBIS model on "${chip.name}": model selection references unmapped physical pin "${physicalPin}"`,
++        )
++
++    const resolvedReferences: NonNullable<
++      SimulationIbisModelInput["references"]
++    > = {}
++    const resolveReferencePort = (portName: string): SourcePortId => {
++      const sourcePortId = resolveLocalPort(portName)
++      if (!Object.values(pinToSourcePortMap).includes(sourcePortId))
++        this.renderError(
++          `IBIS model on "${chip.name}": reference port "${portName}" must be included in pinMap`,
++        )
++      return sourcePortId
++    }
++    for (const [physicalPin, referencePorts] of Object.entries(
++      references ?? {},
++    )) {
++      if (!pinToSourcePortMap[physicalPin])
++        this.renderError(
++          `IBIS model on "${chip.name}": references target unmapped physical pin "${physicalPin}"`,
++        )
++      resolvedReferences[physicalPin] = {
++        pullup: referencePorts.pullup
++          ? resolveReferencePort(referencePorts.pullup)
++          : undefined,
++        pulldown: referencePorts.pulldown
++          ? resolveReferencePort(referencePorts.pulldown)
++          : undefined,
++        power_clamp: referencePorts.powerClamp
++          ? resolveReferencePort(referencePorts.powerClamp)
++          : undefined,
++        ground_clamp: referencePorts.groundClamp
++          ? resolveReferencePort(referencePorts.groundClamp)
++          : undefined,
++        external: referencePorts.external
++          ? resolveReferencePort(referencePorts.external)
++          : undefined,
++      }
++    }
++    db.simulation_ibis_model.insert({
++      source_component_id: chip.source_component_id!,
++      source,
++      component,
++      pin_to_source_port_map: pinToSourcePortMap,
++      model_selections: modelSelections,
++      references: references ? resolvedReferences : undefined,
++      corner,
++      package_policy: packagePolicy,
++    } satisfies Omit<
++      SimulationIbisModelInput,
++      "type" | "simulation_ibis_model_id"
++    >)
++  }
++}
 diff --git a/lib/components/primitive-components/SpiceModel.ts b/lib/components/primitive-components/SpiceModel.ts
 index 14c17ff..c304314 100644
 --- a/lib/components/primitive-components/SpiceModel.ts
@@ -984,30 +1452,157 @@ index 14c17ff..c304314 100644
        property_value: propertyValue,
        message,
        error_type: "source_invalid_component_property_error",
+diff --git a/lib/components/primitive-components/VoltageProbe.ts b/lib/components/primitive-components/VoltageProbe.ts
+index c7ba7f6..61fde8e 100644
+--- a/lib/components/primitive-components/VoltageProbe.ts
++++ b/lib/components/primitive-components/VoltageProbe.ts
+@@ -8,6 +8,7 @@ import { getSimulationColorForId } from "lib/utils/simulation/getSimulationColor
+ import { parseSimulationGraphValue } from "lib/utils/simulation/parseSimulationGraphValue"
+ import { z } from "zod"
+ import { PrimitiveComponent } from "../base-components/PrimitiveComponent"
++import { resolveSimulationSelector } from "lib/utils/simulation/resolveSimulationSelector"
+ import type { Net } from "./Net"
+ import type { Port } from "./Port"
+ 
+@@ -25,6 +26,7 @@ export class VoltageProbe extends PrimitiveComponent<typeof voltageProbeProps> {
+   }
+ 
+   doInitialSimulationRender() {
++    if (this.simulation_voltage_probe_id) return
+     const { db } = this.root!
+     const {
+       connectsTo,
+@@ -50,12 +52,12 @@ export class VoltageProbe extends PrimitiveComponent<typeof voltageProbeProps> {
+     }
+     const targetSelector = targets[0]
+ 
+-    const port = subcircuit.selectOne(targetSelector, {
+-      type: "port",
+-    }) as Port | null
+-    const net = !port
+-      ? (subcircuit.selectOne(targetSelector, { type: "net" }) as Net | null)
+-      : null
++    const target = resolveSimulationSelector<Port | Net>(this, targetSelector, [
++      "Port",
++      "Net",
++    ])
++    const port = target.componentName === "Port" ? (target as Port) : null
++    const net = target.componentName === "Net" ? (target as Net) : null
+ 
+     if (net && net.componentName !== "Net") {
+       this.renderError(
+@@ -91,14 +93,23 @@ export class VoltageProbe extends PrimitiveComponent<typeof voltageProbeProps> {
+       }
+       const referenceSelector = referenceTargets[0]
+ 
+-      referencePort = subcircuit.selectOne(referenceSelector, {
+-        type: "port",
+-      }) as Port | null
+-      referenceNet = !referencePort
+-        ? (subcircuit.selectOne(referenceSelector, {
+-            type: "net",
+-          }) as Net | null)
+-        : null
++      const referenceTarget = resolveSimulationSelector<Port | Net>(
++        this,
++        referenceSelector,
++        ["Port", "Net"],
++      )
++      referencePort =
++        referenceTarget.componentName === "Port"
++          ? (referenceTarget as Port)
++          : null
++      referenceNet =
++        referenceTarget.componentName === "Net"
++          ? (referenceTarget as Net)
++          : null
++      if ((port && referenceNet) || (net && referencePort))
++        this.renderError(
++          "Differential VoltageProbe references must both be physical ports or both be nets",
++        )
+ 
+       if (referenceNet && referenceNet.componentName !== "Net") {
+         this.renderError(
 diff --git a/lib/fiber/intrinsic-jsx.ts b/lib/fiber/intrinsic-jsx.ts
-index 971fba2..9c9e903 100644
+index 971fba2..43eb93b 100644
 --- a/lib/fiber/intrinsic-jsx.ts
 +++ b/lib/fiber/intrinsic-jsx.ts
-@@ -104,6 +104,7 @@ export interface TscircuitElements {
+@@ -104,6 +104,10 @@ export interface TscircuitElements {
    copperpour: Props.CopperPourProps
    analogsimulation: Props.AnalogSimulationProps
    analogtransientsimulation: Props.AnalogTransientSimulationProps
 +  eyediagram: Props.EyeDiagramProps
++  analogeyediagram: Props.AnalogEyeDiagramProps
++  ibismodel: Props.IbisModelElementProps
++  analogdigitalstimulus: Props.AnalogDigitalStimulusProps
    analogdcoperatingpointsimulation: Props.AnalogDcOperatingPointSimulationProps
    analogdcsweepsimulation: Props.AnalogDcSweepSimulationProps
    analogacsweepsimulation: Props.AnalogAcSweepSimulationProps
+diff --git a/lib/namespaced-elements/analog.ts b/lib/namespaced-elements/analog.ts
+index 499a048..a6b7f82 100644
+--- a/lib/namespaced-elements/analog.ts
++++ b/lib/namespaced-elements/analog.ts
+@@ -4,10 +4,16 @@ import type {
+   AnalogDcSweepSimulationProps,
+   AnalogSweepParameterProps,
+   AnalogTransientSimulationProps,
++  AnalogEyeDiagramProps,
++  AnalogDigitalStimulusProps,
+ } from "@tscircuit/props"
+ import { createNamespacedElement } from "./create-namespaced-element"
+ 
+ export const analog = {
++  eyediagram: createNamespacedElement<AnalogEyeDiagramProps>("analogeyediagram"),
++  digitalstimulus: createNamespacedElement<AnalogDigitalStimulusProps>(
++    "analogdigitalstimulus",
++  ),
+   transientsimulation: createNamespacedElement<AnalogTransientSimulationProps>(
+     "analogtransientsimulation",
+   ),
+diff --git a/lib/namespaced-elements/create-namespaced-element.ts b/lib/namespaced-elements/create-namespaced-element.ts
+index 5be0795..655b342 100644
+--- a/lib/namespaced-elements/create-namespaced-element.ts
++++ b/lib/namespaced-elements/create-namespaced-element.ts
+@@ -1,4 +1,4 @@
+-import { type FunctionComponent, createElement } from "react"
++import { type FunctionComponent, type ReactElement, createElement } from "react"
+ 
+ export const createNamespacedElement = <Props extends object>(
+   hostType: string,
+@@ -7,5 +7,20 @@ export const createNamespacedElement = <Props extends object>(
+     createElement(hostType, props)
+ 
+   Component.displayName = hostType
++  // Stable across separately evaluated/bundled copies of core. Function identity is not.
++  Object.defineProperty(Component, "tscircuitHostType", { value: hostType })
+   return Component
+ }
++
++export const getNamespacedElementHostType = (
++  component: ReactElement["type"],
++): string | undefined => {
++  if (typeof component === "string") return component
++  if (
++    typeof component === "function" &&
++    "tscircuitHostType" in component &&
++    typeof component.tscircuitHostType === "string"
++  )
++    return component.tscircuitHostType
++  return undefined
++}
 diff --git a/lib/utils/circuit-json/inflate-circuit-json.ts b/lib/utils/circuit-json/inflate-circuit-json.ts
-index 538792a..7f004c1 100644
+index 538792a..9992afb 100644
 --- a/lib/utils/circuit-json/inflate-circuit-json.ts
 +++ b/lib/utils/circuit-json/inflate-circuit-json.ts
-@@ -1,5 +1,6 @@
+@@ -1,5 +1,7 @@
  import { cju } from "@tscircuit/circuit-json-util"
  import type { CircuitJson } from "circuit-json"
 +import { Children, isValidElement } from "react"
++import { getNamespacedElementHostType } from "lib/namespaced-elements/create-namespaced-element"
  import type { Group } from "../../components/primitive-components/Group/Group"
  import type {
    InflatorContext,
-@@ -8,7 +9,7 @@ import type {
+@@ -8,7 +10,7 @@ import type {
  import type { SubcircuitI } from "../../components/primitive-components/Group/Subcircuit/SubcircuitI"
  import { inflatePcbBoard } from "../../components/primitive-components/Group/Subcircuit/inflators/inflatePcbBoard"
  import { inflateSourceCapacitor } from "../../components/primitive-components/Group/Subcircuit/inflators/inflateSourceCapacitor"
@@ -1016,7 +1611,7 @@ index 538792a..7f004c1 100644
  import { inflateSourceConnector } from "../../components/primitive-components/Group/Subcircuit/inflators/inflateSourceConnector"
  import { inflateSourceDiode } from "../../components/primitive-components/Group/Subcircuit/inflators/inflateSourceDiode"
  import { inflateSourceFiducial } from "../../components/primitive-components/Group/Subcircuit/inflators/inflateSourceFiducial"
-@@ -21,18 +22,43 @@ import { inflateSourcePushButton } from "../../components/primitive-components/G
+@@ -21,18 +23,62 @@ import { inflateSourcePushButton } from "../../components/primitive-components/G
  import { inflateSourceResistor } from "../../components/primitive-components/Group/Subcircuit/inflators/inflateSourceResistor"
  import { inflateSourceSwitch } from "../../components/primitive-components/Group/Subcircuit/inflators/inflateSourceSwitch"
  import { inflateSourceTrace } from "../../components/primitive-components/Group/Subcircuit/inflators/inflateSourceTrace"
@@ -1050,26 +1645,47 @@ index 538792a..7f004c1 100644
 +      )
 +  }
 +
++  const simulationAnnotations = new Set([
++    "eyediagram",
++    "analogeyediagram",
++    "ibismodel",
++    "voltageprobe",
++    "analogsimulation",
++    "analogtransientsimulation",
++    "analogdigitalstimulus",
++  ])
 +  if (
 +    Children.toArray(children).some(
 +      (child) =>
 +        target.componentName !== "Board" ||
-+        !isValidElement(child) ||
-+        child.type !== "eyediagram",
++        !isValidElement<Record<string, unknown>>(child) ||
++        (!simulationAnnotations.has(
++          getNamespacedElementHostType(child.type) ?? "",
++        ) &&
++          !(
++            getNamespacedElementHostType(child.type) === "voltagesource" &&
++            !Object.keys(child.props).some(
++              (prop) =>
++                child.props[prop] !== undefined &&
++                (prop === "footprint" || prop.startsWith("pcb")),
++            )
++          )),
 +    )
 +  ) {
      throw new Error("Component cannot have both circuitJson and children")
    }
  
-@@ -42,6 +68,7 @@ export const inflateCircuitJson = (
+@@ -42,6 +88,9 @@ export const inflateCircuitJson = (
      injectionDb,
      subcircuit: target,
      groupsMap,
 +    simIbisModels,
++    sourcePortLabelsForSimulation:
++      Boolean(simIbisModels) || Children.count(children) > 0,
    }
  
    // Inflate source_groups in dependency order (parents before children)
-@@ -100,7 +127,10 @@ export const inflateCircuitJson = (
+@@ -100,7 +149,10 @@ export const inflateCircuitJson = (
          inflateSourceLed(sourceComponent, inflationCtx)
          break
        case "simple_chip":
@@ -1081,7 +1697,7 @@ index 538792a..7f004c1 100644
          break
        case "simple_connector":
          inflateSourceConnector(sourceComponent, inflationCtx)
-@@ -124,6 +154,8 @@ export const inflateCircuitJson = (
+@@ -124,6 +176,8 @@ export const inflateCircuitJson = (
      }
    }
  
@@ -1090,7 +1706,7 @@ index 538792a..7f004c1 100644
    const sourcePorts = injectionDb.source_port.list()
    for (const sourcePort of sourcePorts) {
      inflateSourcePort(sourcePort, inflationCtx)
-@@ -133,8 +165,10 @@ export const inflateCircuitJson = (
+@@ -133,8 +187,10 @@ export const inflateCircuitJson = (
    for (const sourceTrace of sourceTraces) {
      inflateSourceTrace(sourceTrace, inflationCtx)
    }
@@ -1140,10 +1756,257 @@ index 7b279ea..57a43e4 100644
  
    const components = createComponentsFromCircuitJson(
      {
+diff --git a/lib/utils/simulation/resolveSimulationSelector.ts b/lib/utils/simulation/resolveSimulationSelector.ts
+new file mode 100644
+index 0000000..fd979d0
+--- /dev/null
++++ b/lib/utils/simulation/resolveSimulationSelector.ts
+@@ -0,0 +1,92 @@
++import { compile, selectAll } from "css-select"
++import type { PrimitiveComponent } from "lib/components/base-components/PrimitiveComponent"
++import { cssSelectPrimitiveComponentAdapter } from "lib/components/base-components/PrimitiveComponent/cssSelectPrimitiveComponentAdapter"
++import { preprocessSelector } from "lib/components/base-components/PrimitiveComponent/preprocessSelector"
++import type { Port } from "lib/components/primitive-components/Port"
++import type { SimulationExperiment } from "circuit-json"
++import type { AnalogSimulation } from "lib/components/primitive-components/AnalogSimulation"
++import type { AnalogTransientSimulation } from "lib/components/primitive-components/AnalogTransientSimulation"
++
++/** Resolve in the nearest subcircuit. Nested subcircuits require a named, qualified path. */
++export function resolveSimulationSelector<T extends PrimitiveComponent>(
++  declaration: PrimitiveComponent,
++  selector: string,
++  componentNames: readonly string[],
++): T {
++  const scope = declaration.getSubcircuit() as PrimitiveComponent
++  const normalizedSelector = preprocessSelector(selector, declaration)
++  const matches = selectAll(normalizedSelector, scope, {
++    adapter: cssSelectPrimitiveComponentAdapter,
++  }).filter((candidate) => {
++    if (!componentNames.includes(candidate.componentName)) return false
++    let ancestor = candidate.parent
++    while (ancestor && ancestor !== scope) {
++      if (ancestor.isSubcircuit) {
++        const name = ancestor.props.name
++        if (!name) return false
++        const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
++        const qualifications = normalizedSelector.matchAll(
++          new RegExp(
++            `(?:\\.${escapedName}(?=[\\s>+~.:#\\[]|$)|\\[name=["']?${escapedName}["']?\\])`,
++            "g",
++          ),
++        )
++        if (
++          ![...qualifications].some((match) =>
++            compile(
++              `:scope${normalizedSelector.slice(match.index! + match[0].length)}`,
++              { adapter: cssSelectPrimitiveComponentAdapter },
++              ancestor!,
++            )(candidate),
++          )
++        )
++          return false
++      }
++      ancestor = ancestor.parent
++    }
++    return ancestor === scope
++  })
++  if (matches.length !== 1)
++    declaration.renderError(
++      `${declaration.componentName} "${declaration.props.name ?? "unnamed declaration"}": selector "${selector}" must identify exactly one ${componentNames.join(" or ")}; found ${matches.length}`,
++    )
++  return matches[0]! as T
++}
++
++export function resolveSimulationPort(
++  declaration: PrimitiveComponent,
++  selector: string,
++): Port {
++  const port = resolveSimulationSelector<Port>(declaration, selector, ["Port"])
++  if (!port.source_port_id)
++    declaration.renderError(`Signal port "${selector}" has not rendered`)
++  return port
++}
++
++export function resolveTransientSimulation(
++  declaration: PrimitiveComponent,
++  selector: string,
++): SimulationExperiment {
++  const simulation = resolveSimulationSelector<
++    AnalogSimulation | AnalogTransientSimulation
++  >(declaration, selector, ["AnalogSimulation", "AnalogTransientSimulation"])
++  const experiment = simulation.getOrCreateSimulationExperiment()
++  if (!experiment)
++    declaration.renderError(
++      `Transient simulation "${selector}" has not rendered`,
++    )
++  return experiment!
++}
++
++export function markExternalSimulation(
++  declaration: PrimitiveComponent,
++  experiment: SimulationExperiment,
++): void {
++  declaration.root!.db.simulation_experiment.update(
++    experiment.simulation_experiment_id,
++    {
++      execution_mode: "external",
++      execution_status: "pending",
++    },
++  )
++}
+diff --git a/lib/utils/simulation/validateExternalSimulationDeclarations.ts b/lib/utils/simulation/validateExternalSimulationDeclarations.ts
+new file mode 100644
+index 0000000..fc246a5
+--- /dev/null
++++ b/lib/utils/simulation/validateExternalSimulationDeclarations.ts
+@@ -0,0 +1,125 @@
++import type { Group } from "lib/components/primitive-components/Group/Group"
++import type { SourcePort } from "circuit-json"
++import type { AnalogSimulation } from "lib/components/primitive-components/AnalogSimulation"
++import type { AnalogTransientSimulation } from "lib/components/primitive-components/AnalogTransientSimulation"
++
++type SourcePortId = SourcePort["source_port_id"]
++
++/** General model declarations must never be silently omitted by the legacy native SPICE assembler. */
++export function markExternalIbisExperiments(group: Group<any>): void {
++  const db = group.root!.db
++  const modeledChipIds = new Set(db.simulation_ibis_model.list().map((model) => model.source_component_id))
++  if (!modeledChipIds.size) return
++  for (const declaration of group.getDescendants()) {
++    if (declaration.componentName !== "AnalogSimulation" && declaration.componentName !== "AnalogTransientSimulation") continue
++    const simulation = declaration as AnalogSimulation | AnalogTransientSimulation
++    const scope = simulation.getGroup() ?? group
++    if (!scope.getDescendants().some((chip) => chip.source_component_id && modeledChipIds.has(chip.source_component_id))) continue
++    db.simulation_experiment.update(simulation.simulation_experiment_id!, { execution_mode: "external", execution_status: "pending" })
++  }
++}
++
++/** Check native control bindings without loading vendor bytes or running any solver. */
++export function validateExternalSimulationDeclarations(
++  group: Group<any>,
++): void {
++  const db = group.root!.db
++  const models = db.simulation_ibis_model.list()
++  const stimuli = db.simulation_digital_stimulus.list()
++  const pinStates = db.simulation_ibis_pin_state.list()
++  const portLabel = (sourcePortId: SourcePortId) => {
++    const port = db.source_port.get(sourcePortId)!
++    const chip = port.source_component_id
++      ? db.source_component.get(port.source_component_id)
++      : null
++    return `${chip?.name ?? "unnamed component"}.${port.name ?? port.port_hints?.[0] ?? "unnamed port"}`
++  }
++  for (const experiment of db.simulation_experiment.list()) {
++    if (experiment.execution_mode !== "external") continue
++    const experimentStimuli = stimuli.filter(
++      (stimulus) =>
++        stimulus.simulation_experiment_id ===
++        experiment.simulation_experiment_id,
++    )
++    const experimentStates = pinStates.filter(
++      (state) =>
++        state.simulation_experiment_id === experiment.simulation_experiment_id,
++    )
++    for (const state of experimentStates) {
++      const attachedModels = models.filter((model) =>
++        Object.values(model.pin_to_source_port_map).includes(
++          state.source_port_id,
++        ),
++      )
++      if (attachedModels.length !== 1)
++        group.renderError(
++          `Transient simulation "${experiment.name}": run state for "${portLabel(state.source_port_id)}" must target exactly one IBIS attachment`,
++        )
++      const controls = experimentStimuli.filter(
++        (stimulus) => stimulus.source_port_id === state.source_port_id,
++      )
++      if (state.mode === "output" && state.enabled && controls.length !== 1)
++        group.renderError(
++          `Transient simulation "${experiment.name}": enabled output "${portLabel(state.source_port_id)}" requires exactly one digital stimulus; found ${controls.length}`,
++        )
++      if ((state.mode === "input" || !state.enabled) && controls.length > 0)
++        group.renderError(
++          `Transient simulation "${experiment.name}": digital stimulus targets input or disabled output "${portLabel(state.source_port_id)}"`,
++        )
++    }
++    for (const stimulus of experimentStimuli) {
++      const states = experimentStates.filter(
++        (state) => state.source_port_id === stimulus.source_port_id,
++      )
++      if (states.length !== 1)
++        group.renderError(
++          `Digital stimulus "${stimulus.name}" requires exactly one explicit ibisPinStates entry for "${portLabel(stimulus.source_port_id)}"`,
++        )
++    }
++    const observedPorts = db.simulation_eye_diagram
++      .list()
++      .filter(
++        (eye) =>
++          eye.simulation_experiment_id === experiment.simulation_experiment_id,
++      )
++      .flatMap((eye) => {
++        const probe = db.simulation_voltage_probe.get(
++          eye.simulation_voltage_probe_id,
++        )!
++        return [
++          probe.signal_input_source_port_id,
++          probe.reference_input_source_port_id,
++        ].filter((sourcePortId): sourcePortId is SourcePortId =>
++          Boolean(sourcePortId),
++        )
++      })
++    const selectedModels = models.filter((model) =>
++      Object.values(model.pin_to_source_port_map).some(
++        (sourcePortId) =>
++        db.source_port.get(sourcePortId)?.subcircuit_id === experiment.subcircuit_id ||
++        observedPorts.includes(sourcePortId) ||
++          experimentStates.some(
++            (state) => state.source_port_id === sourcePortId,
++          ),
++      ),
++    )
++    for (const model of selectedModels) {
++      // Signal pins explicitly identified by selections/references can be checked before parsing vendor data.
++      const selectedPhysicalPins = new Set([
++        ...Object.keys(model.model_selections ?? {}),
++        ...Object.keys(model.references ?? {}),
++      ])
++      for (const physicalPin of selectedPhysicalPins) {
++        const sourcePortId = model.pin_to_source_port_map[physicalPin]!
++        if (
++          !experimentStates.some(
++            (state) => state.source_port_id === sourcePortId,
++          )
++        )
++          group.renderError(
++            `Transient simulation "${experiment.name}": modeled signal "${portLabel(sourcePortId)}" requires an explicit ibisPinStates entry`,
++          )
++      }
++    }
++  }
++}
 diff --git a/package.json b/package.json
-index 497d703..d634d81 100644
+index 497d703..f8986c5 100644
 --- a/package.json
 +++ b/package.json
+@@ -60,7 +60,7 @@
+     "@tscircuit/miniflex": "^0.0.4",
+     "@tscircuit/modelprinter": "^0.0.18",
+     "@tscircuit/ngspice-spice-engine": "^0.0.20",
+-    "@tscircuit/props": "^0.0.701",
++    "@tscircuit/props": "0.0.702",
+     "@tscircuit/schematic-match-adapt": "^0.0.18",
+     "@tscircuit/schematic-trace-solver": "https://jscdn.tscircuit.com/@tscircuit/schematic-trace-solver/0.0.230.tgz",
+     "@tscircuit/solver-utils": "^0.0.16",
+@@ -76,7 +76,7 @@
+     "bun-match-svg": "0.0.12",
+     "calculate-elbow": "^0.0.12",
+     "chokidar-cli": "^3.0.0",
+-    "circuit-json": "^0.0.525",
++    "circuit-json": "0.0.528",
+     "circuit-json-to-bpc": "^0.0.13",
+     "circuit-json-to-connectivity-map": "^0.0.33",
+     "circuit-json-to-gltf": "^0.0.151",
 @@ -101,7 +101,8 @@
      "spicey": "^0.0.14",
      "stack-svgs": "^0.0.1",
@@ -1158,10 +2021,21 @@ index 497d703..d634d81 100644
      "@tscircuit/cableprinter": "*"
    },
    "dependencies": {
-+    "@tscircuit/ibis-to-spice": "0.0.1",
++    "@tscircuit/ibis-to-spice": "0.0.2",
      "@flatten-js/core": "^1.6.2",
      "@lume/kiwi": "^0.4.3",
      "calculate-cell-boundaries": "^0.0.25",
+@@ -144,8 +146,8 @@
+   },
+   "overrides": {
+     "@tscircuit/circuit-json-util": "^0.0.121",
+-    "@tscircuit/props": "^0.0.701",
+-    "circuit-json": "^0.0.525",
++    "@tscircuit/props": "0.0.702",
++    "circuit-json": "0.0.528",
+     "@tscircuit/cableprinter": "^0.0.6"
+   }
+ }
 diff --git a/tests/features/__snapshots__/eyediagram-imported-board-schematic.snap.svg b/tests/features/__snapshots__/eyediagram-imported-board-schematic.snap.svg
 new file mode 100644
 index 0000000..7a2d49a
@@ -1199,6 +2073,25 @@ index 0000000..7a2d49a
 +              .component-name { fill: rgb(0, 100, 100); }
 +              
 +            </style><rect class="boundary" x="0" y="0" width="1200" height="600"/><g class="grid sch-grid"><line x1="11.764705882399994" y1="599.999999999976" x2="11.764705882399994" y2="2.3987922759260982e-11" stroke="rgb(181, 181, 181)" stroke-width="2.941176470588" stroke-opacity="0.5"/><line x1="305.8823529412" y1="599.999999999976" x2="305.8823529412" y2="2.3987922759260982e-11" stroke="rgb(181, 181, 181)" stroke-width="2.941176470588" stroke-opacity="0.5"/><line x1="600" y1="599.999999999976" x2="600" y2="2.3987922759260982e-11" stroke="rgb(181, 181, 181)" stroke-width="2.941176470588" stroke-opacity="0.5"/><line x1="894.1176470588" y1="599.999999999976" x2="894.1176470588" y2="2.3987922759260982e-11" stroke="rgb(181, 181, 181)" stroke-width="2.941176470588" stroke-opacity="0.5"/><line x1="1188.2352941176" y1="599.999999999976" x2="1188.2352941176" y2="2.3987922759260982e-11" stroke="rgb(181, 181, 181)" stroke-width="2.941176470588" stroke-opacity="0.5"/><line x1="85.29411764709994" y1="888.2352941176" x2="1114.7058823529" y2="888.2352941176" stroke="rgb(181, 181, 181)" stroke-width="2.941176470588" stroke-opacity="0.5"/><line x1="85.29411764709994" y1="594.1176470588" x2="1114.7058823529" y2="594.1176470588" stroke="rgb(181, 181, 181)" stroke-width="2.941176470588" stroke-opacity="0.5"/><line x1="85.29411764709994" y1="300" x2="1114.7058823529" y2="300" stroke="rgb(181, 181, 181)" stroke-width="2.941176470588" stroke-opacity="0.5"/><line x1="85.29411764709994" y1="5.882352941199997" x2="1114.7058823529" y2="5.882352941199997" stroke="rgb(181, 181, 181)" stroke-width="2.941176470588" stroke-opacity="0.5"/><line x1="85.29411764709994" y1="-288.2352941176" x2="1114.7058823529" y2="-288.2352941176" stroke="rgb(181, 181, 181)" stroke-width="2.941176470588" stroke-opacity="0.5"/><text x="9.264705882399994" y="883.2352941176" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-2,-2</text><text x="9.264705882399994" y="589.1176470588" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-2,-1</text><text x="9.264705882399994" y="295" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-2,0</text><text x="9.264705882399994" y="0.8823529411999971" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-2,1</text><text x="9.264705882399994" y="-293.2352941176" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-2,2</text><text x="303.3823529412" y="883.2352941176" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-1,-2</text><text x="303.3823529412" y="589.1176470588" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-1,-1</text><text x="303.3823529412" y="295" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-1,0</text><text x="303.3823529412" y="0.8823529411999971" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-1,1</text><text x="303.3823529412" y="-293.2352941176" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-1,2</text><text x="597.5" y="883.2352941176" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">0,-2</text><text x="597.5" y="589.1176470588" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">0,-1</text><text x="597.5" y="295" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">0,0</text><text x="597.5" y="0.8823529411999971" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">0,1</text><text x="597.5" y="-293.2352941176" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">0,2</text><text x="891.6176470588" y="883.2352941176" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">1,-2</text><text x="891.6176470588" y="589.1176470588" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">1,-1</text><text x="891.6176470588" y="295" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">1,0</text><text x="891.6176470588" y="0.8823529411999971" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">1,1</text><text x="891.6176470588" y="-293.2352941176" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">1,2</text><text x="1185.7352941176" y="883.2352941176" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">2,-2</text><text x="1185.7352941176" y="589.1176470588" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">2,-1</text><text x="1185.7352941176" y="295" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">2,0</text><text x="1185.7352941176" y="0.8823529411999971" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">2,1</text><text x="1185.7352941176" y="-293.2352941176" fill="rgb(181, 181, 181)" font-size="58.823529411760006" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">2,2</text></g><g class="sch-component" data-circuit-json-type="schematic_component" data-schematic-component-id="schematic_component_0"><rect class="component chip sch-component-body" x="379.4117647059" y="211.76470588235998" width="441.17647058820006" height="176.47058823528005" stroke-width="5.882352941176px" fill="rgb(255, 255, 194)" stroke="rgb(132, 0, 0)"/><rect class="component-overlay sch-component-overlay" x="379.4117647059" y="211.76470588235998" width="441.17647058820006" height="176.47058823528005" fill="transparent"/><text class="sch-text" data-schematic-text-id="schematic_text_0" x="379.4117647059" y="426.470588235284" fill="#006464" text-anchor="start" dominant-baseline="middle" font-family="sans-serif" font-size="52.941176470584px" transform="rotate(0, 379.4117647059, 426.470588235284)"></text><text class="sch-text" data-schematic-text-id="schematic_text_1" x="379.4117647059" y="173.52941176471597" fill="#006464" text-anchor="start" dominant-baseline="middle" font-family="sans-serif" font-size="52.941176470584px" transform="rotate(0, 379.4117647059, 173.52941176471597)">U3</text><line class="component-pin sch-component-pin sch-port-line" x1="379.41176470590005" y1="270.58823529412" x2="267.64705882355605" y2="270.58823529412" stroke-width="5.882352941176px"/><g class="sch-port" data-schematic-port-id="source_port_0"><circle class="component-pin sch-component-pin sch-port-terminal" cx="261.76470588238004" cy="270.58823529412" r="5.882352941176" stroke-width="5.882352941176px"/><rect x="255.88235294120403" y="264.705882352944" width="11.764705882352" height="11.764705882352" opacity="0"/></g><text class="pin-number sch-pin-number" x="320.58823529414" y="264.705882352944" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="middle" dominant-baseline="auto" font-size="44.11764705882px" transform="">1</text><text class="pin-number sch-pin-label" x="408.82352941178" y="270.58823529412" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="start" dominant-baseline="middle" font-size="44.11764705882px" transform="">DQS</text><line class="component-pin sch-component-pin sch-port-line" x1="379.41176470590005" y1="329.41176470588" x2="267.64705882355605" y2="329.41176470588" stroke-width="5.882352941176px"/><g class="sch-port" data-schematic-port-id="source_port_1"><circle class="component-pin sch-component-pin sch-port-terminal" cx="261.76470588238004" cy="329.41176470588" r="5.882352941176" stroke-width="5.882352941176px"/><rect x="255.88235294120403" y="323.529411764704" width="11.764705882352" height="11.764705882352" opacity="0"/></g><text class="pin-number sch-pin-number" x="320.58823529414" y="323.529411764704" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="middle" dominant-baseline="auto" font-size="44.11764705882px" transform="">2</text><text class="pin-number sch-pin-label" x="408.82352941178" y="329.41176470588" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="start" dominant-baseline="middle" font-size="44.11764705882px" transform="">DQSn</text><line class="component-pin sch-component-pin sch-port-line" x1="820.5882352941" y1="300" x2="932.3529411764439" y2="300" stroke-width="5.882352941176px"/><g class="sch-port" data-schematic-port-id="source_port_2"><circle class="component-pin sch-component-pin sch-port-terminal" cx="938.23529411762" cy="300" r="5.882352941176" stroke-width="5.882352941176px"/><rect x="932.352941176444" y="294.117647058824" width="11.764705882352" height="11.764705882352" opacity="0"/></g><text class="pin-number sch-pin-number" x="879.4117647058599" y="294.117647058824" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="middle" dominant-baseline="auto" font-size="44.11764705882px" transform="">3</text><text class="pin-number sch-pin-label" x="791.17647058822" y="300" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="end" dominant-baseline="middle" font-size="44.11764705882px" transform="">GND</text></g><g class="schematic-port-hover sch-port-hover" data-schematic-port-id="source_port_0"><circle cx="261.76470588238004" cy="270.58823529412" r="11.764705882352" fill="red" opacity="0"/></g><g class="schematic-port-hover sch-port-hover" data-schematic-port-id="source_port_1"><circle cx="261.76470588238004" cy="329.41176470588" r="11.764705882352" fill="red" opacity="0"/></g><g class="schematic-port-hover sch-port-hover" data-schematic-port-id="source_port_2"><circle cx="938.23529411762" cy="300" r="11.764705882352" fill="red" opacity="0"/></g><style data-tscircuit-alphabet-font="" type="text/css">@font-face { font-family: 'TscircuitAlphabet'; src: url('data:font/ttf;base64,T1RUTwAJAIAAAwAQQ0ZGIFhQSpcAAAcwAABJ3U9TLzJqmmVhAAABAAAAAGBjbWFwFN0WswAABEwAAALEaGVhZC1P1HwAAACcAAAANmhoZWEDrgI1AAAA1AAAACRobXR44xAAAAAAURAAAAFQbWF4cABUUAAAAAD4AAAABm5hbWUZQ94BAAABYAAAAutwb3N0AAMAAAAABxAAAAAgAAEAAAABAADb+Z65Xw889QADA+gAAAAA5e9IsgAAAADl70iy/9P/PwKHAvkAAAADAAIAAAAAAAAAAQAAA6z/LAAAArQAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAFQAAFAAAFQAAAADArQB9AAFAAACigK7AAAAjAKKArsAAAHfADEBAgAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAABYWFhYAEAAIQB6A6z/LAAAAvkAwQAAAAEAAAAAAiwC1wAAAAAAAAAAACIBngABAAAAAAAAAAEAWQABAAAAAAABABEAAAABAAAAAAACAAcAMwABAAAAAAADABsA/AABAAAAAAAEABkASAABAAAAAAAFAAsA2wABAAAAAAAGABgAkwABAAAAAAAHAAEAWQABAAAAAAAIAAEAWQABAAAAAAAJAAEAWQABAAAAAAAKAAEAWQABAAAAAAALAAEAWQABAAAAAAAMAAEAWQABAAAAAAANAAEAWQABAAAAAAAOAAEAWQABAAAAAAAQABEAAAABAAAAAAARAAcAMwADAAEECQAAAAIAgwADAAEECQABACIAEQADAAEECQACAA4AOgADAAEECQADADYBFwADAAEECQAEADIAYQADAAEECQAFABYA5gADAAEECQAGADAAqwADAAEECQAHAAIAgwADAAEECQAIAAIAgwADAAEECQAJAAIAgwADAAEECQAKAAIAgwADAAEECQALAAIAgwADAAEECQAMAAIAgwADAAEECQANAAIAgwADAAEECQAOAAIAgwADAAEECQAQACIAEQADAAEECQARAA4AOlRzY2lyY3VpdEFscGhhYmV0AFQAcwBjAGkAcgBjAHUAaQB0AEEAbABwAGgAYQBiAGUAdFJlZ3VsYXIAUgBlAGcAdQBsAGEAclRzY2lyY3VpdEFscGhhYmV0IFJlZ3VsYXIAVABzAGMAaQByAGMAdQBpAHQAQQBsAHAAaABhAGIAZQB0ACAA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BY6cBbz3BwWUmQWalQWcjgWciAWaggWVfQWPewU/+y8V+w5aBXqHBXmOBX2UBYGZBYebBY6bBZWZBZmUBfcOvQWcjgWciAWaggWVfgWPewWIewWBfQX7M00V+zObBXuQBX2WBYOZBYqcBZCaBZaYBZuTBZyMBfczewWchgWYgAWTfAWNewWFewWAfwV7gwX7VqAVNb0Ff5YFg5oFi5sFkZsFl5cFm5IFnIsFnIYF4FkFmIAFknwFjHoFhXwFf38Fe4QFeYoF+wzZFWbuBYmbBY+bBZaYBZqUBZyNBZyHBZmBBZR9BbAnBY17BYd7BYB+BXyDBXmIBXqQBX2VBQ75SPfu+UEVi/uBBYh7BYF9BXyCBXqIBXqOBXyUBYGZBYibBYv3gQWOmwWVmQWalAWcjwWchwWaggWVfQUO+Uj4Ko0VsmUFlX0FjnsFh3sFgX0FfYIFeYgFeo8FfZQFYrMFio0FiYwFY7sFiowFiowFYsMFiowFiowFY8oFio4FiY0FbcoFio4FiY4Fd8oFi44Fio0FgcMFi5IFi5IFlcMFjI0Fi44Fn8oFjY4FjI4FqcoFjY0FjI4Fs8oFjIwFjIwFtMMFjIwFjIwFs7sFjYwFjI0FtLMFmZQFnI8FnYgFmYIFlX0Fj3sFiHsFgX0FZGUFZV4FZFUFZE8Fb1AFeFEFg10Fk10FnlEFp1AFsk8FslUFDvlI95tWFYqJBWJjBX2CBXqHBXmOBX2UBYGZBYebBY6bBZWZBbKxBbG4BbLBBbLHBafGBZ7FBZO5BYO5BXjFBW/GBWTHBWTBBWW4BWSxBYGZBYibBY+bBZWZBZqUBZyOBZyHBZmCBbRjBYyJBY2KBbRbBYuKBY2KBbNTBYyKBYyKBbRMBYuIBY2JBapMBYuIBY2IBZ9MBYuIBYyJBZVTBYuEBYuEBYFTBYqJBYuIBXdMBYmIBYuIBWxMBYmJBYuIBWJMBYqKBYqKBWNTBYmKBYuKBWJbBQ75SPeU+FUV+zRWBXqIBXqPBX2VBYKZBYicBY+bBZaYBZqTBfc5wgUh9yQFhJoFi5sFkZsFmJYFm5IFnIsFm4UFmIAF8fsfBfH3HwWYlgWbkQWciwWchAWXgAWRewWLewWEfAUh+yQF9zlUBZqDBZZ+BY97BYh6BYJ9BX2BBXqHBXqOBfs0wAWL+yoFiHsFgX0FfIIFeogFeo4FfJQFgZkFiJsFDvlI95T39hWL90sFjpwFlZgFmpUFnI4FnIgFmoEFlX4FjnoFi/tLBfdpiwWciAWaggWVfQWOewWIegWBfgV8ggV6hwX7aYsFi/tLBYh7BYF9BXyCBXqIBXqOBXyUBYGZBYibBYv3SwX7aYsFeo8FfJQFgZgFiJwFjpsFlZkFmpQFnI4FDvlI96puFcJVBZV9BY56BYd7BYF+BXyCBXqIBXqOBX2VBTXfBYeRBYaRBYuMBYqMBYqSBYmSBYyMBYqMBY2SBYyTBYyLBYuMBZCRBY+RBfc/9zwFmpUFnI4FnIgFmoMFlX0Fj3sFiHsFgX0FDvlI90L35RX3kosFnIgFmoIFlX0FjnsFiHsFgX0FfIIFeogF+5KLBXqOBXyUBYGZBYibBY6bBZWZBZqUBQ75SPf/7RX7D4sFeY4FfZQFgZkFiJsFjpsFlZkFmZQFnY4F9w+LBZyIBZmCBZV9BY97BYd7BYF9BX2CBQ75SKOAFfhx+WMFl5cFm5EFnYwFm4UFmIAFknwFjHoFhXwF/HH9YwV/fwV7hQV5igV7kQV+lgWEmgWKnAUO+Uj4CfkPFUOeBUN4BUZQBWMvBYH7JQWj+wwFxi0F2F0FyYsF2LkFxukFo/cMBYH3JQVj5wVq9x4VjYoFkYgFkYgFjIoFjYoF4EEFi4sFjIoFj4UFkIUFi4oFjIoFuSEFjIQFjYUFlvsyBYqGBYuGBXH7GQWIhQWJhAVH+wIFiYoFiokFhocFh4YFiYoFiooFKVEFh4kFiIkFhooFh4oFh4sFh4oFM4sFh4wFh4sFh4wFhowFiI0Fh40FKcUFiowFiYwFh5AFho8Fio0FiowFRvcCBYmSBYiRBXH3GQWLkAWKkAWW9zIFjZEFjJIFufUFjIwFi4wFkJEFj5EFjIwFjIsF39UFjYwFjIwFkY4FkY4FjYwFjYsF6aMFjowFjowFkYoFkYwFjooFjooF6XMFDvlI9/v5ZRWQjgWNjAWNjAWSiwWSjQWMigWNiwWSigWSiQWMigWNiwWRhwWQhwWMigWNigWOhQWPhQWMigWLiQWMhQWNhAWL/REFh3sFgX0FfYIFeogFeY4FfZQFgZkFiJsFi/i2BTRFBXuDBXqJBXqPBX2WBYOZBYmbBY+bBZaYBfc19xUFDvlI90rmFffoiwWdiAWZggWVfQWOewWIewWBfQV9ggV5iAX8TosFg4wFg4wFiowFiosFhY8FhI8Fi4sFiowFhpEFh5EFi4wFiowFipIFiZIFi4wFi4wFjJIFjJIFjIwFi4wFj5EFj5EF9zn3PgX3L/dKBcTlBZezBYueBYOqBXeiBV6dBUaQBWaGBVBzBWttBX9mBYN9BX6ABXqGBXmNBXyTBYCYBYaaBYycBZu6BYuMBYyNBY+QBY6RBYyMBYyNBbi2BYuLBYuLBZOQBZKQBYuLBYuLBdWoBZCNBZGMBbqSBZCKBZCMBd2FBZKJBZKKBclxBYyKBY2LBZCHBZGHBYyKBY2JBaxlBYyKBYuKBY+FBY6EBYuKBYyKBZdeBYuFBYyGBYptBYqGBYuGBX1ZBYiFBYmGBUwpBYmJBYqJBfsy+04FiooFiooFDvlI9wqUFYeMBVObBXySBX+YBYabBY2bBZOaBZmVBZuQBZ2KBcB8BdeABeiJBb2WBdGxBbW2BZy5BYOvBWWzBUStBTSiBT2UBYiMBYiLBYWOBYaMBYmNBYiNBYePBYeOBYmOBYmNBYmQBYmQBYuOBYqOBYuQBYuRBYyNBYuOBY2QBY2QBY2NBY2OBY+PBY+PBY6MBY2NBZCNBZGNBY6LBY6MBduVBeKdBdGpBauoBZGqBXWtBV2uBUagBTyPBUp2BVZxBWhxBXyEBXmKBXuQBX2WBYOZBYqcBZCaBZeYBbCnBY+MBY6OBceoBY6MBY6NBdikBZOMBZSMBemGBZCKBZGKBd1yBZKIBZOHBcVeBZCGBZCGBa9UBY2EBY6FBYuKBYyKBYqEBYuDBYBQBYmHBYqHBYmIBYmHBYiIBYiHBVxfBYWGBYSHBUduBdFqBZGGBZKHBcBUBYyIBY6JBY2GBY6HBYuIBY2HBZZQBYuJBYyIBYqFBYuGBYqIBYuJBXNKBYuLBYuLBYeEBYaEBYuLBYuLBVZUBYWHBYaHBTlfBYWJBYWIBU19BYWLBYWKBSeNBYiMBYiLBTmWBQ75SPgF98IVi+oFj5sFlJgFmpUFnI4FnIgFmoEFlX4FjnsFiywF6YsFnIcFmoIFlX0FjnsFiHsFgX0FfIIFeogFLYsFi/s9BYh7BYF9BXyCBXqIBXqOBXyUBYKZBYebBYv3PQX71IsFhIwFhYwFiYwFiYsFhY8FhY0Fio0FiYwFh5AFh5AFi40FiY0FipEFiZEFi40Fi40FjJEFjJEFjI0Fi40Fj5EFjpAF+Ab4PgWYlgWcjwWcigWbgwWWfgWQfAWKegWCfQX7yfv5BQ75SKn5QRWOmwWVmQWalAWcjwX4WIsFnIcFmoIFlX0FjnsFiHsFgX0FfIIFeogF/CuLBYv7dwX3HakFk4sFk4wF9x57BZOIBZOJBcJuBZGGBZGHBbFiBYyJBYyKBY6FBY+FBYuKBYyJBaj7BAWLigWLigWLhAWMhAWKigWLiQV9UQWLiwWLigWHhAWIhAWLiwWKigVnXgWFhQWFhgVFYQWFiQWFiAU5dQWGigWGigU+hwWFjAWGiwVKlwWGjQWGjAVWogWGjgWFjwVUugWAmAWHmwWOmwWUmQWZlQWcjwWciQWaggW9YQW0eQXCgQXNjgXSngXFrgWlqwWUswVz5wVxpwVjoAX7DZkF+01iBYaLBYaKBYeMBYiKBYaNBYaMBYiNBYeMBYePBYeNBYmOBYiNBYmQBYiPBYuOBYmPBYuPBYqQBQ75SPch96QVi4sFi4sFbW4FioMFnlkFm24FtWEFtHIFzoEF2o8FxaMFsqoFnrMFjaoFf7MFeKwFcqQFZ5sFUJcFU44FU4MFU28F+yxcFYqPBYyRBYy5BYuLBYuLBY7cBY2RBYyRBafaBYyNBYuNBbTfBZCSBZCRBcC7BY6NBY2NBdC4BZGOBZCOBdykBYyLBYuLBeKlBZ2NBZuGBZmBBZN8BY17BYZ7BYB+BXyDBTRyBUFzBU9kBV5jBWdABXJEBYp7BZGOBZCPBdGtBZKNBZKOBc6UBZCLBY+LBcuJBY+KBY+LBc58BZCKBZCJBbt2BZKGBZKHBa5oBY6GBY+GBaNhBYyHBY2HBZpZBYyEBYyFBYlbBYuLBYuLBYmDBYmDBYuLBYuLBW9UBYuKBYqKBYaGBYeFBYqKBYqLBVhiBYaIBYaIBUNtBYOJBYOJBS+GBYeMBYaLBTmXBYqLBYqLBYSOBYOOBYuLBYqLBVasBYiPBYaNBVq8BYeQBYeQBXaxBYqOBYqOBXXHBYqSBYmTBQ75SPfP90gVg/saBYd7BYF+BXyCBXmJBXqPBX2VBYKZBYmbBZL3HAWMjQWLjQWc9wcFi4wFjI0Fms0FjI0Fi4wFnsYFjIwFi40FoL4FjIwFi40ForcFjIwFi40Fo7EFjIwFjI0FoqoFjI0FjIwFoqYFjYwF+96LBXmOBX2UBYGZBYibBY6bBZWZBZmUBZ2PBfhfiwWQigWQigWOigWPigWPiAWQiQWOiQWNiQWOhwWPhwWMiAWNiAWMhgWNhgWLiAWMiAWJhgWLhgWKiAWKiAWIhwWJhgWIiQWJiAWHiAWHiAVqeQV9gQVkaAV3dAV2bgV1aAV2YgV4WwV5UwV8TAUO+Uj3pvf2FUR0BUpaBXBZBYleBaZdBcVnBdlzBciJBeCmBb6wBaLEBYLEBWK1BTi2BVKfBdH3sxU4kQVLgAVXcwVrXQWVaQW4ZQW/bAXDeAWwlgXetQWdpgWMwwV1rwVr9wEVi4sFk4gFk4kFi4sFjIsF0GgFjokFj4kFjocFj4gFjYgFjYgFrVIFjIkFjYgFjIYFjYYFiogFjIgFiTwFi4gFi4kFiYUFioYFiYkFiogFbVwFiYkFiYgFh4gFh4cFiIoFiYkFUm4F0mYFkIcFkYcFw1IFjYcFj4gFjIcFjYgFjIYFjIcFmDoFi4kFi4kFioUFi4UFiokFiokFbDwFiYcFiogFh4cFiYgFiIgFiIkFR1sFhYgFhYcFJ2sFg4oFg4oFP40FhY0FhIsFMqcFho4FhY0FQ7gFio0FiYwFho8Fh5AFio0FiYwFZc0Fio4Fio4FipAFiZAFjI4Fio4Fjs0Fi4wFi4sFjZMFjZIFi4wFi4sFr80Fi4wFjIwFkJAFkJEFi4wFjIsF2sYFkY4Fko8FmI8FaZ8FiI4Fh40FUrwFiY0FiI4FiY8FiI8Fio4FiY4FeMsFi40Fi4wFipIFi5IFi4wFi4wFjpIFjZIFjIsFjI0Fu9IFjo4FjY4Fj44Fj44Fjo0Fjo0F0KsFkYwFkY0F15gFkIsFkYwF7YQFDvlI+Fr4mBWVnQV8xwVwqwVfoAVIkwVHgwVTdAVnagV+XwWYYAWvaQXDdAXMhAXMmgW8qgVf/BoVi4oFZ0IFgX4FfIIFeYgFeo8FfZUFgpkFiJsFj5sFr9QFtuoFwPcXBYuLBYuMBZKcBT55BYOKBYKLBTuUBYWNBYWMBUWoBYSPBYSQBVm6BYqNBYmMBYiQBYeQBYuOBYqNBXfNBYqOBYqOBYyQBYqQBYyOBYyPBZ/NBYyNBYuNBY+QBY6QBY2NBYyNBb26BZKPBZKQBdGnBZGMBZGNBduVBZGKBZGMBduBBZKJBZKJBcdvBYyKBYyLBZGGBZGHBYuKBYyKBbNcBYyKBYyKBY6FBY6F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iAWZggWVfQWPewWHewWBfQV9ggV6iAX8FYsFi/t4BffQiwWdiAWZggWVfQWOewWIewWBfQV9ggV5hwUO+Uj4fve0Ffs1iwV6jwV9lAWBmQWImwWOmwWVmQWZlAWdjgX3bIsFj4oFkIsFj4kFj4oFj4kFj4kFjogFj4kFjYgFjocFjYgFjYcFjIcFjYcFi4cFjIcFiocFi4cFXvtaBYqJBYuIBYiGBYiGBYmJBYqJBUtGBYmKBYqJBYWIBYaHBYmKBYmKBTpwBYqLBYuKBYOKBYOKBYqLBYqLBTWSBYSNBYSNBTmuBYWOBYaOBUfCBYaQBYaQBV/QBYuMBYqMBYmRBYiSBYuMBYuMBXf3UgWLkQWLkgWx90IFjIwFi40FjpEFjpEFjIwFjI0FzdsFjIwFi4wFkZAFkY8FjIwFjIsF37QFi4sFi4sFk40Fk44Fi4sFi4sF9xeVBZKKBZGLBfcQcQWbhQWXfwWRfAWLegWEfAV+gAV7hQV5iwX7CKMF+weCBUhrBVZJBWj7MwWe+0IFrlUFxFwF0W4Fz4UFx6AFvL8FDvlI+H74OhWL95sFj5sFlJkFmpQFnI8FnIcFmoIFlX0FjnsFi/0RBYh7BYF9BXyCBXqIBXqOBXyUBYKZBYebBYv3tgX8DosFi/u2BYd7BYJ9BXyCBXqIBXqOBXyUBYGZBYibBYv34AWL98UFjpsFlZkFmpQFnI8FnIcFmoIFlH0Fj3sFi/ubBQ75SPfu+UEVi/0RBYh7BYF9BXyCBXqIBXqOBXyUBYGZBYibBYv5EQWOmwWVmQWalAWcjwWchwWaggWVfQUO+Ui/9z4Vio4Fia8FjpsFlJkFmZUFnY4FnIkFmoIFlX4Fj3sFjGsFkXIFlXYFmXkFnX0FunoFzoQFu5EFwp8FoJkFnJ0Fl6EFk70FivhxBY6bBZWZBZqUBZyPBZyHBZqCBZR+BY96BYz8dAWKiAWLiAWCTgWJhQWJhAV5awWHhgWIhwVycQWHiAWIiAVtdwWGiQWGiAVKcwWGigWFigVRhAWGiwWGiwU8kwWFjAWFjAVRoQWFjwWFjQVvoQWHjwWHjgV2pQWJkAWIjwV+qAWKkAWJjwWEqwUO+Uj3Uff3FfsBOQWL+3UFiHsFgX0FfYIFeYgFeo4FfZQFgZkFh5sFi/kRBY+bBZWZBZmUBZyPBZ2HBZmCBZV9BY57BYv7xAX4Hve7BZuSBZyNBZyGBZiABZR8BYx7BYZ7BX9/Bfui+14F9+b70AWVfQWPewWHewWCfQV8ggV6iAV6jgV8lAUO+Uj3DOUV+CuLBZyIBZmCBZV9BY97BYd7BYF9BX2CBXqIBfxYiwV6jgV9lAWBmQWHmwWL+REFj5sFlZkFmZQFnI8FnYcFmYIFlX0FjnsFDvlI+KH5WxWOjwWNjQWNjQWRjQWPjgWOjAWOjAWRjAWRjAWOigWOiwWQiQWRigWNigWOigWQhwWPiAWNiQWNiQWOhgWOhgWMiQWMiAWLhgWNhQWL/REFh3sFgX0FfYIFeogFeY4FfZQFgZkFiJsFi/h1BftD+6wFiYkFiokFhocFh4cFiYkFiYoFhYkFhYgFiYsFiIoFhYwFhYoFiIwFiYsFhY4FhY0FiYwFiY0Fh48Fho8Fio0FiY0F+0P3rAWL/HUFiHsFgX0FfYIFeYgFeo4FfZQFgZkFh5sFi/kRBY2RBYuQBYyOBYyNBY6QBY6QBY2NBY2NBY+OBZCPBY6MBY2MBZGMBZCNBY6LBY6MBZGKBZGKBY6KBY6KBY+IBZGJBY2JBY2JBY6HBY+HBfdw+/UF93D39QUO+Uj4e/dPFYT4hgWOmwWVmQWZlAWcjwWdiAWZggWVfQWPewWU/REFioYFi4cFiocFiocFiYgFiYcFiIgFiIcFiIkFiIgFh4kFh4kFh4oFh4oFhosFh4oFhosFh4sFh40Fh4wFh40Fh4wFiI4Fh44FiI4FiI4F/BT4oQWL/IkFh3sFgn0FfIIFeogFeo4FfJQFgZkFiJsFi/kRBYyPBYuPBYyPBYyPBY6PBYyOBY6OBY6PBY6NBY6OBZCNBY+NBY+MBY6NBZCLBZCMBY+KBY+LBY+JBZCKBY+JBY6KBY+IBY+IBY2IBY6IBQ75SPgblBWFiAWJiwWJiwUzgAWKiwWKigWEjAWDjAWKiwWKiwUypQWJjAWIjAWGjgWGjgWJjQWJjAU62gWJjgWIjgWJjwWIjwWLjwWJjgVP96AFi40Fi4wFi5IFi5IFjIwFi40FxPddBY2PBYyPBY6OBY2PBY6NBY6PBdHEBYyMBYyMBZKOBZGOBY2LBYyMBfcOqQWPiwWPjAWQigWPjAWPiQWPiwX3B2cFjIoFjYsFkYcFkYgFjIoFjYkFzkoFjYgFjYkFjocFjYYFjIgFjIgFxfuJBYuDBYuDBW/7LgWIhAWJhQVYMgWKiQWLigWGhgWGhgWKigWKigUwTgWJigWKigUg0BXOkwXUvAW11gWl9x8FVvd1BVm8BTCoBShzBVdgBVj7RgXD+4sFy00FDvlI93j3xxWJigX7AooFi/uVBYd7BYF9BX2CBXqIBXmOBX2UBYGZBYibBYv5BQWMkQWMkgWMjAWLjQWPkQWOkAWNjAWMjQWQjwWRjwWNiwWMjAWSjQWRjAX3HZcFjosFj4sF9w6EBY+KBZCLBdp2BY+KBY+KBa96BZCIBZCIBcRbBYuKBYuLBZCFBZCEBYuLBYyLBaRXBY2EBY2EBZA/BYuJBYuJBYqFBYqFBYqJBYuJBXRcBYqJBYqJBYeHBYeFBYmKBYqKBWhxBYWIBYWIBVN2BYeKBYeJBTp8BYiLBYmLBfsCggWF4BX1kwXWmQW5nAWgmwWZpwWGxAV6sAVesQVxlwVEnQX7BpIFL4MFi/uJBQ75SPiTtRXQOQWTfAWNewWFewWAfwV7gwV6igV6kAV+lQVRzwVUYAWIigWJiQWGiQWGiAWHiwWIigU1fgWJjAWJigWEjAWFiwWJjAWIiwU0qQWJjAWIjAWGjgWGjgWJjgWJjAU75AWKjgWJjQWJkAWIkAWLjgWKjQVQ98MFi4sFi4sFi5MFi5MFi4sFi4wFw/d2BY2OBYyPBY2PBY6PBY2OBY2OBdDLBY2MBYyNBZGOBZGOBY2MBY2MBfcLrAWRjAWRjAWNigWOjAWRiQWRigX3BGMFjYoFjooFj4cFkYgFjIkFjYoFzUEFjIkFjYkFjYYFjoYFjIgFjIkFw/uoBYuEBYuEBW/7QgWJhQWJhQX7K0AVMfUFg5oFipsFkJsFlpcFm5MFnIwFnIYFmIEF0zcFmqkFpfc1BVb3lgVZxAU0qgUucQVXWgVY+2IFwvuvBctDBcx2BcmUBQ75SPfz+EoV3JcFrpgFoJsFlqIFjLMFfbkFgZYFd5gFcZUFQZsF+xSQBfsofgWL+10F90g8FftIhQWL+7cFh3oFgn4FfIEFeogFeo4FfJUFgZgFiJwFi/j8BYyRBYyRBYyNBYuNBY+QBY6RBY2MBYyNBZGOBZCPBY2MBY2MBZGMBZKNBfdUmwWOiwWOjAX3G4UFj4oFj4sF3HoFj4kFj4sFrX0Fj4kFj4kFp3kFj4cFkIgFoHQFi4oFjIsFjoQFj4UFi4oFjIoFnU0FjIUFjIUFiVQFi4sFiYMFiYMFi4sFeWQFiooFi4oFhoUFhoUFiosFi4oFaXAFhIgFhYcFXXoFhooFhokFNX8F94H7rQWTfQWNegWGewV/fwV8gwV5igV6kAV+lgX7nPfLBYOaBQ75SOXBFYaOBYqNBYiNBYmQBYeQBVr3AQWHnAWOmwWVmQWZlAWcjgWdiAWZggWVfgW3KgXNaQX3IIcF7bgFq/AFdsUFS68F+4ezBYiNBYiLBYaNBYaNBYmOBYiMBUu+BYiPBYiOBYmOBYiOBYqQBYmOBXrHBYuPBYqOBYuQBYuPBYyPBYyPBbT3DAWOkAWNkAWNjQWMjQWQjwWPjwXvzAWRjgWQjgWOiwWNjAWRiwWRjAX3R4IFjYoFjIwFkogFkooFjIoFjYoFkIcFkYcFjIoFjIoF1zAFknwFjXoFhXwFgH4Fe4QFeYoFe5AFfpYFTNYF+yOTBUBaBWssBZVoBbZoBfeDYwWTiQWTiAXfWgWQhwWQhwWNiQWMigWOhQWOhgWrNgWLhgWNhwWLhwWLiAWKhgWKhgVi+xgFi4oFiooFh4UFiIQFiosFiooFhYYFhYcFiosFiooF+xJRBYmLBYqKBYSKBYSJBYmLBYmLBfs2jwWJjAWJiwWFjQWEjAWJjAWJjAUzuQUO+Uj3yflsFfeiiwWchwWaggWVfQWOewWIewWBfQV8ggV6iAX7dYsFi/znBYh7BYF9BX2CBXmIBXqOBXyUBYKZBYebBYv45wX7hYsFeo4FfJQFgZkFiJsFjpsFlZkFmpQFnI8FDvlI+HT3hxWQ+E4Fj5sFlZkFmZQFnY4FnIcFmYIFlX0FjnsFhvxQBYqIBYyJBYFHBYqHBYqGBXdYBYmIBYmHBX53BYiHBYiIBW1sBYWHBYaHBVhxBYSJBYSJBU2BBYWLBYSLBTOUBYaNBYWMBUWlBYWPBYWOBVyvBYeQBYWQBWjCBYiRBYiRBXnSBYqPBYqOBYTsBYuNBYuMBYr39wWOmwWVmQWalAWcjwWchwWaggWVfgWOegWM+/UFki8Fm00Fp2EFr28FxXYF14IFu5MFsJ4FoqIFk5cFnLYFDvlI99H3NRX3a/ivBZSZBZqVBZyPBZyIBZqCBZV+BY97BYh6BfuS/REFi4sFi4oFhoUFh4QFi4sFiooFhIcFhYYFiosFi4sFg4kFg4oFiosFi4sFg4wFgowFi4wFiosFhI8FhI8Fi4sFi4wFhpEFhpEFi4wFi4sF+7j5EgWHmwWOmwWVmQWZlAWcjwWciAWaggWVfQUO+Uj4dvdYFdf4gwWQmwWXlwWbkgWcjAWchgWYgAWTfAWMegUq/REFiYcFioYFiYgFiocFiIgFiIcFiIkFiIgFh4kFh4kFh4oFh4kFh4sFhooFh4sFh4sFho0Fh4sFh40Fh40FiI4Fh40FiI4FiI4FiY8FiI4F+0b3/wX7Ofv2BYiHBYiGBYmJBYmJBYaIBYeHBYiKBYiKBYaKBYWJBYiLBYiLBYWMBYaLBYiNBYiLBYaOBYaOBYmNBYiNBYiPBYiPBYqOBYmOBYqQBYmQBTv5CQWNnAWTmQWYlgWckAWcigWbhAWWfgWRewXH/G8F9x/3vgWPkAWPkQWMjAWMjAWRjwWRjwWNiwWMjAWSjAWSjQWNiwWMiwWSiQWTigWMiwWMigWRhwWSiAWMigWMigWPhQWPhQUO+Uj3/Pf/FfeZ+7QFlH0FjXsFhnsFgH4FfIMFeYkFeo8FfpYF+5D3qQX7kPupBX6ABXqHBXmNBXyTBYCYBYabBY2bBZSZBfeZ97QF+5/3uwWCmQWJnAWQmwWWlwWalAWdjAWchwWYgQX3lvuxBfeW97EFmZUFm48FnYoFmoIFln8FkHsFiXoFgn0FDvlI9+j4EhWV++EFiHsFgn0FfYEFeogFeY0FfJQFgZkFh5sFgffjBfud96cFgpkFiJsFj5sFlpkFmpMFnI4FnIcFmYEF94n7kQX3k/eQBZqVBZyPBZyIBZqCBZV+BY96BYh7BYJ9BQ75SPci5RX4KosFnYgFmYIFlX0FjnsFiHsFgX0FfYIFeYgF/IKLBYWMBYaLBYiMBYeMBYeOBYaNBYmNBYiNBYiPBYePBYqOBYmOBYqQBYmPBYuPBYuOBYyQBYuQBYyOBYyOBY6PBY2QBfhP+M4F/CqLBXmOBX2UBYGZBYibBY6bBZWZBZmUBZ2PBfiCiwWRigWQigWOigWPigWPiQWQiAWNiQWOiQWOhwWPhwWMiAWNiAWMhwWNhgWLiAWLhwWKhgWLhgWKiAWKiAWIhwWJhgUO+Uj3h3QV9zaLBZyIBZmCBZV9BY97BYd7BYF9BX2CBXqHBftjiwV5jwV9lAWBmQWImwWL+Z8FjpsFlZkFmZQFnY4F92OLBZyIBZmCBZV9BY97BYd7BYF9BX2CBXqIBfs2iwUO+Ujw+VgV+HH9YwWRfAWKegWEfAV+gAV7hQV5jAV7kQV/lwX8cfljBYWaBYycBZKaBZiWBZuRBZ2KBZuFBQ75SPhWShWHewWBfQV9ggV6hwX7Y4sFeY8FfZQFgZkFiJsFjpsFlZkFmZQFnY4F9zaLBYv5SwX7NosFeY4FfZQFgZkFiJsFjpsFlZkFmZQFnY4F92OLBZyIBZmCBZV9BY97BQ75SPeo+WQVko8FjIsFjIwFkowFk40FjIoFjIwFk4kFkooFjIoFjIsFkocFkYcF9577ggWVfgWPewWIegWBfQV9ggV6hwV6jgV8lAX7f/dmBft/+2YFfIIFeogFeo8FfZQFgZkFiJwFj5sFlZgF9573ggUO+UiL+wEV+O6LBZyIBZqCBZV9BY57BYh7BYF9BXyCBXqIBfzuiwV6jgV8lAWBmQWImwWOmwWVmQWalAUO+Uj4POoVxcIFi/eQBVLBBVCnBS+LBVBvBUxQBWsvBYtQBaswBcpPBcdvBeaLBfcIZhWHiAWFhwVAZwWKigWJigWEigWFiQWJjAWJigX7BYsFiYwFiYoFhI0FhYwFiYwFiYwFQK8FhY8FhY8FP9MFiowFiowFiJEFh5EFiowFiowFZvYFipIFipIFi9IFjJIFjJEFsPcABYyNBYyMBY+RBY6RBYyMBYyMBdfTBZGPBZGPBdeuBYyMBY2MBZKMBZKNBYyKBY2MBfcFiwWMigWNjAWSiQWSigWMigWNigXWaAWQhwWQiAWLjwWPnAWUmAWalQWcjgWciAWagQWVfgWOegWL/IoFiHsFgX4FfIEFeogFeo4FfJUFgpgFh5sFDvlI9xOvFYaOBYuKBYd6BYF+BX2CBXqHBXmPBX2UBYGYBYicBYv5OAWOmwWVmQWZlAWdjgWciAWZggWVfQWPewWL+3YFkI4FkY8F1asFjIsFjIsFko0Fk40FjIoFjIwF9wSLBYyLBYuLBZOJBZOJBYyLBYuLBddrBZCHBZKIBdZKBYyKBY2KBY6FBY+GBYyJBYyKBbApBYyEBYyEBYtLBYqEBYqDBWYrBYqKBYqJBYeGBYiFBYmKBYqJBUBLBYWIBYWHBUBqBYqLBYqLBYSJBYOJBYqLBYqLBfsEiwWKjAWKigWDjQWEjQWKiwWKiwVBrAWA9w0VwlwFxnEF54sFx6UFycAFqdoFi70FbdsFTcAFT6QFL4sFUHIFVFwFDvlI+DLqFczNBZqVBZyPBZyIBZqDBZV9BY97BYl7BYF9BUVDBYWHBYWHBUZmBYiLBYmJBYWKBYWJBYiMBYmKBSGLBYmMBYiKBYWNBYWMBYmNBYmLBUSwBYWPBYWPBUXTBYqMBYqMBYeRBYeRBYuMBYqMBWn2BYqRBYqSBYvSBYyRBYySBa33AAWMjAWLjAWPkQWPkQWMjAWMjAXR0wWRjwWRjwXSrwWNiwWNjQWRjAWSjQWNigWNjAX1iwWNigWNjAWSiQWRigWNiQWNiwXRZwWRhwWRhwXRQwWVfQWNewWHewWBfQV8gwV6iAV6jwV8lQVKzQVWpgU3iwVVcAVRUAVtLgWLUAWoLwXGUAXCbwXdiwUO+Uj4PfUVwroFi/dxBVS6BVCkBS+LBU9yBU1WBW07BYtZBak8BclWBcdxBeeLBfcGYhWGiAWFhwVBagWKiwWKiwWEiQWDiQWKjAWKigX7BIsFiosFiosFhI0Fg40FiosFiosFQKwFhY8Fho4FP8sFio0FiYwFiJEFh5AFio0FiowFZusFipMFipIFi8sFjJIFjJIFsO0FjIwFjI0Fj5AFjpEFjYwFjIwF18wFkY4FkI8F16sFi4sFjIsFk40Fk40Fi4sFjIsF9wSLBYyKBYyMBZOJBZKJBYyLBYyLBdVrBZGHBZCIBYv3dgWPmwWVmQWZlAWcjgWdiAWZggWVfQWOewWL/TgFiHoFgX4FfYIFeYcFeo8FfZQFgZgFh5wFDvlI9x74IBV8YQX4GIsFg5QFZs0FbaYFS6cFJosFSm8F93r7/BXXzgWZlAWdjgWchwWZggWVfQWNegWIewWAfgU6QwWGiAWFhwU8ZgWJiwWKigWEigWEiQWJiwWKiwX7DYsFiosFiosFg40FhIwFiowFiosFOrAFhY8FhY4FO9MFiYwFiowFh5EFh5AFi40Fio0FY/YFipIFipIFi9IFjJIFjJIFs/cABYyNBYuNBY+QBY+QBYyNBY2MBdvTBZKOBZCPBdyvBYyLBYyMBZOMBZKNBYyLBYyLBfcNiwWMiwWMiwWTiQWSigWMigWMiwXbZwWQhwWRiAW1ZwWPhQWQhQWyRAWQewWJegWDfQV/ggWUhQWVfgWOegWIewWBfQV9ggV5iAX8SYsFi3UFrDAFz08FzG4F8IsFDvlI97n4VhWL/CQFiHsFgX0FfIIFeogFeo4FfJQFgZkFiJsFi/gkBfsGiwV6jgV8lQWCmAWHmwWPnAWUmAWalQWcjgX3BosFi8AFi40Fi40FjZEFjJEFjY0Fi4wFwOoFkZEFkJEFi4sFi4wFk44Fko8F9asFkowFkowF9YsFnIgFmoIFlX0FjnsFiHsFgX0FfIIFeogFKIsFOXIFZEUFi2EF9zuLBZyIBZqBBZV+BY56BYh7BYF+BXyBBXqIBQ75SPg99yMVwroFi/dxBVS7BVCkBS+LBU9yBU1WBW06BYtaBak7BclWBcdxBeeLBfcGYhWGiAWFhwVBagWKiwWKigWEigWDiQWKiwWKiwX7BIsFiosFiosFg40FhIwFiowFiosFQKwFhY8FhY4FQMwFiowFiYwFiJEFh5AFio0FiowFZuwFipIFipIFi8wFjJIFjJIFsOwFjI0FjI0Fj5AFjpAFjY0FjIwF1swFko4FkI8F16sFi4sFjIwFk4wFk40Fi4sFjIsF9wSLBYyLBYyLBZOJBZKKBYyKBYyLBdVrBZGHBZCIBYuLBY+cBZWYBZmVBZyOBZ2IBZmBBZV+BY56BYv8mAWKhAWKhAVmKgWKigWKiQWHhgWIhQWJigWKiQVlawWFhwWFhwVBbAWKigWKiwWEiQWDigWKiwWKiwX7BIsFiosFi4sFg4wFg40FiosFi4sFP6sFho8FhI8FQMsFio0FiYwFiJAFh5AFio0Fio0FZuwFiZwFj5sFlZgFm5QFnI0FnIcFmYEFlH0FrDQFyVYFx3EF54sFxqUFpKAFqdoFDvlI+L34CRWNhAWL+9AFiHsFgX0FfIIFeogFeo4FfJQFgZkFiJsFi/fIBW7TBVqfBSyLBU1yBS49BYv7vQWIewWBfQV8ggV6iAV6jgV8lAWBmQWImwWL+SwFjpsFlZkFmpQFnI4FnIgFmoIFlX0FjnsFi/uSBbKsBZGOBZGPBdeqBYyLBYuMBZOMBZONBYyLBYuLBfcGiwWMiwWLiwWTiQWTigWMigWLiwXXbAWLiwWLiwWShgWShwWLigWMiwWPhAWQhQWLigWLiwWxLAUO+Uj3mfmIFduLBZyIBZqCBZV9BY57BYh7BYF9BXyCBXqIBTuLBXqOBXyUBYGZBYibBY6bBZWZBZqUBfH7mRWL/E4FiHsFgX0FfIIFeogFeo4FfJQFgZkFiJsFi/hOBY6cBZWYBZqVBZyOBZyIBZqBBZV+BQ75SPgV+YgVyYsFnIgFmoIFlX0FjnsFiHsFgX0FfIIFeogFTYsFeo4FfJQFgpkFh5sFj5sFlJkFmpQF+wn+MhWGigWIjQWHiwUpqQV8kwWAmAWGmwWNmwWUmQWZlgWbjwWdiQXhcQXpoQWhyQWL+I4Fj5sFlJkFmpQFnI8FnIcFmoIFlX0FjnsFi/yVBYqEBYqFBWswBYiGBYmHBYmIBYmIBYeIBYeIBYiJBYiJBYaKBYaJBfsXbQWIiwWHigUO+Uj3f/eMFfsRLwWLIQWIewWBfQV8ggV6iAV6jgV8lAWCmQWHmwWL+SwFj5sFlJkFmpQFnI4FnIgFmoIFlX0FjnsFi/xXBff495sFm5IFnIwFnIYFmIEFk3wFjHoFhnwFgH4F+2v7MgX3mPtwBZV+BZB7BYh7BYJ9BX2BBXqHBXqNBXyTBQ75SPfu+WMVi/0xBYh7BYF9BXyCBXqIBXqOBXyUBYGZBYibBYv5MQWOmwWVmQWalAWcjwWchwWaggWVfQUO+Uj43/iYFZCGBYuKBYyJBYyFBY2EBYuKBYyJBYv8WwWHewWBfQV9ggV6iAV5jgV9lAWBmQWImwWL+EgFfJYFXIsFdHgFVDEFi/vmBYh7BYF9BX2CBXmIBXqOBX2UBYGZBYebBYv36gVo4wV1nAVdiwVzeAVVMQWL++YFh3sFgX0FfYIFeogFeY4FfZQFgZkFiJsFi/h9BY6cBZWYBZmVBZ2OBZyIBZmBBZV+BY2ABa2mBZGOBZGPBY2LBYyMBZKLBZKNBduLBZKJBZKLBYyKBY2LBZGHBZGIBbZoBYyJBY2KBY+GBY+GBYuJBY2JBZN1BZynBZCQBZCRBbWtBZGPBZGPBY2LBYyMBZKLBZKNBdyLBZKJBZKLBYyKBY2LBZGHBZGIBbZoBYyKBYyKBQ75SPi++B0VjIUFi/vyBYh7BYF9BXyCBXqIBXqOBXyUBYGZBYibBYv36wVt3QVaoQUtiwVPcAUsMwWL++AFiHsFgX0FfIIFeogFeo4FfJQFgZkFiJsFi/h9BY6cBZWYBZqVBZyOBZyIBZqBBZV+BY56BYtlBbCtBZKPBZCPBdiuBYyLBYyMBZKMBZONBYyLBYyLBfcGiwWMiwWNiwWSiQWSigWMigWNiwXWaAWMiwWLiwWShgWRhgWMiwWLiwWPhAWPhAWLiwWLiwWyIQUO+Uj37Ph4FTWLBVRwBU9PBWwvBYtQBaowBcdPBcNvBeCLBcKnBcfHBarmBYvGBWznBU/HBWH3AxWNjAWRiQWSigWNiQWNiwXTaAWRhgWRhwXTQwWLigWMiwWPhAWPhQWLigWMigWv+wAFjIUFjIQFi0QFioQFioUFZyAFiooFi4oFh4QFh4UFiosFi4oFQ0MFhYcFhYcFQ2YFiYsFiYkFhYoFhIkFiYwFiYoF+wCLBYmMBYmKBYSNBYWMBYmNBYmLBUOwBYWPBYWPBUPTBYuMBYqLBYeRBYeSBYuMBYqMBWf2BYqRBYqSBYvSBYySBYyRBa/3AAWMjAWLjAWPkQWPkgWMiwWLjAXT0wWSjwWQkAXTrgWNiwWNjQWSjAWRjQWNigWNjAX3AIsFDvlI9xTXFYWPBYv7dQWHewWCfQV8ggV6iAV6jgV8lAWBmQWImwWL+TMFjpwFlZgFmpUFnI4FnIgFmoEFlH4Fj3oFi4sFkY8FkI4F1asFjIsFjIwFk4wFko0FjIsFjIsF9wSLBYyLBYuLBZOJBZOKBYyKBYuLBdZsBZGHBZGHBdZLBY2KBYyJBY+GBY+GBYuJBY2JBa8rBY2EBYyDBYtLBYqEBYmEBWYsBYqJBYuJBYeGBYeFBYqKBYmKBUBLBYWHBYaIBUBqBYqLBYqKBYOKBYSJBYqLBYqLBfsEiwWKiwWKiwWDjQWEjAWKjAWKiwVBrAWA9w0VwlwFxnEF54sFx6UFyb8FqdoFi7wFbdsFTb8FT6QFL4sFUHIFVFwFDvlI+D33JRXCugWL924FVLoFUKQFL4sFT3IFTVcFbTsFi1oFqTwFyVcFx3EF54sF9wZiFYaIBYWHBUFqBYqLBYqLBYSJBYOJBYqMBYqKBfsEiwWKjAWKigWEjQWDjQWKiwWKiwVArAWGjgWFjwVAywWJjAWKjQWHkAWHkAWLjQWKjQVm6gWJkgWKkwWLywWMkgWNkgWw6wWMjQWLjQWPkAWPkQWMjAWNjAXWywWRjwWRjwXWqgWLiwWMjAWTjAWTjQWLiwWMiwX3BIsFjIsFjIsFkokFk4oFjIoFjIsF1WwFkIcFkYgFi4sFj5sFlJkFmpQFnI4FnIgFmoIFlX0FjnsFi/00BYh7BYF9BXyCBXqIBXqOBXyUBYKZBYebBQ75SPfp+MsVk40F9yaLBZyIBZmBBZV+BY96BYd7BYF+BX2BBXqIBfsdiwU4bgU5TwViNAWL+6MFiHsFgX0FfYIFeYgFeo4FfZQFgZkFh5sFi/h9BY+cBZWYBZmVBZyOBZ2IBZmBBZV+BY56BYtWBdTABZGNBZGPBeutBQ75SO6nFYSQBYuLBYuMBYeSBYeSBXLSBYmcBY+bBZaYBZuTBZyNBZyGBZmBBZN9BZ9TBbt0BfWLBeSsBbuhBYuoBVHCBfsBygX7BIsFiYsFiosFhI0FhIwFiowFiYwFQK8FhY8Fho8FiowFiYwFiJEFh5EFi4wFio0FipEFipIFi9IFjJMFjZMFi4sFi4wFkJEFj5IF1tMFjIsFjIwFkY8Fko8FjIsFi4wF764Fk4wFk40F9xGLBYyKBY2MBZKJBZKKBYyKBY2KBdZoBZmBBZN8BY17BYd7BYB+BXyDBXmJBXqPBUqqBSGLBTluBVRWBYtuBbN4BfcGiwWOigWPiwWQiQWQigWOigWPiQX3EEQFj4cFkIgF1kQFj4QFkIQFi4sFi4sFjYMFjIMFi0MFioUFioQFiooFi4kFh4UFiIYFiYoFiokFhYgFhoYFQGgFiYsFiYkFJ2cFg4oFg4kF+xGLBYmMBYmKBYWNBYSMBYmMBYqMBUCvBQ75SPdd+DEV+wyLBXqOBXyUBYGZBYibBY6bBZWZBZqUBZyOBfcMiwWL9zcFjpsFlZkFmpQFnI4FnIgFmoIFlX0FjnsFi/s3BfdDiwWciAWaggWVfQWOewWIewWBfQV8ggV6iAX7Q4sFi/uCBbNMBeF0BfOLBZyHBZqCBZV9BY57BYh7BYF9BXyCBXqIBfsCiwWFjAWFjAX7AqgFg48FhI4Fi4sFiowFhpEFhZAFVOIFio4FiY4FipAFiZAFjI4Fio4FDvlI+GX3SRWL9+AFjpsFlZkFmpQFnI4FnIgFmoIFlX0FjnsFi/x9BYh6BYF+BXyBBXqIBXqOBXyVBYGYBYicBYuyBWZpBYWHBYWHBT9oBYmKBYqKBYSKBYSJBYmMBYqKBfsGiwWJjAWKigWEjQWEjAWJjAWKjAU/rgWEkAWEkAWLiwWLiwWHkgWHkgVk9AWKkgWKkQWL9/IFjpsFlZkFmpQFnI4FnIgFmoIFlX0FjnsFi/vrBak6Bb10BeeLBcinBQ75SPfB9xcV92j4JgWWmAWakwWcjQWchwWZgQWUfQWNegWHewX7kfxyBYiHBYiGBYiJBYqJBYaIBYaIBYiKBYiKBYaKBYWKBYiLBYiLBYWMBYaMBYiMBYiMBYaOBYaOBYqNBYiNBYiQBYiPBfuQ+HIFhpsFjZwFlJkFmZUFnI8FnIkFmoMFln4FDvlI+Fj3TRX29+kFk5oFmZUFm5AFnYoFmoMFl34FkHsFiXsF+yr8cgWIhwWKhwWIiAWKhwWHiQWIhwWHiQWIiQWGiQWHiQWHiwWHigWHiwWGiwWHjAWHiwWHjQWGjQWIjQWHjQWIjwWIjQWJjwWIjgWKjwWIjwUg9+kFIPvpBYiHBYqHBYiIBYmHBYiJBYiHBYeJBYiJBYaJBYeJBYeLBYeKBYeLBYaLBYeMBYeLBYeNBYaNBYiNBYeNBYiPBYiNBYmPBYiOBYqPBYiPBfsq+HIFiZsFkJsFl5gFmpMFnYwFm4YFmYEFk3wF9wD76QX29+kFjY8FjI8Fjo4FjY8Fj44Fjo4Fjo0Fj40Fj40Fj40Fj4sFj4wFkIsFkIsFj4oFj4sFj4kFkIkFjokFjokFjogFj4gFjYcFjogFjIcFjYcFDvlI+AL3pxX3evtlBZV+BY97BYh7BYF9BX2BBXqIBXmOBX2UBft992YF+337ZgV9ggV5iAV6jgV9lQWBmQWImwWPmwWVmAX3evdlBft692UFgZgFh5sFjpwFlZgFmZUFnI4FnYgFmYMF9337ZwX3ffdnBZmTBZ2OBZyIBZmBBZV+BY56BYd7BYF+BQ75SOj7TxWDigWLiwWLiwVjiwV6jgV8lAWBmQWImwWOmwWVmQWalAWcjgWqiwXLpQXOwQXJ7gX7dfg4BYebBY2bBZSaBZiVBZyPBZ2JBZqDBZZ+BfdX/AEF91n4AQWWmAWakwWdjQWbhwWZgQWUfAWNewWGewX7gfxMBYuKBYqJBT37EQWGhQWGhgU9TAWEiAWGhwU8bAWLiwWLiwUO+Uj3UtkV98+LBZ2IBZmCBZV9BY57BYh7BYF9BX2CBXmIBfwsiwWEjAWFiwWJjQWIiwWGjgWGjgWJjQWJjAWHkAWHkAWKjQWKjQWKkQWJkAWLjgWLjQWMkQWLkQWNjQWLjQWPkAWOkQX38vguBfvPiwV5jgV9lAWBmQWImwWOmwWVmQWZlAWdjgX4LIsFkooFkYsFjYoFjooFkIgFkYgFjIkFjYoFj4YFj4YFjIkFjIkFjIUFjYYFi4gFi4kFioUFi4UFiYkFi4kFh4YFiIYFDgAAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAA==') format('truetype'); font-weight: normal; font-style: normal; }</style></svg>
+\ No newline at end of file
+diff --git a/tests/features/__snapshots__/general-simulation-roundtrip-schematic.snap.svg b/tests/features/__snapshots__/general-simulation-roundtrip-schematic.snap.svg
+new file mode 100644
+index 0000000..b77ebb7
+--- /dev/null
++++ b/tests/features/__snapshots__/general-simulation-roundtrip-schematic.snap.svg
+@@ -0,0 +1,12 @@
++<svg xmlns="http://www.w3.org/2000/svg" class="tscircuit-schematic" width="1200" height="600" style="background-color: rgb(245, 241, 237)" data-real-to-screen-transform="matrix(127.6595744681,0,0,-127.6595744681,600,300)" data-software-used-string="@tscircuit/core@0.0.2149"><style>
++              .boundary { fill: rgb(245, 241, 237); }
++              .schematic-boundary { fill: none; stroke: #fff; }
++              .component { fill: none; stroke: rgb(132, 0, 0); }
++              .chip { fill: rgb(255, 255, 194); stroke: rgb(132, 0, 0); }
++              .component-pin { fill: none; stroke: rgb(132, 0, 0); }
++              .text { font-family: sans-serif; fill: rgb(0, 150, 0); }
++              .pin-number { fill: rgb(169, 0, 0); }
++              .port-label { fill: rgb(0, 100, 100); }
++              .component-name { fill: rgb(0, 100, 100); }
++              
++            </style><rect class="boundary" x="0" y="0" width="1200" height="600"/><g class="grid sch-grid"><line x1="-38.29787234050002" y1="430.212765957462" x2="-38.29787234050002" y2="169.787234042538" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="89.36170212759998" y1="430.212765957462" x2="89.36170212759998" y2="169.787234042538" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="217.0212765957" y1="430.212765957462" x2="217.0212765957" y2="169.787234042538" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="344.6808510638" y1="430.212765957462" x2="344.6808510638" y2="169.787234042538" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="472.3404255319" y1="430.212765957462" x2="472.3404255319" y2="169.787234042538" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="600" y1="430.212765957462" x2="600" y2="169.787234042538" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="727.6595744681" y1="430.212765957462" x2="727.6595744681" y2="169.787234042538" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="855.3191489362" y1="430.212765957462" x2="855.3191489362" y2="169.787234042538" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="982.9787234043" y1="430.212765957462" x2="982.9787234043" y2="169.787234042538" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="1110.6382978724" y1="430.212765957462" x2="1110.6382978724" y2="169.787234042538" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="1238.2978723405" y1="430.212765957462" x2="1238.2978723405" y2="169.787234042538" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="-6.991740519879386e-11" y1="555.3191489362" x2="1200.00000000007" y2="555.3191489362" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="-6.991740519879386e-11" y1="427.6595744681" x2="1200.00000000007" y2="427.6595744681" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="-6.991740519879386e-11" y1="300" x2="1200.00000000007" y2="300" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="-6.991740519879386e-11" y1="172.3404255319" x2="1200.00000000007" y2="172.3404255319" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><line x1="-6.991740519879386e-11" y1="44.68085106379999" x2="1200.00000000007" y2="44.68085106379999" stroke="rgb(181, 181, 181)" stroke-width="1.2765957446810001" stroke-opacity="0.5"/><text x="-40.79787234050002" y="550.3191489362" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-5,-2</text><text x="-40.79787234050002" y="422.6595744681" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-5,-1</text><text x="-40.79787234050002" y="295" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-5,0</text><text x="-40.79787234050002" y="167.3404255319" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-5,1</text><text x="-40.79787234050002" y="39.68085106379999" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-5,2</text><text x="86.86170212759998" y="550.3191489362" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-4,-2</text><text x="86.86170212759998" y="422.6595744681" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-4,-1</text><text x="86.86170212759998" y="295" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-4,0</text><text x="86.86170212759998" y="167.3404255319" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-4,1</text><text x="86.86170212759998" y="39.68085106379999" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-4,2</text><text x="214.5212765957" y="550.3191489362" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-3,-2</text><text x="214.5212765957" y="422.6595744681" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-3,-1</text><text x="214.5212765957" y="295" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-3,0</text><text x="214.5212765957" y="167.3404255319" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-3,1</text><text x="214.5212765957" y="39.68085106379999" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-3,2</text><text x="342.1808510638" y="550.3191489362" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-2,-2</text><text x="342.1808510638" y="422.6595744681" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-2,-1</text><text x="342.1808510638" y="295" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-2,0</text><text x="342.1808510638" y="167.3404255319" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-2,1</text><text x="342.1808510638" y="39.68085106379999" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-2,2</text><text x="469.8404255319" y="550.3191489362" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-1,-2</text><text x="469.8404255319" y="422.6595744681" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-1,-1</text><text x="469.8404255319" y="295" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-1,0</text><text x="469.8404255319" y="167.3404255319" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-1,1</text><text x="469.8404255319" y="39.68085106379999" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">-1,2</text><text x="597.5" y="550.3191489362" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">0,-2</text><text x="597.5" y="422.6595744681" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">0,-1</text><text x="597.5" y="295" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">0,0</text><text x="597.5" y="167.3404255319" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">0,1</text><text x="597.5" y="39.68085106379999" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">0,2</text><text x="725.1595744681" y="550.3191489362" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">1,-2</text><text x="725.1595744681" y="422.6595744681" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">1,-1</text><text x="725.1595744681" y="295" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">1,0</text><text x="725.1595744681" y="167.3404255319" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">1,1</text><text x="725.1595744681" y="39.68085106379999" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">1,2</text><text x="852.8191489362" y="550.3191489362" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">2,-2</text><text x="852.8191489362" y="422.6595744681" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">2,-1</text><text x="852.8191489362" y="295" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">2,0</text><text x="852.8191489362" y="167.3404255319" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">2,1</text><text x="852.8191489362" y="39.68085106379999" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">2,2</text><text x="980.4787234043" y="550.3191489362" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">3,-2</text><text x="980.4787234043" y="422.6595744681" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">3,-1</text><text x="980.4787234043" y="295" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">3,0</text><text x="980.4787234043" y="167.3404255319" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">3,1</text><text x="980.4787234043" y="39.68085106379999" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">3,2</text><text x="1108.1382978724" y="550.3191489362" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">4,-2</text><text x="1108.1382978724" y="422.6595744681" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">4,-1</text><text x="1108.1382978724" y="295" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">4,0</text><text x="1108.1382978724" y="167.3404255319" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">4,1</text><text x="1108.1382978724" y="39.68085106379999" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">4,2</text><text x="1235.7978723405" y="550.3191489362" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">5,-2</text><text x="1235.7978723405" y="422.6595744681" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">5,-1</text><text x="1235.7978723405" y="295" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">5,0</text><text x="1235.7978723405" y="167.3404255319" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">5,1</text><text x="1235.7978723405" y="39.68085106379999" fill="rgb(181, 181, 181)" font-size="25.53191489362" fill-opacity="0.5" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">5,2</text></g><g class="sch-component" data-circuit-json-type="schematic_component" data-schematic-component-id="schematic_component_0"><rect class="component chip sch-component-body" x="127.65957446802997" y="261.70212765957" width="178.72340425534003" height="76.59574468085998" stroke-width="2.5531914893620002px" fill="rgb(255, 255, 194)" stroke="rgb(132, 0, 0)"/><rect class="component-overlay sch-component-overlay" x="127.65957446802997" y="261.70212765957" width="178.72340425534003" height="76.59574468085998" fill="transparent"/><text class="sch-text" data-schematic-text-id="schematic_text_0" x="127.65957446802997" y="354.89361702128303" fill="#006464" text-anchor="start" dominant-baseline="middle" font-family="sans-serif" font-size="22.978723404257998px" transform="rotate(0, 127.65957446802997, 354.89361702128303)"></text><text class="sch-text" data-schematic-text-id="schematic_text_1" x="127.65957446802997" y="245.106382978717" fill="#006464" text-anchor="start" dominant-baseline="middle" font-family="sans-serif" font-size="22.978723404257998px" transform="rotate(0, 127.65957446802997, 245.106382978717)">U1</text><line class="component-pin sch-component-pin sch-port-line" x1="127.65957446803003" y1="287.23404255319" x2="79.14893617015196" y2="287.23404255319" stroke-width="2.5531914893620002px"/><g class="sch-port" data-schematic-port-id="source_port_0"><circle class="component-pin sch-component-pin sch-port-terminal" cx="76.59574468079006" cy="287.23404255319" r="2.5531914893620002" stroke-width="2.5531914893620002px"/><rect x="74.04255319142806" y="284.680851063828" width="5.1063829787240005" height="5.1063829787240005" opacity="0"/></g><text class="pin-number sch-pin-number" x="102.12765957441007" y="284.680851063828" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="middle" dominant-baseline="auto" font-size="19.148936170215px" transform="">1</text><text class="pin-number sch-pin-label" x="140.42553191484" y="287.23404255319" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="start" dominant-baseline="middle" font-size="19.148936170215px" transform="">OUT</text><line class="component-pin sch-component-pin sch-port-line" x1="127.65957446803003" y1="312.76595744681" x2="79.14893617015196" y2="312.76595744681" stroke-width="2.5531914893620002px"/><g class="sch-port" data-schematic-port-id="source_port_1"><circle class="component-pin sch-component-pin sch-port-terminal" cx="76.59574468079006" cy="312.76595744681" r="2.5531914893620002" stroke-width="2.5531914893620002px"/><rect x="74.04255319142806" y="310.21276595744797" width="5.1063829787240005" height="5.1063829787240005" opacity="0"/></g><text class="pin-number sch-pin-number" x="102.12765957441007" y="310.212765957448" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="middle" dominant-baseline="auto" font-size="19.148936170215px" transform="">2</text><text class="pin-number sch-pin-label" x="140.42553191484" y="312.76595744681" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="start" dominant-baseline="middle" font-size="19.148936170215px" transform="">VDD</text><line class="component-pin sch-component-pin sch-port-line" x1="306.38297872337" y1="300" x2="354.893617021248" y2="300" stroke-width="2.5531914893620002px"/><g class="sch-port" data-schematic-port-id="source_port_2"><circle class="component-pin sch-component-pin sch-port-terminal" cx="357.44680851061" cy="300" r="2.5531914893620002" stroke-width="2.5531914893620002px"/><rect x="354.893617021248" y="297.446808510638" width="5.1063829787240005" height="5.1063829787240005" opacity="0"/></g><text class="pin-number sch-pin-number" x="331.91489361698996" y="297.446808510638" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="middle" dominant-baseline="auto" font-size="19.148936170215px" transform="">3</text><text class="pin-number sch-pin-label" x="293.61702127656" y="300" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="end" dominant-baseline="middle" font-size="19.148936170215px" transform="">GND</text></g><g class="sch-component" data-circuit-json-type="schematic_component" data-schematic-component-id="schematic_component_1"><rect class="component chip sch-component-body" x="893.61702127663" y="261.70212765957" width="178.72340425534014" height="76.59574468085998" stroke-width="2.5531914893620002px" fill="rgb(255, 255, 194)" stroke="rgb(132, 0, 0)"/><rect class="component-overlay sch-component-overlay" x="893.61702127663" y="261.70212765957" width="178.72340425534014" height="76.59574468085998" fill="transparent"/><text class="sch-text" data-schematic-text-id="schematic_text_2" x="893.61702127663" y="354.89361702128303" fill="#006464" text-anchor="start" dominant-baseline="middle" font-family="sans-serif" font-size="22.978723404257998px" transform="rotate(0, 893.61702127663, 354.89361702128303)"></text><text class="sch-text" data-schematic-text-id="schematic_text_3" x="893.61702127663" y="245.106382978717" fill="#006464" text-anchor="start" dominant-baseline="middle" font-family="sans-serif" font-size="22.978723404257998px" transform="rotate(0, 893.61702127663, 245.106382978717)">U2</text><line class="component-pin sch-component-pin sch-port-line" x1="893.61702127663" y1="287.23404255319" x2="845.106382978752" y2="287.23404255319" stroke-width="2.5531914893620002px"/><g class="sch-port" data-schematic-port-id="source_port_3"><circle class="component-pin sch-component-pin sch-port-terminal" cx="842.55319148939" cy="287.23404255319" r="2.5531914893620002" stroke-width="2.5531914893620002px"/><rect x="840.000000000028" y="284.680851063828" width="5.1063829787240005" height="5.1063829787240005" opacity="0"/></g><text class="pin-number sch-pin-number" x="868.08510638301" y="284.680851063828" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="middle" dominant-baseline="auto" font-size="19.148936170215px" transform="">1</text><text class="pin-number sch-pin-label" x="906.3829787234399" y="287.23404255319" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="start" dominant-baseline="middle" font-size="19.148936170215px" transform="">OUT</text><line class="component-pin sch-component-pin sch-port-line" x1="893.61702127663" y1="312.76595744681" x2="845.106382978752" y2="312.76595744681" stroke-width="2.5531914893620002px"/><g class="sch-port" data-schematic-port-id="source_port_4"><circle class="component-pin sch-component-pin sch-port-terminal" cx="842.55319148939" cy="312.76595744681" r="2.5531914893620002" stroke-width="2.5531914893620002px"/><rect x="840.000000000028" y="310.21276595744797" width="5.1063829787240005" height="5.1063829787240005" opacity="0"/></g><text class="pin-number sch-pin-number" x="868.08510638301" y="310.212765957448" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="middle" dominant-baseline="auto" font-size="19.148936170215px" transform="">2</text><text class="pin-number sch-pin-label" x="906.3829787234399" y="312.76595744681" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="start" dominant-baseline="middle" font-size="19.148936170215px" transform="">VDD</text><line class="component-pin sch-component-pin sch-port-line" x1="1072.34042553197" y1="300" x2="1120.851063829848" y2="300" stroke-width="2.5531914893620002px"/><g class="sch-port" data-schematic-port-id="source_port_5"><circle class="component-pin sch-component-pin sch-port-terminal" cx="1123.4042553192098" cy="300" r="2.5531914893620002" stroke-width="2.5531914893620002px"/><rect x="1120.8510638298478" y="297.446808510638" width="5.1063829787240005" height="5.1063829787240005" opacity="0"/></g><text class="pin-number sch-pin-number" x="1097.87234042559" y="297.446808510638" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="middle" dominant-baseline="auto" font-size="19.148936170215px" transform="">3</text><text class="pin-number sch-pin-label" x="1059.5744680851599" y="300" style="font-family: sans-serif;" fill="rgb(169, 0, 0)" text-anchor="end" dominant-baseline="middle" font-size="19.148936170215px" transform="">GND</text></g><g class="schematic-port-hover sch-port-hover" data-schematic-port-id="source_port_0"><circle cx="76.59574468079006" cy="287.23404255319" r="5.1063829787240005" fill="red" opacity="0"/></g><g class="schematic-port-hover sch-port-hover" data-schematic-port-id="source_port_1"><circle cx="76.59574468079006" cy="312.76595744681" r="5.1063829787240005" fill="red" opacity="0"/></g><g class="schematic-port-hover sch-port-hover" data-schematic-port-id="source_port_2"><circle cx="357.44680851061" cy="300" r="5.1063829787240005" fill="red" opacity="0"/></g><g class="schematic-port-hover sch-port-hover" data-schematic-port-id="source_port_3"><circle cx="842.55319148939" cy="287.23404255319" r="5.1063829787240005" fill="red" opacity="0"/></g><g class="schematic-port-hover sch-port-hover" data-schematic-port-id="source_port_4"><circle cx="842.55319148939" cy="312.76595744681" r="5.1063829787240005" fill="red" opacity="0"/></g><g class="schematic-port-hover sch-port-hover" data-schematic-port-id="source_port_5"><circle cx="1123.4042553192098" cy="300" r="5.1063829787240005" fill="red" opacity="0"/></g><style data-tscircuit-alphabet-font="" type="text/css">@font-face { font-family: 'TscircuitAlphabet'; src: url('data:font/ttf;base64,T1RUTwAJAIAAAwAQQ0ZGIFhQSpcAAAcwAABJ3U9TLzJqmmVhAAABAAAAAGBjbWFwFN0WswAABEwAAALEaGVhZC1P1HwAAACcAAAANmhoZWEDrgI1AAAA1AAAACRobXR44xAAAAAAURAAAAFQbWF4cABUUAAAAAD4AAAABm5hbWUZQ94BAAABYAAAAutwb3N0AAMAAAAABxAAAAAgAAEAAAABAADb+Z65Xw889QADA+gAAAAA5e9IsgAAAADl70iy/9P/PwKHAvkAAAADAAIAAAAAAAAAAQAAA6z/LAAAArQAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAFQAAFAAAFQAAAADArQB9AAFAAACigK7AAAAjAKKArsAAAHfADEBAgAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAABYWFhYAEAAIQB6A6z/LAAAAvkAwQAAAAEAAAAAAiwC1wAAAAAAAAAAACIBngABAAAAAAAAAAEAWQABAAAAAAABABEAAAABAAAAAAACAAcAMwABAAAAAAADABsA/AABAAAAAAAEABkASAABAAAAAAAFAAsA2wABAAAAAAAGABgAkwABAAAAAAAHAAEAWQABAAAAAAAIAAEAWQABAAAAAAAJAAEAWQABAAAAAAAKAAEAWQABAAAAAAALAAEAWQABAAAAAAAMAAEAWQABAAAAAAANAAEAWQABAAAAAAAOAAEAWQABAAAAAAAQABEAAAABAAAAAAARAAcAMwADAAEECQAAAAIAgwADAAEECQABACIAEQADAAEECQACAA4AOgADAAEECQADADYBFwADAAEECQAEADIAYQADAAEECQAFABYA5gADAAEECQAGADAAqwADAAEECQAHAAIAgwADAAEECQAIAAIAgwADAAEECQAJAAIAgwADAAEECQAKAAIAgwADAAEECQALAAIAgwADAAEECQAMAAIAgwADAAEECQANAAIAgwADAAEECQAOAAIAgwADAAEECQAQACIAEQADAAEECQARAA4AOlRzY2lyY3VpdEFscGhhYmV0AFQAcwBjAGkAcgBjAHUAaQB0AEEAbABwAGgAYQBiAGUAdFJlZ3VsYXIAUgBlAGcAdQBsAGEAclRzY2lyY3VpdEFscGhhYmV0IFJlZ3VsYXIAVABzAGMAaQByAGMAdQBpAHQAQQBsAHAAaABhAGIAZQB0ACAA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BY6cBbz3BwWUmQWalQWcjgWciAWaggWVfQWPewU/+y8V+w5aBXqHBXmOBX2UBYGZBYebBY6bBZWZBZmUBfcOvQWcjgWciAWaggWVfgWPewWIewWBfQX7M00V+zObBXuQBX2WBYOZBYqcBZCaBZaYBZuTBZyMBfczewWchgWYgAWTfAWNewWFewWAfwV7gwX7VqAVNb0Ff5YFg5oFi5sFkZsFl5cFm5IFnIsFnIYF4FkFmIAFknwFjHoFhXwFf38Fe4QFeYoF+wzZFWbuBYmbBY+bBZaYBZqUBZyNBZyHBZmBBZR9BbAnBY17BYd7BYB+BXyDBXmIBXqQBX2VBQ75SPfu+UEVi/uBBYh7BYF9BXyCBXqIBXqOBXyUBYGZBYibBYv3gQWOmwWVmQWalAWcjwWchwWaggWVfQUO+Uj4Ko0VsmUFlX0FjnsFh3sFgX0FfYIFeYgFeo8FfZQFYrMFio0FiYwFY7sFiowFiowFYsMFiowFiowFY8oFio4FiY0FbcoFio4FiY4Fd8oFi44Fio0FgcMFi5IFi5IFlcMFjI0Fi44Fn8oFjY4FjI4FqcoFjY0FjI4Fs8oFjIwFjIwFtMMFjIwFjIwFs7sFjYwFjI0FtLMFmZQFnI8FnYgFmYIFlX0Fj3sFiHsFgX0FZGUFZV4FZFUFZE8Fb1AFeFEFg10Fk10FnlEFp1AFsk8FslUFDvlI95tWFYqJBWJjBX2CBXqHBXmOBX2UBYGZBYebBY6bBZWZBbKxBbG4BbLBBbLHBafGBZ7FBZO5BYO5BXjFBW/GBWTHBWTBBWW4BWSxBYGZBYibBY+bBZWZBZqUBZyOBZyHBZmCBbRjBYyJBY2KBbRbBYuKBY2KBbNTBYyKBYyKBbRMBYuIBY2JBapMBYuIBY2IBZ9MBYuIBYyJBZVTBYuEBYuEBYFTBYqJBYuIBXdMBYmIBYuIBWxMBYmJBYuIBWJMBYqKBYqKBWNTBYmKBYuKBWJbBQ75SPeU+FUV+zRWBXqIBXqPBX2VBYKZBYicBY+bBZaYBZqTBfc5wgUh9yQFhJoFi5sFkZsFmJYFm5IFnIsFm4UFmIAF8fsfBfH3HwWYlgWbkQWciwWchAWXgAWRewWLewWEfAUh+yQF9zlUBZqDBZZ+BY97BYh6BYJ9BX2BBXqHBXqOBfs0wAWL+yoFiHsFgX0FfIIFeogFeo4FfJQFgZkFiJsFDvlI95T39hWL90sFjpwFlZgFmpUFnI4FnIgFmoEFlX4FjnoFi/tLBfdpiwWciAWaggWVfQWOewWIegWBfgV8ggV6hwX7aYsFi/tLBYh7BYF9BXyCBXqIBXqOBXyUBYGZBYibBYv3SwX7aYsFeo8FfJQFgZgFiJwFjpsFlZkFmpQFnI4FDvlI96puFcJVBZV9BY56BYd7BYF+BXyCBXqIBXqOBX2VBTXfBYeRBYaRBYuMBYqMBYqSBYmSBYyMBYqMBY2SBYyTBYyLBYuMBZCRBY+RBfc/9zwFmpUFnI4FnIgFmoMFlX0Fj3sFiHsFgX0FDvlI90L35RX3kosFnIgFmoIFlX0FjnsFiHsFgX0FfIIFeogF+5KLBXqOBXyUBYGZBYibBY6bBZWZBZqUBQ75SPf/7RX7D4sFeY4FfZQFgZkFiJsFjpsFlZkFmZQFnY4F9w+LBZyIBZmCBZV9BY97BYd7BYF9BX2CBQ75SKOAFfhx+WMFl5cFm5EFnYwFm4UFmIAFknwFjHoFhXwF/HH9YwV/fwV7hQV5igV7kQV+lgWEmgWKnAUO+Uj4CfkPFUOeBUN4BUZQBWMvBYH7JQWj+wwFxi0F2F0FyYsF2LkFxukFo/cMBYH3JQVj5wVq9x4VjYoFkYgFkYgFjIoFjYoF4EEFi4sFjIoFj4UFkIUFi4oFjIoFuSEFjIQFjYUFlvsyBYqGBYuGBXH7GQWIhQWJhAVH+wIFiYoFiokFhocFh4YFiYoFiooFKVEFh4kFiIkFhooFh4oFh4sFh4oFM4sFh4wFh4sFh4wFhowFiI0Fh40FKcUFiowFiYwFh5AFho8Fio0FiowFRvcCBYmSBYiRBXH3GQWLkAWKkAWW9zIFjZEFjJIFufUFjIwFi4wFkJEFj5EFjIwFjIsF39UFjYwFjIwFkY4FkY4FjYwFjYsF6aMFjowFjowFkYoFkYwFjooFjooF6XMFDvlI9/v5ZRWQjgWNjAWNjAWSiwWSjQWMigWNiwWSigWSiQWMigWNiwWRhwWQhwWMigWNigWOhQWPhQWMigWLiQWMhQWNhAWL/REFh3sFgX0FfYIFeogFeY4FfZQFgZkFiJsFi/i2BTRFBXuDBXqJBXqPBX2WBYOZBYmbBY+bBZaYBfc19xUFDvlI90rmFffoiwWdiAWZggWVfQWOewWIewWBfQV9ggV5iAX8TosFg4wFg4wFiowFiosFhY8FhI8Fi4sFiowFhpEFh5EFi4wFiowFipIFiZIFi4wFi4wFjJIFjJIFjIwFi4wFj5EFj5EF9zn3PgX3L/dKBcTlBZezBYueBYOqBXeiBV6dBUaQBWaGBVBzBWttBX9mBYN9BX6ABXqGBXmNBXyTBYCYBYaaBYycBZu6BYuMBYyNBY+QBY6RBYyMBYyNBbi2BYuLBYuLBZOQBZKQBYuLBYuLBdWoBZCNBZGMBbqSBZCKBZCMBd2FBZKJBZKKBclxBYyKBY2LBZCHBZGHBYyKBY2JBaxlBYyKBYuKBY+FBY6EBYuKBYyKBZdeBYuFBYyGBYptBYqGBYuGBX1ZBYiFBYmGBUwpBYmJBYqJBfsy+04FiooFiooFDvlI9wqUFYeMBVObBXySBX+YBYabBY2bBZOaBZmVBZuQBZ2KBcB8BdeABeiJBb2WBdGxBbW2BZy5BYOvBWWzBUStBTSiBT2UBYiMBYiLBYWOBYaMBYmNBYiNBYePBYeOBYmOBYmNBYmQBYmQBYuOBYqOBYuQBYuRBYyNBYuOBY2QBY2QBY2NBY2OBY+PBY+PBY6MBY2NBZCNBZGNBY6LBY6MBduVBeKdBdGpBauoBZGqBXWtBV2uBUagBTyPBUp2BVZxBWhxBXyEBXmKBXuQBX2WBYOZBYqcBZCaBZeYBbCnBY+MBY6OBceoBY6MBY6NBdikBZOMBZSMBemGBZCKBZGKBd1yBZKIBZOHBcVeBZCGBZCGBa9UBY2EBY6FBYuKBYyKBYqEBYuDBYBQBYmHBYqHBYmIBYmHBYiIBYiHBVxfBYWGBYSHBUduBdFqBZGGBZKHBcBUBYyIBY6JBY2GBY6HBYuIBY2HBZZQBYuJBYyIBYqFBYuGBYqIBYuJBXNKBYuLBYuLBYeEBYaEBYuLBYuLBVZUBYWHBYaHBTlfBYWJBYWIBU19BYWLBYWKBSeNBYiMBYiLBTmWBQ75SPgF98IVi+oFj5sFlJgFmpUFnI4FnIgFmoEFlX4FjnsFiywF6YsFnIcFmoIFlX0FjnsFiHsFgX0FfIIFeogFLYsFi/s9BYh7BYF9BXyCBXqIBXqOBXyUBYKZBYebBYv3PQX71IsFhIwFhYwFiYwFiYsFhY8FhY0Fio0FiYwFh5AFh5AFi40FiY0FipEFiZEFi40Fi40FjJEFjJEFjI0Fi40Fj5EFjpAF+Ab4PgWYlgWcjwWcigWbgwWWfgWQfAWKegWCfQX7yfv5BQ75SKn5QRWOmwWVmQWalAWcjwX4WIsFnIcFmoIFlX0FjnsFiHsFgX0FfIIFeogF/CuLBYv7dwX3HakFk4sFk4wF9x57BZOIBZOJBcJuBZGGBZGHBbFiBYyJBYyKBY6FBY+FBYuKBYyJBaj7BAWLigWLigWLhAWMhAWKigWLiQV9UQWLiwWLigWHhAWIhAWLiwWKigVnXgWFhQWFhgVFYQWFiQWFiAU5dQWGigWGigU+hwWFjAWGiwVKlwWGjQWGjAVWogWGjgWFjwVUugWAmAWHmwWOmwWUmQWZlQWcjwWciQWaggW9YQW0eQXCgQXNjgXSngXFrgWlqwWUswVz5wVxpwVjoAX7DZkF+01iBYaLBYaKBYeMBYiKBYaNBYaMBYiNBYeMBYePBYeNBYmOBYiNBYmQBYiPBYuOBYmPBYuPBYqQBQ75SPch96QVi4sFi4sFbW4FioMFnlkFm24FtWEFtHIFzoEF2o8FxaMFsqoFnrMFjaoFf7MFeKwFcqQFZ5sFUJcFU44FU4MFU28F+yxcFYqPBYyRBYy5BYuLBYuLBY7cBY2RBYyRBafaBYyNBYuNBbTfBZCSBZCRBcC7BY6NBY2NBdC4BZGOBZCOBdykBYyLBYuLBeKlBZ2NBZuGBZmBBZN8BY17BYZ7BYB+BXyDBTRyBUFzBU9kBV5jBWdABXJEBYp7BZGOBZCPBdGtBZKNBZKOBc6UBZCLBY+LBcuJBY+KBY+LBc58BZCKBZCJBbt2BZKGBZKHBa5oBY6GBY+GBaNhBYyHBY2HBZpZBYyEBYyFBYlbBYuLBYuLBYmDBYmDBYuLBYuLBW9UBYuKBYqKBYaGBYeFBYqKBYqLBVhiBYaIBYaIBUNtBYOJBYOJBS+GBYeMBYaLBTmXBYqLBYqLBYSOBYOOBYuLBYqLBVasBYiPBYaNBVq8BYeQBYeQBXaxBYqOBYqOBXXHBYqSBYmTBQ75SPfP90gVg/saBYd7BYF+BXyCBXmJBXqPBX2VBYKZBYmbBZL3HAWMjQWLjQWc9wcFi4wFjI0Fms0FjI0Fi4wFnsYFjIwFi40FoL4FjIwFi40ForcFjIwFi40Fo7EFjIwFjI0FoqoFjI0FjIwFoqYFjYwF+96LBXmOBX2UBYGZBYibBY6bBZWZBZmUBZ2PBfhfiwWQigWQigWOigWPigWPiAWQiQWOiQWNiQWOhwWPhwWMiAWNiAWMhgWNhgWLiAWMiAWJhgWLhgWKiAWKiAWIhwWJhgWIiQWJiAWHiAWHiAVqeQV9gQVkaAV3dAV2bgV1aAV2YgV4WwV5UwV8TAUO+Uj3pvf2FUR0BUpaBXBZBYleBaZdBcVnBdlzBciJBeCmBb6wBaLEBYLEBWK1BTi2BVKfBdH3sxU4kQVLgAVXcwVrXQWVaQW4ZQW/bAXDeAWwlgXetQWdpgWMwwV1rwVr9wEVi4sFk4gFk4kFi4sFjIsF0GgFjokFj4kFjocFj4gFjYgFjYgFrVIFjIkFjYgFjIYFjYYFiogFjIgFiTwFi4gFi4kFiYUFioYFiYkFiogFbVwFiYkFiYgFh4gFh4cFiIoFiYkFUm4F0mYFkIcFkYcFw1IFjYcFj4gFjIcFjYgFjIYFjIcFmDoFi4kFi4kFioUFi4UFiokFiokFbDwFiYcFiogFh4cFiYgFiIgFiIkFR1sFhYgFhYcFJ2sFg4oFg4oFP40FhY0FhIsFMqcFho4FhY0FQ7gFio0FiYwFho8Fh5AFio0FiYwFZc0Fio4Fio4FipAFiZAFjI4Fio4Fjs0Fi4wFi4sFjZMFjZIFi4wFi4sFr80Fi4wFjIwFkJAFkJEFi4wFjIsF2sYFkY4Fko8FmI8FaZ8FiI4Fh40FUrwFiY0FiI4FiY8FiI8Fio4FiY4FeMsFi40Fi4wFipIFi5IFi4wFi4wFjpIFjZIFjIsFjI0Fu9IFjo4FjY4Fj44Fj44Fjo0Fjo0F0KsFkYwFkY0F15gFkIsFkYwF7YQFDvlI+Fr4mBWVnQV8xwVwqwVfoAVIkwVHgwVTdAVnagV+XwWYYAWvaQXDdAXMhAXMmgW8qgVf/BoVi4oFZ0IFgX4FfIIFeYgFeo8FfZUFgpkFiJsFj5sFr9QFtuoFwPcXBYuLBYuMBZKcBT55BYOKBYKLBTuUBYWNBYWMBUWoBYSPBYSQBVm6BYqNBYmMBYiQBYeQBYuOBYqNBXfNBYqOBYqOBYyQBYqQBYyOBYyPBZ/NBYyNBYuNBY+QBY6QBY2NBYyNBb26BZKPBZKQBdGnBZGMBZGNBduVBZGKBZGMBduBBZKJBZKJBcdvBYyKBYyLBZGGBZGHBYuKBYyKBbNcBYyKBYyKBY6FBY6F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iAWZggWVfQWPewWHewWBfQV9ggV6iAX8FYsFi/t4BffQiwWdiAWZggWVfQWOewWIewWBfQV9ggV5hwUO+Uj4fve0Ffs1iwV6jwV9lAWBmQWImwWOmwWVmQWZlAWdjgX3bIsFj4oFkIsFj4kFj4oFj4kFj4kFjogFj4kFjYgFjocFjYgFjYcFjIcFjYcFi4cFjIcFiocFi4cFXvtaBYqJBYuIBYiGBYiGBYmJBYqJBUtGBYmKBYqJBYWIBYaHBYmKBYmKBTpwBYqLBYuKBYOKBYOKBYqLBYqLBTWSBYSNBYSNBTmuBYWOBYaOBUfCBYaQBYaQBV/QBYuMBYqMBYmRBYiSBYuMBYuMBXf3UgWLkQWLkgWx90IFjIwFi40FjpEFjpEFjIwFjI0FzdsFjIwFi4wFkZAFkY8FjIwFjIsF37QFi4sFi4sFk40Fk44Fi4sFi4sF9xeVBZKKBZGLBfcQcQWbhQWXfwWRfAWLegWEfAV+gAV7hQV5iwX7CKMF+weCBUhrBVZJBWj7MwWe+0IFrlUFxFwF0W4Fz4UFx6AFvL8FDvlI+H74OhWL95sFj5sFlJkFmpQFnI8FnIcFmoIFlX0FjnsFi/0RBYh7BYF9BXyCBXqIBXqOBXyUBYKZBYebBYv3tgX8DosFi/u2BYd7BYJ9BXyCBXqIBXqOBXyUBYGZBYibBYv34AWL98UFjpsFlZkFmpQFnI8FnIcFmoIFlH0Fj3sFi/ubBQ75SPfu+UEVi/0RBYh7BYF9BXyCBXqIBXqOBXyUBYGZBYibBYv5EQWOmwWVmQWalAWcjwWchwWaggWVfQUO+Ui/9z4Vio4Fia8FjpsFlJkFmZUFnY4FnIkFmoIFlX4Fj3sFjGsFkXIFlXYFmXkFnX0FunoFzoQFu5EFwp8FoJkFnJ0Fl6EFk70FivhxBY6bBZWZBZqUBZyPBZyHBZqCBZR+BY96BYz8dAWKiAWLiAWCTgWJhQWJhAV5awWHhgWIhwVycQWHiAWIiAVtdwWGiQWGiAVKcwWGigWFigVRhAWGiwWGiwU8kwWFjAWFjAVRoQWFjwWFjQVvoQWHjwWHjgV2pQWJkAWIjwV+qAWKkAWJjwWEqwUO+Uj3Uff3FfsBOQWL+3UFiHsFgX0FfYIFeYgFeo4FfZQFgZkFh5sFi/kRBY+bBZWZBZmUBZyPBZ2HBZmCBZV9BY57BYv7xAX4Hve7BZuSBZyNBZyGBZiABZR8BYx7BYZ7BX9/Bfui+14F9+b70AWVfQWPewWHewWCfQV8ggV6iAV6jgV8lAUO+Uj3DOUV+CuLBZyIBZmCBZV9BY97BYd7BYF9BX2CBXqIBfxYiwV6jgV9lAWBmQWHmwWL+REFj5sFlZkFmZQFnI8FnYcFmYIFlX0FjnsFDvlI+KH5WxWOjwWNjQWNjQWRjQWPjgWOjAWOjAWRjAWRjAWOigWOiwWQiQWRigWNigWOigWQhwWPiAWNiQWNiQWOhgWOhgWMiQWMiAWLhgWNhQWL/REFh3sFgX0FfYIFeogFeY4FfZQFgZkFiJsFi/h1BftD+6wFiYkFiokFhocFh4cFiYkFiYoFhYkFhYgFiYsFiIoFhYwFhYoFiIwFiYsFhY4FhY0FiYwFiY0Fh48Fho8Fio0FiY0F+0P3rAWL/HUFiHsFgX0FfYIFeYgFeo4FfZQFgZkFh5sFi/kRBY2RBYuQBYyOBYyNBY6QBY6QBY2NBY2NBY+OBZCPBY6MBY2MBZGMBZCNBY6LBY6MBZGKBZGKBY6KBY6KBY+IBZGJBY2JBY2JBY6HBY+HBfdw+/UF93D39QUO+Uj4e/dPFYT4hgWOmwWVmQWZlAWcjwWdiAWZggWVfQWPewWU/REFioYFi4cFiocFiocFiYgFiYcFiIgFiIcFiIkFiIgFh4kFh4kFh4oFh4oFhosFh4oFhosFh4sFh40Fh4wFh40Fh4wFiI4Fh44FiI4FiI4F/BT4oQWL/IkFh3sFgn0FfIIFeogFeo4FfJQFgZkFiJsFi/kRBYyPBYuPBYyPBYyPBY6PBYyOBY6OBY6PBY6NBY6OBZCNBY+NBY+MBY6NBZCLBZCMBY+KBY+LBY+JBZCKBY+JBY6KBY+IBY+IBY2IBY6IBQ75SPgblBWFiAWJiwWJiwUzgAWKiwWKigWEjAWDjAWKiwWKiwUypQWJjAWIjAWGjgWGjgWJjQWJjAU62gWJjgWIjgWJjwWIjwWLjwWJjgVP96AFi40Fi4wFi5IFi5IFjIwFi40FxPddBY2PBYyPBY6OBY2PBY6NBY6PBdHEBYyMBYyMBZKOBZGOBY2LBYyMBfcOqQWPiwWPjAWQigWPjAWPiQWPiwX3B2cFjIoFjYsFkYcFkYgFjIoFjYkFzkoFjYgFjYkFjocFjYYFjIgFjIgFxfuJBYuDBYuDBW/7LgWIhAWJhQVYMgWKiQWLigWGhgWGhgWKigWKigUwTgWJigWKigUg0BXOkwXUvAW11gWl9x8FVvd1BVm8BTCoBShzBVdgBVj7RgXD+4sFy00FDvlI93j3xxWJigX7AooFi/uVBYd7BYF9BX2CBXqIBXmOBX2UBYGZBYibBYv5BQWMkQWMkgWMjAWLjQWPkQWOkAWNjAWMjQWQjwWRjwWNiwWMjAWSjQWRjAX3HZcFjosFj4sF9w6EBY+KBZCLBdp2BY+KBY+KBa96BZCIBZCIBcRbBYuKBYuLBZCFBZCEBYuLBYyLBaRXBY2EBY2EBZA/BYuJBYuJBYqFBYqFBYqJBYuJBXRcBYqJBYqJBYeHBYeFBYmKBYqKBWhxBYWIBYWIBVN2BYeKBYeJBTp8BYiLBYmLBfsCggWF4BX1kwXWmQW5nAWgmwWZpwWGxAV6sAVesQVxlwVEnQX7BpIFL4MFi/uJBQ75SPiTtRXQOQWTfAWNewWFewWAfwV7gwV6igV6kAV+lQVRzwVUYAWIigWJiQWGiQWGiAWHiwWIigU1fgWJjAWJigWEjAWFiwWJjAWIiwU0qQWJjAWIjAWGjgWGjgWJjgWJjAU75AWKjgWJjQWJkAWIkAWLjgWKjQVQ98MFi4sFi4sFi5MFi5MFi4sFi4wFw/d2BY2OBYyPBY2PBY6PBY2OBY2OBdDLBY2MBYyNBZGOBZGOBY2MBY2MBfcLrAWRjAWRjAWNigWOjAWRiQWRigX3BGMFjYoFjooFj4cFkYgFjIkFjYoFzUEFjIkFjYkFjYYFjoYFjIgFjIkFw/uoBYuEBYuEBW/7QgWJhQWJhQX7K0AVMfUFg5oFipsFkJsFlpcFm5MFnIwFnIYFmIEF0zcFmqkFpfc1BVb3lgVZxAU0qgUucQVXWgVY+2IFwvuvBctDBcx2BcmUBQ75SPfz+EoV3JcFrpgFoJsFlqIFjLMFfbkFgZYFd5gFcZUFQZsF+xSQBfsofgWL+10F90g8FftIhQWL+7cFh3oFgn4FfIEFeogFeo4FfJUFgZgFiJwFi/j8BYyRBYyRBYyNBYuNBY+QBY6RBY2MBYyNBZGOBZCPBY2MBY2MBZGMBZKNBfdUmwWOiwWOjAX3G4UFj4oFj4sF3HoFj4kFj4sFrX0Fj4kFj4kFp3kFj4cFkIgFoHQFi4oFjIsFjoQFj4UFi4oFjIoFnU0FjIUFjIUFiVQFi4sFiYMFiYMFi4sFeWQFiooFi4oFhoUFhoUFiosFi4oFaXAFhIgFhYcFXXoFhooFhokFNX8F94H7rQWTfQWNegWGewV/fwV8gwV5igV6kAV+lgX7nPfLBYOaBQ75SOXBFYaOBYqNBYiNBYmQBYeQBVr3AQWHnAWOmwWVmQWZlAWcjgWdiAWZggWVfgW3KgXNaQX3IIcF7bgFq/AFdsUFS68F+4ezBYiNBYiLBYaNBYaNBYmOBYiMBUu+BYiPBYiOBYmOBYiOBYqQBYmOBXrHBYuPBYqOBYuQBYuPBYyPBYyPBbT3DAWOkAWNkAWNjQWMjQWQjwWPjwXvzAWRjgWQjgWOiwWNjAWRiwWRjAX3R4IFjYoFjIwFkogFkooFjIoFjYoFkIcFkYcFjIoFjIoF1zAFknwFjXoFhXwFgH4Fe4QFeYoFe5AFfpYFTNYF+yOTBUBaBWssBZVoBbZoBfeDYwWTiQWTiAXfWgWQhwWQhwWNiQWMigWOhQWOhgWrNgWLhgWNhwWLhwWLiAWKhgWKhgVi+xgFi4oFiooFh4UFiIQFiosFiooFhYYFhYcFiosFiooF+xJRBYmLBYqKBYSKBYSJBYmLBYmLBfs2jwWJjAWJiwWFjQWEjAWJjAWJjAUzuQUO+Uj3yflsFfeiiwWchwWaggWVfQWOewWIewWBfQV8ggV6iAX7dYsFi/znBYh7BYF9BX2CBXmIBXqOBXyUBYKZBYebBYv45wX7hYsFeo4FfJQFgZkFiJsFjpsFlZkFmpQFnI8FDvlI+HT3hxWQ+E4Fj5sFlZkFmZQFnY4FnIcFmYIFlX0FjnsFhvxQBYqIBYyJBYFHBYqHBYqGBXdYBYmIBYmHBX53BYiHBYiIBW1sBYWHBYaHBVhxBYSJBYSJBU2BBYWLBYSLBTOUBYaNBYWMBUWlBYWPBYWOBVyvBYeQBYWQBWjCBYiRBYiRBXnSBYqPBYqOBYTsBYuNBYuMBYr39wWOmwWVmQWalAWcjwWchwWaggWVfgWOegWM+/UFki8Fm00Fp2EFr28FxXYF14IFu5MFsJ4FoqIFk5cFnLYFDvlI99H3NRX3a/ivBZSZBZqVBZyPBZyIBZqCBZV+BY97BYh6BfuS/REFi4sFi4oFhoUFh4QFi4sFiooFhIcFhYYFiosFi4sFg4kFg4oFiosFi4sFg4wFgowFi4wFiosFhI8FhI8Fi4sFi4wFhpEFhpEFi4wFi4sF+7j5EgWHmwWOmwWVmQWZlAWcjwWciAWaggWVfQUO+Uj4dvdYFdf4gwWQmwWXlwWbkgWcjAWchgWYgAWTfAWMegUq/REFiYcFioYFiYgFiocFiIgFiIcFiIkFiIgFh4kFh4kFh4oFh4kFh4sFhooFh4sFh4sFho0Fh4sFh40Fh40FiI4Fh40FiI4FiI4FiY8FiI4F+0b3/wX7Ofv2BYiHBYiGBYmJBYmJBYaIBYeHBYiKBYiKBYaKBYWJBYiLBYiLBYWMBYaLBYiNBYiLBYaOBYaOBYmNBYiNBYiPBYiPBYqOBYmOBYqQBYmQBTv5CQWNnAWTmQWYlgWckAWcigWbhAWWfgWRewXH/G8F9x/3vgWPkAWPkQWMjAWMjAWRjwWRjwWNiwWMjAWSjAWSjQWNiwWMiwWSiQWTigWMiwWMigWRhwWSiAWMigWMigWPhQWPhQUO+Uj3/Pf/FfeZ+7QFlH0FjXsFhnsFgH4FfIMFeYkFeo8FfpYF+5D3qQX7kPupBX6ABXqHBXmNBXyTBYCYBYabBY2bBZSZBfeZ97QF+5/3uwWCmQWJnAWQmwWWlwWalAWdjAWchwWYgQX3lvuxBfeW97EFmZUFm48FnYoFmoIFln8FkHsFiXoFgn0FDvlI9+j4EhWV++EFiHsFgn0FfYEFeogFeY0FfJQFgZkFh5sFgffjBfud96cFgpkFiJsFj5sFlpkFmpMFnI4FnIcFmYEF94n7kQX3k/eQBZqVBZyPBZyIBZqCBZV+BY96BYh7BYJ9BQ75SPci5RX4KosFnYgFmYIFlX0FjnsFiHsFgX0FfYIFeYgF/IKLBYWMBYaLBYiMBYeMBYeOBYaNBYmNBYiNBYiPBYePBYqOBYmOBYqQBYmPBYuPBYuOBYyQBYuQBYyOBYyOBY6PBY2QBfhP+M4F/CqLBXmOBX2UBYGZBYibBY6bBZWZBZmUBZ2PBfiCiwWRigWQigWOigWPigWPiQWQiAWNiQWOiQWOhwWPhwWMiAWNiAWMhwWNhgWLiAWLhwWKhgWLhgWKiAWKiAWIhwWJhgUO+Uj3h3QV9zaLBZyIBZmCBZV9BY97BYd7BYF9BX2CBXqHBftjiwV5jwV9lAWBmQWImwWL+Z8FjpsFlZkFmZQFnY4F92OLBZyIBZmCBZV9BY97BYd7BYF9BX2CBXqIBfs2iwUO+Ujw+VgV+HH9YwWRfAWKegWEfAV+gAV7hQV5jAV7kQV/lwX8cfljBYWaBYycBZKaBZiWBZuRBZ2KBZuFBQ75SPhWShWHewWBfQV9ggV6hwX7Y4sFeY8FfZQFgZkFiJsFjpsFlZkFmZQFnY4F9zaLBYv5SwX7NosFeY4FfZQFgZkFiJsFjpsFlZkFmZQFnY4F92OLBZyIBZmCBZV9BY97BQ75SPeo+WQVko8FjIsFjIwFkowFk40FjIoFjIwFk4kFkooFjIoFjIsFkocFkYcF9577ggWVfgWPewWIegWBfQV9ggV6hwV6jgV8lAX7f/dmBft/+2YFfIIFeogFeo8FfZQFgZkFiJwFj5sFlZgF9573ggUO+UiL+wEV+O6LBZyIBZqCBZV9BY57BYh7BYF9BXyCBXqIBfzuiwV6jgV8lAWBmQWImwWOmwWVmQWalAUO+Uj4POoVxcIFi/eQBVLBBVCnBS+LBVBvBUxQBWsvBYtQBaswBcpPBcdvBeaLBfcIZhWHiAWFhwVAZwWKigWJigWEigWFiQWJjAWJigX7BYsFiYwFiYoFhI0FhYwFiYwFiYwFQK8FhY8FhY8FP9MFiowFiowFiJEFh5EFiowFiowFZvYFipIFipIFi9IFjJIFjJEFsPcABYyNBYyMBY+RBY6RBYyMBYyMBdfTBZGPBZGPBdeuBYyMBY2MBZKMBZKNBYyKBY2MBfcFiwWMigWNjAWSiQWSigWMigWNigXWaAWQhwWQiAWLjwWPnAWUmAWalQWcjgWciAWagQWVfgWOegWL/IoFiHsFgX4FfIEFeogFeo4FfJUFgpgFh5sFDvlI9xOvFYaOBYuKBYd6BYF+BX2CBXqHBXmPBX2UBYGYBYicBYv5OAWOmwWVmQWZlAWdjgWciAWZggWVfQWPewWL+3YFkI4FkY8F1asFjIsFjIsFko0Fk40FjIoFjIwF9wSLBYyLBYuLBZOJBZOJBYyLBYuLBddrBZCHBZKIBdZKBYyKBY2KBY6FBY+GBYyJBYyKBbApBYyEBYyEBYtLBYqEBYqDBWYrBYqKBYqJBYeGBYiFBYmKBYqJBUBLBYWIBYWHBUBqBYqLBYqLBYSJBYOJBYqLBYqLBfsEiwWKjAWKigWDjQWEjQWKiwWKiwVBrAWA9w0VwlwFxnEF54sFx6UFycAFqdoFi70FbdsFTcAFT6QFL4sFUHIFVFwFDvlI+DLqFczNBZqVBZyPBZyIBZqDBZV9BY97BYl7BYF9BUVDBYWHBYWHBUZmBYiLBYmJBYWKBYWJBYiMBYmKBSGLBYmMBYiKBYWNBYWMBYmNBYmLBUSwBYWPBYWPBUXTBYqMBYqMBYeRBYeRBYuMBYqMBWn2BYqRBYqSBYvSBYyRBYySBa33AAWMjAWLjAWPkQWPkQWMjAWMjAXR0wWRjwWRjwXSrwWNiwWNjQWRjAWSjQWNigWNjAX1iwWNigWNjAWSiQWRigWNiQWNiwXRZwWRhwWRhwXRQwWVfQWNewWHewWBfQV8gwV6iAV6jwV8lQVKzQVWpgU3iwVVcAVRUAVtLgWLUAWoLwXGUAXCbwXdiwUO+Uj4PfUVwroFi/dxBVS6BVCkBS+LBU9yBU1WBW07BYtZBak8BclWBcdxBeeLBfcGYhWGiAWFhwVBagWKiwWKiwWEiQWDiQWKjAWKigX7BIsFiosFiosFhI0Fg40FiosFiosFQKwFhY8Fho4FP8sFio0FiYwFiJEFh5AFio0FiowFZusFipMFipIFi8sFjJIFjJIFsO0FjIwFjI0Fj5AFjpEFjYwFjIwF18wFkY4FkI8F16sFi4sFjIsFk40Fk40Fi4sFjIsF9wSLBYyKBYyMBZOJBZKJBYyLBYyLBdVrBZGHBZCIBYv3dgWPmwWVmQWZlAWcjgWdiAWZggWVfQWOewWL/TgFiHoFgX4FfYIFeYcFeo8FfZQFgZgFh5wFDvlI9x74IBV8YQX4GIsFg5QFZs0FbaYFS6cFJosFSm8F93r7/BXXzgWZlAWdjgWchwWZggWVfQWNegWIewWAfgU6QwWGiAWFhwU8ZgWJiwWKigWEigWEiQWJiwWKiwX7DYsFiosFiosFg40FhIwFiowFiosFOrAFhY8FhY4FO9MFiYwFiowFh5EFh5AFi40Fio0FY/YFipIFipIFi9IFjJIFjJIFs/cABYyNBYuNBY+QBY+QBYyNBY2MBdvTBZKOBZCPBdyvBYyLBYyMBZOMBZKNBYyLBYyLBfcNiwWMiwWMiwWTiQWSigWMigWMiwXbZwWQhwWRiAW1ZwWPhQWQhQWyRAWQewWJegWDfQV/ggWUhQWVfgWOegWIewWBfQV9ggV5iAX8SYsFi3UFrDAFz08FzG4F8IsFDvlI97n4VhWL/CQFiHsFgX0FfIIFeogFeo4FfJQFgZkFiJsFi/gkBfsGiwV6jgV8lQWCmAWHmwWPnAWUmAWalQWcjgX3BosFi8AFi40Fi40FjZEFjJEFjY0Fi4wFwOoFkZEFkJEFi4sFi4wFk44Fko8F9asFkowFkowF9YsFnIgFmoIFlX0FjnsFiHsFgX0FfIIFeogFKIsFOXIFZEUFi2EF9zuLBZyIBZqBBZV+BY56BYh7BYF+BXyBBXqIBQ75SPg99yMVwroFi/dxBVS7BVCkBS+LBU9yBU1WBW06BYtaBak7BclWBcdxBeeLBfcGYhWGiAWFhwVBagWKiwWKigWEigWDiQWKiwWKiwX7BIsFiosFiosFg40FhIwFiowFiosFQKwFhY8FhY4FQMwFiowFiYwFiJEFh5AFio0FiowFZuwFipIFipIFi8wFjJIFjJIFsOwFjI0FjI0Fj5AFjpAFjY0FjIwF1swFko4FkI8F16sFi4sFjIwFk4wFk40Fi4sFjIsF9wSLBYyLBYyLBZOJBZKKBYyKBYyLBdVrBZGHBZCIBYuLBY+cBZWYBZmVBZyOBZ2IBZmBBZV+BY56BYv8mAWKhAWKhAVmKgWKigWKiQWHhgWIhQWJigWKiQVlawWFhwWFhwVBbAWKigWKiwWEiQWDigWKiwWKiwX7BIsFiosFi4sFg4wFg40FiosFi4sFP6sFho8FhI8FQMsFio0FiYwFiJAFh5AFio0Fio0FZuwFiZwFj5sFlZgFm5QFnI0FnIcFmYEFlH0FrDQFyVYFx3EF54sFxqUFpKAFqdoFDvlI+L34CRWNhAWL+9AFiHsFgX0FfIIFeogFeo4FfJQFgZkFiJsFi/fIBW7TBVqfBSyLBU1yBS49BYv7vQWIewWBfQV8ggV6iAV6jgV8lAWBmQWImwWL+SwFjpsFlZkFmpQFnI4FnIgFmoIFlX0FjnsFi/uSBbKsBZGOBZGPBdeqBYyLBYuMBZOMBZONBYyLBYuLBfcGiwWMiwWLiwWTiQWTigWMigWLiwXXbAWLiwWLiwWShgWShwWLigWMiwWPhAWQhQWLigWLiwWxLAUO+Uj3mfmIFduLBZyIBZqCBZV9BY57BYh7BYF9BXyCBXqIBTuLBXqOBXyUBYGZBYibBY6bBZWZBZqUBfH7mRWL/E4FiHsFgX0FfIIFeogFeo4FfJQFgZkFiJsFi/hOBY6cBZWYBZqVBZyOBZyIBZqBBZV+BQ75SPgV+YgVyYsFnIgFmoIFlX0FjnsFiHsFgX0FfIIFeogFTYsFeo4FfJQFgpkFh5sFj5sFlJkFmpQF+wn+MhWGigWIjQWHiwUpqQV8kwWAmAWGmwWNmwWUmQWZlgWbjwWdiQXhcQXpoQWhyQWL+I4Fj5sFlJkFmpQFnI8FnIcFmoIFlX0FjnsFi/yVBYqEBYqFBWswBYiGBYmHBYmIBYmIBYeIBYeIBYiJBYiJBYaKBYaJBfsXbQWIiwWHigUO+Uj3f/eMFfsRLwWLIQWIewWBfQV8ggV6iAV6jgV8lAWCmQWHmwWL+SwFj5sFlJkFmpQFnI4FnIgFmoIFlX0FjnsFi/xXBff495sFm5IFnIwFnIYFmIEFk3wFjHoFhnwFgH4F+2v7MgX3mPtwBZV+BZB7BYh7BYJ9BX2BBXqHBXqNBXyTBQ75SPfu+WMVi/0xBYh7BYF9BXyCBXqIBXqOBXyUBYGZBYibBYv5MQWOmwWVmQWalAWcjwWchwWaggWVfQUO+Uj43/iYFZCGBYuKBYyJBYyFBY2EBYuKBYyJBYv8WwWHewWBfQV9ggV6iAV5jgV9lAWBmQWImwWL+EgFfJYFXIsFdHgFVDEFi/vmBYh7BYF9BX2CBXmIBXqOBX2UBYGZBYebBYv36gVo4wV1nAVdiwVzeAVVMQWL++YFh3sFgX0FfYIFeogFeY4FfZQFgZkFiJsFi/h9BY6cBZWYBZmVBZ2OBZyIBZmBBZV+BY2ABa2mBZGOBZGPBY2LBYyMBZKLBZKNBduLBZKJBZKLBYyKBY2LBZGHBZGIBbZoBYyJBY2KBY+GBY+GBYuJBY2JBZN1BZynBZCQBZCRBbWtBZGPBZGPBY2LBYyMBZKLBZKNBdyLBZKJBZKLBYyKBY2LBZGHBZGIBbZoBYyKBYyKBQ75SPi++B0VjIUFi/vyBYh7BYF9BXyCBXqIBXqOBXyUBYGZBYibBYv36wVt3QVaoQUtiwVPcAUsMwWL++AFiHsFgX0FfIIFeogFeo4FfJQFgZkFiJsFi/h9BY6cBZWYBZqVBZyOBZyIBZqBBZV+BY56BYtlBbCtBZKPBZCPBdiuBYyLBYyMBZKMBZONBYyLBYyLBfcGiwWMiwWNiwWSiQWSigWMigWNiwXWaAWMiwWLiwWShgWRhgWMiwWLiwWPhAWPhAWLiwWLiwWyIQUO+Uj37Ph4FTWLBVRwBU9PBWwvBYtQBaowBcdPBcNvBeCLBcKnBcfHBarmBYvGBWznBU/HBWH3AxWNjAWRiQWSigWNiQWNiwXTaAWRhgWRhwXTQwWLigWMiwWPhAWPhQWLigWMigWv+wAFjIUFjIQFi0QFioQFioUFZyAFiooFi4oFh4QFh4UFiosFi4oFQ0MFhYcFhYcFQ2YFiYsFiYkFhYoFhIkFiYwFiYoF+wCLBYmMBYmKBYSNBYWMBYmNBYmLBUOwBYWPBYWPBUPTBYuMBYqLBYeRBYeSBYuMBYqMBWf2BYqRBYqSBYvSBYySBYyRBa/3AAWMjAWLjAWPkQWPkgWMiwWLjAXT0wWSjwWQkAXTrgWNiwWNjQWSjAWRjQWNigWNjAX3AIsFDvlI9xTXFYWPBYv7dQWHewWCfQV8ggV6iAV6jgV8lAWBmQWImwWL+TMFjpwFlZgFmpUFnI4FnIgFmoEFlH4Fj3oFi4sFkY8FkI4F1asFjIsFjIwFk4wFko0FjIsFjIsF9wSLBYyLBYuLBZOJBZOKBYyKBYuLBdZsBZGHBZGHBdZLBY2KBYyJBY+GBY+GBYuJBY2JBa8rBY2EBYyDBYtLBYqEBYmEBWYsBYqJBYuJBYeGBYeFBYqKBYmKBUBLBYWHBYaIBUBqBYqLBYqKBYOKBYSJBYqLBYqLBfsEiwWKiwWKiwWDjQWEjAWKjAWKiwVBrAWA9w0VwlwFxnEF54sFx6UFyb8FqdoFi7wFbdsFTb8FT6QFL4sFUHIFVFwFDvlI+D33JRXCugWL924FVLoFUKQFL4sFT3IFTVcFbTsFi1oFqTwFyVcFx3EF54sF9wZiFYaIBYWHBUFqBYqLBYqLBYSJBYOJBYqMBYqKBfsEiwWKjAWKigWEjQWDjQWKiwWKiwVArAWGjgWFjwVAywWJjAWKjQWHkAWHkAWLjQWKjQVm6gWJkgWKkwWLywWMkgWNkgWw6wWMjQWLjQWPkAWPkQWMjAWNjAXWywWRjwWRjwXWqgWLiwWMjAWTjAWTjQWLiwWMiwX3BIsFjIsFjIsFkokFk4oFjIoFjIsF1WwFkIcFkYgFi4sFj5sFlJkFmpQFnI4FnIgFmoIFlX0FjnsFi/00BYh7BYF9BXyCBXqIBXqOBXyUBYKZBYebBQ75SPfp+MsVk40F9yaLBZyIBZmBBZV+BY96BYd7BYF+BX2BBXqIBfsdiwU4bgU5TwViNAWL+6MFiHsFgX0FfYIFeYgFeo4FfZQFgZkFh5sFi/h9BY+cBZWYBZmVBZyOBZ2IBZmBBZV+BY56BYtWBdTABZGNBZGPBeutBQ75SO6nFYSQBYuLBYuMBYeSBYeSBXLSBYmcBY+bBZaYBZuTBZyNBZyGBZmBBZN9BZ9TBbt0BfWLBeSsBbuhBYuoBVHCBfsBygX7BIsFiYsFiosFhI0FhIwFiowFiYwFQK8FhY8Fho8FiowFiYwFiJEFh5EFi4wFio0FipEFipIFi9IFjJMFjZMFi4sFi4wFkJEFj5IF1tMFjIsFjIwFkY8Fko8FjIsFi4wF764Fk4wFk40F9xGLBYyKBY2MBZKJBZKKBYyKBY2KBdZoBZmBBZN8BY17BYd7BYB+BXyDBXmJBXqPBUqqBSGLBTluBVRWBYtuBbN4BfcGiwWOigWPiwWQiQWQigWOigWPiQX3EEQFj4cFkIgF1kQFj4QFkIQFi4sFi4sFjYMFjIMFi0MFioUFioQFiooFi4kFh4UFiIYFiYoFiokFhYgFhoYFQGgFiYsFiYkFJ2cFg4oFg4kF+xGLBYmMBYmKBYWNBYSMBYmMBYqMBUCvBQ75SPdd+DEV+wyLBXqOBXyUBYGZBYibBY6bBZWZBZqUBZyOBfcMiwWL9zcFjpsFlZkFmpQFnI4FnIgFmoIFlX0FjnsFi/s3BfdDiwWciAWaggWVfQWOewWIewWBfQV8ggV6iAX7Q4sFi/uCBbNMBeF0BfOLBZyHBZqCBZV9BY57BYh7BYF9BXyCBXqIBfsCiwWFjAWFjAX7AqgFg48FhI4Fi4sFiowFhpEFhZAFVOIFio4FiY4FipAFiZAFjI4Fio4FDvlI+GX3SRWL9+AFjpsFlZkFmpQFnI4FnIgFmoIFlX0FjnsFi/x9BYh6BYF+BXyBBXqIBXqOBXyVBYGYBYicBYuyBWZpBYWHBYWHBT9oBYmKBYqKBYSKBYSJBYmMBYqKBfsGiwWJjAWKigWEjQWEjAWJjAWKjAU/rgWEkAWEkAWLiwWLiwWHkgWHkgVk9AWKkgWKkQWL9/IFjpsFlZkFmpQFnI4FnIgFmoIFlX0FjnsFi/vrBak6Bb10BeeLBcinBQ75SPfB9xcV92j4JgWWmAWakwWcjQWchwWZgQWUfQWNegWHewX7kfxyBYiHBYiGBYiJBYqJBYaIBYaIBYiKBYiKBYaKBYWKBYiLBYiLBYWMBYaMBYiMBYiMBYaOBYaOBYqNBYiNBYiQBYiPBfuQ+HIFhpsFjZwFlJkFmZUFnI8FnIkFmoMFln4FDvlI+Fj3TRX29+kFk5oFmZUFm5AFnYoFmoMFl34FkHsFiXsF+yr8cgWIhwWKhwWIiAWKhwWHiQWIhwWHiQWIiQWGiQWHiQWHiwWHigWHiwWGiwWHjAWHiwWHjQWGjQWIjQWHjQWIjwWIjQWJjwWIjgWKjwWIjwUg9+kFIPvpBYiHBYqHBYiIBYmHBYiJBYiHBYeJBYiJBYaJBYeJBYeLBYeKBYeLBYaLBYeMBYeLBYeNBYaNBYiNBYeNBYiPBYiNBYmPBYiOBYqPBYiPBfsq+HIFiZsFkJsFl5gFmpMFnYwFm4YFmYEFk3wF9wD76QX29+kFjY8FjI8Fjo4FjY8Fj44Fjo4Fjo0Fj40Fj40Fj40Fj4sFj4wFkIsFkIsFj4oFj4sFj4kFkIkFjokFjokFjogFj4gFjYcFjogFjIcFjYcFDvlI+AL3pxX3evtlBZV+BY97BYh7BYF9BX2BBXqIBXmOBX2UBft992YF+337ZgV9ggV5iAV6jgV9lQWBmQWImwWPmwWVmAX3evdlBft692UFgZgFh5sFjpwFlZgFmZUFnI4FnYgFmYMF9337ZwX3ffdnBZmTBZ2OBZyIBZmBBZV+BY56BYd7BYF+BQ75SOj7TxWDigWLiwWLiwVjiwV6jgV8lAWBmQWImwWOmwWVmQWalAWcjgWqiwXLpQXOwQXJ7gX7dfg4BYebBY2bBZSaBZiVBZyPBZ2JBZqDBZZ+BfdX/AEF91n4AQWWmAWakwWdjQWbhwWZgQWUfAWNewWGewX7gfxMBYuKBYqJBT37EQWGhQWGhgU9TAWEiAWGhwU8bAWLiwWLiwUO+Uj3UtkV98+LBZ2IBZmCBZV9BY57BYh7BYF9BX2CBXmIBfwsiwWEjAWFiwWJjQWIiwWGjgWGjgWJjQWJjAWHkAWHkAWKjQWKjQWKkQWJkAWLjgWLjQWMkQWLkQWNjQWLjQWPkAWOkQX38vguBfvPiwV5jgV9lAWBmQWImwWOmwWVmQWZlAWdjgX4LIsFkooFkYsFjYoFjooFkIgFkYgFjIkFjYoFj4YFj4YFjIkFjIkFjIUFjYYFi4gFi4kFioUFi4UFiYkFi4kFh4YFiIYFDgAAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAAK0AAACtAAAArQAAA==') format('truetype'); font-weight: normal; font-style: normal; }</style></svg>
 \ No newline at end of file
 diff --git a/tests/features/__snapshots__/ibis-model-ambiguous-selector-schematic.snap.svg b/tests/features/__snapshots__/ibis-model-ambiguous-selector-schematic.snap.svg
 new file mode 100644
@@ -1637,7 +2530,7 @@ index 0000000..5b65071
 +})
 diff --git a/tests/features/eyediagram-resolved.test.tsx b/tests/features/eyediagram-resolved.test.tsx
 new file mode 100644
-index 0000000..6592672
+index 0000000..01ab054
 --- /dev/null
 +++ b/tests/features/eyediagram-resolved.test.tsx
 @@ -0,0 +1,54 @@
@@ -1688,12 +2581,939 @@ index 0000000..6592672
 +  expect(JSON.parse(JSON.stringify(descriptor))).toEqual(descriptor)
 +  descriptor.name = "changed copy"
 +  expect(eye.getEyeDiagramDescriptor().name).toBe("DQS")
-+  expect(eye._parsedProps.positive).toBe(props.positive)
++  expect("positive" in eye._parsedProps && eye._parsedProps.positive).toBe(props.positive)
 +  expect(eye.props).toEqual(props)
 +  expect(
 +    json.filter((element) => element.type.startsWith("simulation_")),
 +  ).toEqual([])
 +  expect(circuit).toMatchSchematicSnapshot(import.meta.path)
++})
+diff --git a/tests/features/general-simulation-external-pending.test.tsx b/tests/features/general-simulation-external-pending.test.tsx
+new file mode 100644
+index 0000000..b3ce593
+--- /dev/null
++++ b/tests/features/general-simulation-external-pending.test.tsx
+@@ -0,0 +1,54 @@
++import { expect, test } from "bun:test"
++import { analog } from "lib/namespaced-elements/analog"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import {
++  generalSimulationModel,
++  generalSimulationPinLabels,
++} from "tests/fixtures/general-simulation-model"
++
++test("external pending experiments serialize and never call a native engine even when analog simulation is enabled", async () => {
++  let solverCalls = 0
++  const { circuit } = getTestFixture({
++    platform: {
++      spiceEngineMap: {
++        ngspice: {
++          simulate: async () => {
++            solverCalls++
++            throw new Error("Unexpected native simulation")
++          },
++        },
++      },
++    },
++  })
++  circuit.add(
++    <board routingDisabled schematicDisabled>
++      <chip
++        name="U1"
++        footprint="sot23"
++        pinLabels={generalSimulationPinLabels}
++        ibisModel={generalSimulationModel}
++      />
++      <voltageprobe name="RX" connectsTo=".U1 > .OUT" />
++      <analog.transientsimulation
++        name="SI"
++        duration="100ns"
++        spiceEngine="ngspice"
++        ibisPinStates={{ ".U1 > .OUT": { mode: "input" } }}
++      />
++      <analog.eyediagram
++        name="RX_eye"
++        probeRef=".RX"
++        simulationRef=".SI"
++        unitInterval="2.5ns"
++        timeOrigin="0ns"
++      />
++    </board>,
++  )
++  await circuit.renderUntilSettled()
++  expect(solverCalls).toBe(0)
++  expect(
++    circuit
++      .getCircuitJson()
++      .find((record) => record.type === "simulation_experiment"),
++  ).toMatchObject({ execution_mode: "external", execution_status: "pending" })
++})
+diff --git a/tests/features/general-simulation-hierarchical-selectors.test.tsx b/tests/features/general-simulation-hierarchical-selectors.test.tsx
+new file mode 100644
+index 0000000..eff2cf3
+--- /dev/null
++++ b/tests/features/general-simulation-hierarchical-selectors.test.tsx
+@@ -0,0 +1,59 @@
++import { expect, test } from "bun:test"
++import { analog } from "lib/namespaced-elements/analog"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import {
++  generalSimulationModel,
++  generalSimulationPinLabels,
++} from "tests/fixtures/general-simulation-model"
++
++test("qualified selectors bind repeated chip names in separate subcircuits without global-name overrides", async () => {
++  const { circuit } = getTestFixture()
++  circuit.add(
++    <board routingDisabled schematicDisabled>
++      <group name="A" subcircuit>
++        <chip
++          name="U1"
++          footprint="sot23"
++          pinLabels={generalSimulationPinLabels}
++        />
++      </group>
++      <group name="B" subcircuit pcbX={5}>
++        <chip
++          name="U1"
++          footprint="sot23"
++          pinLabels={generalSimulationPinLabels}
++        />
++      </group>
++      <ibismodel componentRef=".A > .U1" {...generalSimulationModel} />
++      <ibismodel componentRef=".B > .U1" {...generalSimulationModel} />
++      <voltageprobe name="RX" connectsTo=".B > .U1 > .OUT" />
++      <analog.transientsimulation
++        name="SI"
++        duration="100ns"
++        ibisPinStates={{ ".B > .U1 > .OUT": { mode: "input" } }}
++      />
++      <analog.eyediagram
++        name="RX_eye"
++        probeRef=".RX"
++        simulationRef=".SI"
++        unitInterval="2.5ns"
++        timeOrigin="0ns"
++      />
++    </board>,
++  )
++  await circuit.renderUntilSettled()
++  const json = circuit.getCircuitJson()
++  const models = json.filter(
++    (record) => record.type === "simulation_ibis_model",
++  )
++  expect(models).toHaveLength(2)
++  expect(models[0]!.source_component_id).not.toBe(
++    models[1]!.source_component_id,
++  )
++  const probe = json.find(
++    (record) => record.type === "simulation_voltage_probe",
++  )!
++  expect(probe.signal_input_source_port_id).toBe(
++    models[1]!.pin_to_source_port_map.P1,
++  )
++})
+diff --git a/tests/features/general-simulation-imported-board.test.tsx b/tests/features/general-simulation-imported-board.test.tsx
+new file mode 100644
+index 0000000..2f66290
+--- /dev/null
++++ b/tests/features/general-simulation-imported-board.test.tsx
+@@ -0,0 +1,115 @@
++import { expect, test } from "bun:test"
++import { analog } from "lib/namespaced-elements/analog"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import {
++  generalSimulationModel,
++  generalSimulationPinLabels,
++} from "tests/fixtures/general-simulation-model"
++
++test("a scoped model annotation on an imported chip preserves its physical snapshot and serialized run controls", async () => {
++  const original = getTestFixture().circuit
++  original.add(
++    <board routingDisabled>
++      <chip
++        name="U1"
++        footprint="sot23"
++        pinLabels={generalSimulationPinLabels}
++      />
++    </board>,
++  )
++  await original.renderUntilSettled()
++  const snapshot = original.getCircuitJson()
++  const before = JSON.stringify(snapshot)
++  const { circuit } = getTestFixture({ platform: { schematicDisabled: true } })
++  circuit.add(
++    <board circuitJson={snapshot} routingDisabled schematicDisabled>
++      <voltagesource
++        name="VDD"
++        voltage="1.5V"
++        connections={{ pos: ".U1 > .VDD", neg: ".U1 > .GND" }}
++      />
++      <ibismodel componentRef=".U1" {...generalSimulationModel} />
++      <voltageprobe
++        name="RX"
++        connectsTo=".U1 > .OUT"
++        referenceTo=".U1 > .GND"
++      />
++      <analog.transientsimulation
++        name="SI"
++        duration="100ns"
++        timePerStep="10ps"
++        ibisPinStates={{ ".U1 > .OUT": { mode: "input" } }}
++      />
++      <analog.eyediagram
++        name="RX_eye"
++        simulationRef=".SI"
++        probeRef=".RX"
++        unitInterval="2.5ns"
++        timeOrigin="0ns"
++      />
++    </board>,
++  )
++  await circuit.renderUntilSettled()
++  const json = circuit.getCircuitJson()
++  const model = json.find((record) => record.type === "simulation_ibis_model")!
++  const state = json.find(
++    (record) => record.type === "simulation_ibis_pin_state",
++  )!
++  expect(model.pin_to_source_port_map.P1).toBe(state.source_port_id)
++  expect(JSON.stringify(snapshot)).toBe(before)
++  expect(json.filter((record) => record.type === "pcb_component")).toHaveLength(
++    snapshot.filter((record) => record.type === "pcb_component").length,
++  )
++  expect(json.filter((record) => record.type === "pcb_trace")).toHaveLength(
++    snapshot.filter((record) => record.type === "pcb_trace").length,
++  )
++  const supply = json.find(
++    (record) => record.type === "simulation_voltage_source" && !record.is_dc_source,
++  )!
++  expect(supply).toMatchObject({ voltage: 1.5 })
++  const traces = json.filter((record) => record.type === "source_trace")
++  for (const [terminalSourcePortId, railSourcePortId] of [
++    [supply.terminal1_source_port_id!, model.pin_to_source_port_map.E5!],
++    [supply.terminal2_source_port_id!, model.pin_to_source_port_map.A1!],
++  ]) {
++    expect(
++      traces.some(
++        (trace) =>
++          trace.connected_source_port_ids.includes(terminalSourcePortId) &&
++          trace.connected_source_port_ids.includes(railSourcePortId),
++      ),
++    ).toBe(true)
++    const terminal = json.find(
++      (record) =>
++        record.type === "source_port" &&
++        record.source_port_id === terminalSourcePortId,
++    )!
++    const rail = json.find(
++      (record) =>
++        record.type === "source_port" &&
++        record.source_port_id === railSourcePortId,
++    )!
++    if (terminal.type !== "source_port" || rail.type !== "source_port")
++      throw new Error("Expected source ports")
++    expect(terminal.subcircuit_connectivity_map_key).toBe(
++      rail.subcircuit_connectivity_map_key,
++    )
++  }
++  expect(
++    json.filter((record) => record.type === "source_trace_not_connected_error"),
++  ).toEqual([])
++  const padGeometry = (records: typeof json) =>
++    records
++      .filter(
++        (record) => record.type === "pcb_smtpad" && record.shape !== "polygon",
++      )
++      .map((pad) => ({
++        x: pad.x,
++        y: pad.y,
++        shape: pad.shape,
++        width: "width" in pad ? pad.width : undefined,
++        height: "height" in pad ? pad.height : undefined,
++      }))
++      .sort((a, b) => a.x - b.x || a.y - b.y)
++  expect(padGeometry(json)).toEqual(padGeometry(snapshot))
++})
+diff --git a/tests/features/general-simulation-imported-invalid-wrapper.test.tsx b/tests/features/general-simulation-imported-invalid-wrapper.test.tsx
+new file mode 100644
+index 0000000..ab2af9e
+--- /dev/null
++++ b/tests/features/general-simulation-imported-invalid-wrapper.test.tsx
+@@ -0,0 +1,24 @@
++import { expect, test } from "bun:test"
++import type { ChipProps } from "@tscircuit/props"
++import { createNamespacedElement } from "lib/namespaced-elements/create-namespaced-element"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++
++test("stable wrapper allowance still rejects physical hosts and unmarked display-name lookalikes", async () => {
++  const PhysicalWrapper = createNamespacedElement<ChipProps>("chip")
++  const DisplayNameLookalike = () => <chip name="U1" footprint="sot23" />
++  DisplayNameLookalike.displayName = "analogeyediagram"
++  for (const child of [
++    <PhysicalWrapper name="U1" footprint="sot23" />,
++    <DisplayNameLookalike />,
++  ]) {
++    const { circuit } = getTestFixture()
++    circuit.add(
++      <board circuitJson={[]} routingDisabled>
++        {child}
++      </board>,
++    )
++    await expect(circuit.renderUntilSettled()).rejects.toThrow(
++      "Component cannot have both circuitJson and children",
++    )
++  }
++})
+diff --git a/tests/features/general-simulation-imported-wrapper-identity.test.tsx b/tests/features/general-simulation-imported-wrapper-identity.test.tsx
+new file mode 100644
+index 0000000..6edacb9
+--- /dev/null
++++ b/tests/features/general-simulation-imported-wrapper-identity.test.tsx
+@@ -0,0 +1,85 @@
++import { expect, test } from "bun:test"
++import type {
++  AnalogDigitalStimulusProps,
++  AnalogEyeDiagramProps,
++  AnalogTransientSimulationProps,
++} from "@tscircuit/props"
++import { analog } from "lib/namespaced-elements/analog"
++import { createNamespacedElement } from "lib/namespaced-elements/create-namespaced-element"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import {
++  generalSimulationModel,
++  generalSimulationPinLabels,
++} from "tests/fixtures/general-simulation-model"
++
++test("imported boards accept separately created namespaced wrappers by stable host identity", async () => {
++  const OtherEye =
++    createNamespacedElement<AnalogEyeDiagramProps>("analogeyediagram")
++  const OtherTransient =
++    createNamespacedElement<AnalogTransientSimulationProps>(
++      "analogtransientsimulation",
++    )
++  const OtherStimulus = createNamespacedElement<AnalogDigitalStimulusProps>(
++    "analogdigitalstimulus",
++  )
++  expect(OtherEye).not.toBe(analog.eyediagram)
++  expect(OtherTransient).not.toBe(analog.transientsimulation)
++  expect(OtherStimulus).not.toBe(analog.digitalstimulus)
++  const original = getTestFixture().circuit
++  original.add(
++    <board routingDisabled>
++      <chip
++        name="U1"
++        footprint="sot23"
++        pinLabels={generalSimulationPinLabels}
++      />
++    </board>,
++  )
++  await original.renderUntilSettled()
++  const { circuit } = getTestFixture()
++  circuit.add(
++    <board
++      circuitJson={original.getCircuitJson()}
++      routingDisabled
++      schematicDisabled
++    >
++      <ibismodel componentRef=".U1" {...generalSimulationModel} />
++      <voltageprobe name="RX" connectsTo=".U1 > .OUT" />
++      <OtherTransient
++        name="SI"
++        duration="100ns"
++        ibisPinStates={{ ".U1 > .OUT": { mode: "output", enabled: true } }}
++      />
++      <OtherStimulus
++        name="TX"
++        simulationRef=".SI"
++        drives=".U1 > .OUT"
++        unitInterval="2.5ns"
++        startTime="0ns"
++        initialState={0}
++        pattern={{ type: "bits", bits: "001101", repeat: true }}
++      />
++      <OtherEye
++        name="RX_eye"
++        simulationRef=".SI"
++        probeRef=".RX"
++        unitInterval="2.5ns"
++        timeOrigin="0ns"
++      />
++    </board>,
++  )
++  await circuit.renderUntilSettled()
++  const json = circuit.getCircuitJson()
++  const eye = json.find((record) => record.type === "simulation_eye_diagram")!
++  const stimulus = json.find(
++    (record) => record.type === "simulation_digital_stimulus",
++  )!
++  const state = json.find(
++    (record) => record.type === "simulation_ibis_pin_state",
++  )!
++  expect(eye.simulation_experiment_id).toBe(stimulus.simulation_experiment_id)
++  expect(stimulus.source_port_id).toBe(state.source_port_id)
++  expect(
++    json.find((record) => record.type === "simulation_experiment"),
++  ).toMatchObject({ execution_mode: "external", execution_status: "pending" })
++})
+diff --git a/tests/features/general-simulation-invalid-controls.test.tsx b/tests/features/general-simulation-invalid-controls.test.tsx
+new file mode 100644
+index 0000000..2564681
+--- /dev/null
++++ b/tests/features/general-simulation-invalid-controls.test.tsx
+@@ -0,0 +1,65 @@
++import { expect, test } from "bun:test"
++import { analog } from "lib/namespaced-elements/analog"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import {
++  generalSimulationModel,
++  generalSimulationPinLabels,
++} from "tests/fixtures/general-simulation-model"
++
++test("enabled outputs require exactly one stimulus and reject stimulus on input or disabled output", async () => {
++  for (const scenario of [
++    "missing",
++    "duplicate",
++    "input",
++    "disabled",
++  ] as const) {
++    const { circuit } = getTestFixture()
++    circuit.add(
++      <board routingDisabled schematicDisabled>
++        <chip
++          name="U1"
++          footprint="sot23"
++          pinLabels={generalSimulationPinLabels}
++          ibisModel={generalSimulationModel}
++        />
++        <analog.transientsimulation
++          name="SI"
++          duration="100ns"
++          ibisPinStates={{
++            ".U1 > .OUT":
++              scenario === "input"
++                ? { mode: "input" }
++                : { mode: "output", enabled: scenario !== "disabled" },
++          }}
++        />
++        {scenario !== "missing" && (
++          <analog.digitalstimulus
++            name="TX"
++            simulationRef=".SI"
++            drives=".U1 > .OUT"
++            unitInterval="2.5ns"
++            startTime="0ns"
++            initialState={0}
++            pattern={{ type: "bits", bits: "01", repeat: true }}
++          />
++        )}
++        {scenario === "duplicate" && (
++          <analog.digitalstimulus
++            name="TX_DUP"
++            simulationRef=".SI"
++            drives=".U1 > .pin1"
++            unitInterval="2.5ns"
++            startTime="0ns"
++            initialState={1}
++            pattern={{ type: "bits", bits: "10", repeat: true }}
++          />
++        )}
++      </board>,
++    )
++    await expect(circuit.renderUntilSettled()).rejects.toThrow(
++      scenario === "missing" || scenario === "duplicate"
++        ? "requires exactly one digital stimulus"
++        : "input or disabled output",
++    )
++  }
++})
+diff --git a/tests/features/general-simulation-invalid-model-bindings.test.tsx b/tests/features/general-simulation-invalid-model-bindings.test.tsx
+new file mode 100644
+index 0000000..fd1ba81
+--- /dev/null
++++ b/tests/features/general-simulation-invalid-model-bindings.test.tsx
+@@ -0,0 +1,49 @@
++import { expect, test } from "bun:test"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import {
++  generalSimulationModel,
++  generalSimulationPinLabels,
++} from "tests/fixtures/general-simulation-model"
++
++test("IBIS attachments reject physical pin aliases, unmapped selections, missing references and duplicate models", async () => {
++  for (const scenario of [
++    "alias",
++    "selection",
++    "reference",
++    "duplicate",
++  ] as const) {
++    const { circuit } = getTestFixture()
++    const model = {
++      ...generalSimulationModel,
++      ...(scenario === "alias"
++        ? { pinMap: { ...generalSimulationModel.pinMap, P2: "pin1" } }
++        : {}),
++      ...(scenario === "selection"
++        ? { modelSelections: { P2: "Model_655" } }
++        : {}),
++      ...(scenario === "reference" ? { pinMap: { P1: "OUT", A1: "GND" } } : {}),
++    }
++    circuit.add(
++      <board routingDisabled schematicDisabled>
++        <chip
++          name="U1"
++          footprint="sot23"
++          pinLabels={generalSimulationPinLabels}
++          ibisModel={model}
++        />
++        {scenario === "duplicate" && (
++          <ibismodel componentRef=".U1" {...generalSimulationModel} />
++        )}
++      </board>,
++    )
++    await expect(circuit.renderUntilSettled()).rejects.toThrow(
++      scenario === "alias"
++        ? "duplicates another pin"
++        : scenario === "selection"
++          ? "unmapped physical pin"
++          : scenario === "reference"
++            ? "must be included in pinMap"
++            : "more than one IBIS model attachment",
++    )
++  }
++})
+diff --git a/tests/features/general-simulation-local-subcircuit-bindings.test.tsx b/tests/features/general-simulation-local-subcircuit-bindings.test.tsx
+new file mode 100644
+index 0000000..cb129a9
+--- /dev/null
++++ b/tests/features/general-simulation-local-subcircuit-bindings.test.tsx
+@@ -0,0 +1,69 @@
++import { expect, test } from "bun:test"
++import { analog } from "lib/namespaced-elements/analog"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import {
++  generalSimulationModel,
++  generalSimulationPinLabels,
++} from "tests/fixtures/general-simulation-model"
++
++test("repeated local chip, probe, experiment and eye names bind to their own nearest subcircuit", async () => {
++  const { circuit } = getTestFixture()
++  circuit.add(
++    <board routingDisabled schematicDisabled>
++      {["A", "B"].map((name) => (
++        <group key={name} name={name} subcircuit>
++          <chip
++            name="U1"
++            footprint="sot23"
++            pinLabels={generalSimulationPinLabels}
++            ibisModel={generalSimulationModel}
++          />
++          <voltageprobe name="RX" connectsTo=".U1 > .OUT" />
++          <analog.transientsimulation
++            name="SI"
++            duration="100ns"
++            ibisPinStates={{ ".U1 > .OUT": { mode: "input" } }}
++          />
++          <analog.eyediagram
++            name="RX_eye"
++            probeRef=".RX"
++            simulationRef=".SI"
++            unitInterval="2.5ns"
++            timeOrigin="0ns"
++          />
++        </group>
++      ))}
++    </board>,
++  )
++  await circuit.renderUntilSettled()
++  const json = circuit.getCircuitJson()
++  const eyes = json.filter((record) => record.type === "simulation_eye_diagram")
++  const experiments = json.filter(
++    (record) => record.type === "simulation_experiment",
++  )
++  expect(eyes).toHaveLength(2)
++  expect(experiments).toHaveLength(2)
++  expect(experiments[0]!.subcircuit_id).not.toBe(experiments[1]!.subcircuit_id)
++  for (const eye of eyes) {
++    const experiment = experiments.find(
++      (record) =>
++        record.simulation_experiment_id === eye.simulation_experiment_id,
++    )!
++    const probe = json.find(
++      (record) =>
++        record.type === "simulation_voltage_probe" &&
++        record.simulation_voltage_probe_id === eye.simulation_voltage_probe_id,
++    )!
++    if (probe.type !== "simulation_voltage_probe")
++      throw new Error("Expected voltage probe")
++    expect(probe.subcircuit_id).toBe(experiment.subcircuit_id)
++    const state = json.find(
++      (record) =>
++        record.type === "simulation_ibis_pin_state" &&
++        record.simulation_experiment_id === experiment.simulation_experiment_id,
++    )!
++    if (state.type !== "simulation_ibis_pin_state")
++      throw new Error("Expected pin state")
++    expect(state.source_port_id).toBe(probe.signal_input_source_port_id!)
++  }
++})
+diff --git a/tests/features/general-simulation-missing-run-state.test.tsx b/tests/features/general-simulation-missing-run-state.test.tsx
+new file mode 100644
+index 0000000..cf77838
+--- /dev/null
++++ b/tests/features/general-simulation-missing-run-state.test.tsx
+@@ -0,0 +1,15 @@
++import { expect, test } from "bun:test"
++import { analog } from "lib/namespaced-elements/analog"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import { generalSimulationModel, generalSimulationPinLabels } from "tests/fixtures/general-simulation-model"
++
++test("a general IBIS model cannot fall through to native SPICE when its explicit run states are absent", async () => {
++  let calls = 0
++  const { circuit } = getTestFixture({ platform: { spiceEngineMap: { ngspice: { simulate: async () => { calls++; throw new Error("Unexpected native solver") } } } } })
++  circuit.add(<board routingDisabled schematicDisabled>
++    <chip name="U1" footprint="sot23" pinLabels={generalSimulationPinLabels} ibisModel={generalSimulationModel} />
++    <analog.transientsimulation name="SI" duration="100ns" spiceEngine="ngspice" />
++  </board>)
++  await expect(circuit.renderUntilSettled()).rejects.toThrow("explicit ibisPinStates entry")
++  expect(calls).toBe(0)
++})
+diff --git a/tests/features/general-simulation-roundtrip.test.tsx b/tests/features/general-simulation-roundtrip.test.tsx
+new file mode 100644
+index 0000000..ee92eeb
+--- /dev/null
++++ b/tests/features/general-simulation-roundtrip.test.tsx
+@@ -0,0 +1,157 @@
++import { expect, test } from "bun:test"
++import { any_circuit_element } from "circuit-json"
++import { analog } from "lib/namespaced-elements/analog"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import {
++  generalSimulationModel,
++  generalSimulationPinLabels,
++} from "tests/fixtures/general-simulation-model"
++
++test("general native declarations roundtrip with scoped physical bindings, shared eyes and no implicit solver", async () => {
++  let solverCalls = 0
++  let resourceCalls = 0
++  const { circuit } = getTestFixture({
++    platform: {
++      analogSimulationDisabled: true,
++      platformFetch: Object.assign(
++        async () => {
++          resourceCalls++
++          throw new Error("Native declarations must not fetch model resources")
++        },
++        { preconnect: () => {} },
++      ),
++      spiceEngineMap: {
++        ngspice: {
++          simulate: async () => {
++            solverCalls++
++            throw new Error("External experiment must not native-solve")
++          },
++        },
++      },
++    },
++  })
++  const model = Object.freeze(generalSimulationModel)
++  const before = JSON.stringify(model)
++  circuit.add(
++    <board routingDisabled>
++      <chip
++        name="U1"
++        footprint="sot23"
++        pcbX={-3}
++        schX={-3}
++        pinLabels={generalSimulationPinLabels}
++        ibisModel={<ibismodel {...model} />}
++      />
++      <chip
++        name="U2"
++        footprint="sot23"
++        pcbX={3}
++        schX={3}
++        pinLabels={generalSimulationPinLabels}
++        ibisModel={model}
++      />
++      {/* Deliberately put measurements before probes and the experiment. */}
++      <analog.eyediagram
++        name="RX_eye"
++        simulationRef=".SI"
++        probeRef=".RX"
++        unitInterval="2.5ns"
++        timeOrigin="1ns"
++        startTime="20ns"
++        endTime="100ns"
++      />
++      <analog.eyediagram
++        name="TX_eye"
++        simulationRef=".SI"
++        probeRef=".TX"
++        unitInterval={2.5e-6}
++        timeOrigin={0}
++      />
++      <voltageprobe
++        name="RX"
++        connectsTo=".U2 > .OUT"
++        referenceTo=".U2 > .GND"
++      />
++      <voltageprobe name="TX" connectsTo=".U1 > .OUT" />
++      <analog.digitalstimulus
++        name="DATA"
++        simulationRef=".SI"
++        drives=".U1 > .OUT"
++        unitInterval="2.5ns"
++        startTime="0ns"
++        initialState={0}
++        inverted
++        pattern={{ type: "bits", bits: "001101", repeat: true }}
++      />
++      <analog.transientsimulation
++        name="SI"
++        duration="100ns"
++        timePerStep="10ps"
++        spiceEngine="ngspice"
++        ibisPinStates={{
++          ".U1 > .OUT": { mode: "output", enabled: true },
++          ".U2 > .OUT": { mode: "input" },
++        }}
++      />
++    </board>,
++  )
++  await circuit.renderUntilSettled()
++  const original = circuit.getCircuitJson()
++  const json = (
++    JSON.parse(
++    JSON.stringify(original),
++    ) as unknown[]
++  ).map((record) => any_circuit_element.parse(record))
++  const eyes = json.filter((record) => record.type === "simulation_eye_diagram")
++  const experiments = json.filter(
++    (record) => record.type === "simulation_experiment",
++  )
++  const models = json.filter(
++    (record) => record.type === "simulation_ibis_model",
++  )
++  const controls = json.filter(
++    (record) => record.type === "simulation_digital_stimulus",
++  )
++  const states = json.filter(
++    (record) => record.type === "simulation_ibis_pin_state",
++  )
++  expect(eyes).toHaveLength(2)
++  expect(experiments).toHaveLength(1)
++  expect(experiments[0]).toMatchObject({
++    execution_mode: "external",
++    execution_status: "pending",
++    spice_engine: "ngspice",
++  })
++  expect(experiments[0]!.end_time_ms).toBeCloseTo(1e-4, 18)
++  expect(models).toHaveLength(2)
++  expect(models[0]!.source).toEqual(model.source)
++  expect(models[0]!.model_selections).toEqual({ P1: "Model_655" })
++  expect(models[0]!.references!.P1!.pullup).toBe(
++    models[0]!.pin_to_source_port_map.E5,
++  )
++  expect(states).toHaveLength(2)
++  expect(controls).toHaveLength(1)
++  expect(controls[0]).toMatchObject({
++    initial_state: 0,
++    inverted: true,
++    pattern: { type: "bits", bits: "001101", repeat: true },
++  })
++  expect(states.find((state) => state.mode === "output")!.source_port_id).toBe(
++    controls[0]!.source_port_id,
++  )
++  expect(eyes[0]!.simulation_experiment_id).toBe(
++    experiments[0]!.simulation_experiment_id,
++  )
++  expect(eyes[0]!.unit_interval_ms).toBeCloseTo(2.5e-6, 18)
++  expect(eyes[0]!.time_origin_ms).toBeCloseTo(1e-6, 18)
++  expect(
++    json.filter((record) => record.type === "simulation_voltage_probe"),
++  ).toHaveLength(2)
++  expect(
++    json.some((record) => record.type === "simulation_spice_subcircuit"),
++  ).toBe(false)
++  expect(solverCalls).toBe(0)
++  expect(resourceCalls).toBe(0)
++  expect(JSON.stringify(model)).toBe(before)
++  expect(circuit).toMatchSchematicSnapshot(import.meta.path)
++})
+diff --git a/tests/features/general-simulation-scope-boundary.test.tsx b/tests/features/general-simulation-scope-boundary.test.tsx
+new file mode 100644
+index 0000000..2b5fbd8
+--- /dev/null
++++ b/tests/features/general-simulation-scope-boundary.test.tsx
+@@ -0,0 +1,23 @@
++import { expect, test } from "bun:test"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import {
++  generalSimulationModel,
++  generalSimulationPinLabels,
++} from "tests/fixtures/general-simulation-model"
++
++test("an unqualified selector never enters a nested subcircuit even when the scope and chip share a name", async () => {
++  const { circuit } = getTestFixture()
++  circuit.add(
++    <board routingDisabled schematicDisabled>
++      <group name="U1" subcircuit>
++        <chip
++          name="U1"
++          footprint="sot23"
++          pinLabels={generalSimulationPinLabels}
++        />
++      </group>
++      <ibismodel componentRef=".U1" {...generalSimulationModel} />
++    </board>,
++  )
++  await expect(circuit.renderUntilSettled()).rejects.toThrow("found 0")
++})
+diff --git a/tests/features/general-simulation-selector-errors.test.tsx b/tests/features/general-simulation-selector-errors.test.tsx
+new file mode 100644
+index 0000000..115f882
+--- /dev/null
++++ b/tests/features/general-simulation-selector-errors.test.tsx
+@@ -0,0 +1,56 @@
++import { expect, test } from "bun:test"
++import { analog } from "lib/namespaced-elements/analog"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import {
++  generalSimulationModel,
++  generalSimulationPinLabels,
++} from "tests/fixtures/general-simulation-model"
++
++test("model, probe and experiment selectors reject ambiguous targets and nonexistent physical ports", async () => {
++  for (const scenario of ["model", "probe", "simulation", "port"] as const) {
++    const { circuit } = getTestFixture()
++    circuit.add(
++      <board routingDisabled schematicDisabled>
++        <chip
++          name="U1"
++          footprint="sot23"
++          pinLabels={generalSimulationPinLabels}
++        />
++        {scenario === "model" && (
++          <chip
++            name="U1"
++            footprint="sot23"
++            pcbX={5}
++            pinLabels={generalSimulationPinLabels}
++          />
++        )}
++        {scenario === "model" && (
++          <ibismodel componentRef=".U1" {...generalSimulationModel} />
++        )}
++        <voltageprobe
++          name="RX"
++          connectsTo={
++            scenario === "port" ? ".U1 > .DOES_NOT_EXIST" : ".U1 > .OUT"
++          }
++        />
++        {scenario === "probe" && (
++          <voltageprobe name="RX" connectsTo=".U1 > .GND" />
++        )}
++        <analog.transientsimulation name="SI" duration="100ns" />
++        {scenario === "simulation" && (
++          <analog.transientsimulation name="SI" duration="100ns" />
++        )}
++        <analog.eyediagram
++          name="RX_eye"
++          probeRef=".RX"
++          simulationRef=".SI"
++          unitInterval="2.5ns"
++          timeOrigin="0ns"
++        />
++      </board>,
++    )
++    await expect(circuit.renderUntilSettled()).rejects.toThrow(
++      "must identify exactly one",
++    )
++  }
++})
+diff --git a/tests/features/general-simulation-state-alias-conflict.test.tsx b/tests/features/general-simulation-state-alias-conflict.test.tsx
+new file mode 100644
+index 0000000..7398158
+--- /dev/null
++++ b/tests/features/general-simulation-state-alias-conflict.test.tsx
+@@ -0,0 +1,32 @@
++import { expect, test } from "bun:test"
++import { analog } from "lib/namespaced-elements/analog"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++import {
++  generalSimulationModel,
++  generalSimulationPinLabels,
++} from "tests/fixtures/general-simulation-model"
++
++test("two run-state selectors cannot control the same physical pin through different aliases", async () => {
++  const { circuit } = getTestFixture()
++  circuit.add(
++    <board routingDisabled schematicDisabled>
++      <chip
++        name="U1"
++        footprint="sot23"
++        pinLabels={generalSimulationPinLabels}
++        ibisModel={generalSimulationModel}
++      />
++      <analog.transientsimulation
++        name="SI"
++        duration="100ns"
++        ibisPinStates={{
++          ".U1 > .OUT": { mode: "input" },
++          ".U1 > .pin1": { mode: "input" },
++        }}
++      />
++    </board>,
++  )
++  await expect(circuit.renderUntilSettled()).rejects.toThrow(
++    "duplicate aliases",
++  )
++})
+diff --git a/tests/features/general-simulation-window-and-stimulus-coverage.test.tsx b/tests/features/general-simulation-window-and-stimulus-coverage.test.tsx
+new file mode 100644
+index 0000000..cb40c57
+--- /dev/null
++++ b/tests/features/general-simulation-window-and-stimulus-coverage.test.tsx
+@@ -0,0 +1,40 @@
++import { expect, test } from "bun:test"
++import { analog } from "lib/namespaced-elements/analog"
++import { getTestFixture } from "tests/fixtures/get-test-fixture"
++
++test("eye gates require complete fixed-epoch windows and finite bit patterns must cover the experiment", async () => {
++  for (const scenario of ["eye", "stimulus"] as const) {
++    const { circuit } = getTestFixture()
++    circuit.add(
++      <board routingDisabled schematicDisabled>
++        <chip name="U1" footprint="sot23" pinLabels={{ pin1: "OUT" }} />
++        <voltageprobe name="RX" connectsTo=".U1 > .OUT" />
++        <analog.transientsimulation name="SI" duration="100ns" />
++        {scenario === "eye" && (
++          <analog.eyediagram
++            name="RX_eye"
++            simulationRef=".SI"
++            probeRef=".RX"
++            unitInterval="2.5ns"
++            timeOrigin="0ns"
++            startTime="98ns"
++          />
++        )}
++        {scenario === "stimulus" && (
++          <analog.digitalstimulus
++            name="TX"
++            simulationRef=".SI"
++            drives=".U1 > .OUT"
++            unitInterval="2.5ns"
++            startTime="0ns"
++            initialState={0}
++            pattern={{ type: "bits", bits: "01", repeat: false }}
++          />
++        )}
++      </board>,
++    )
++    await expect(circuit.renderUntilSettled()).rejects.toThrow(
++      scenario === "eye" ? "no complete" : "does not cover",
++    )
++  }
 +})
 diff --git a/tests/features/ibis-model-ambiguous-selector.test.tsx b/tests/features/ibis-model-ambiguous-selector.test.tsx
 new file mode 100644
@@ -2572,3 +4392,50 @@ index 0000000..2b1b5b3
 +  expect(JSON.stringify(imported)).toBe(before)
 +  expect(circuit).toMatchPcbSnapshot(import.meta.path)
 +})
+diff --git a/tests/fixtures/general-simulation-model.ts b/tests/fixtures/general-simulation-model.ts
+new file mode 100644
+index 0000000..5d940b8
+--- /dev/null
++++ b/tests/fixtures/general-simulation-model.ts
+@@ -0,0 +1,25 @@
++import type { IbisModelDefinition } from "@tscircuit/props"
++
++/** Real resource identity; declaration tests intentionally do not fetch or simulate it. */
++export const generalSimulationModel: IbisModelDefinition = {
++  source: {
++    url: "https://www.ti.com/lit/zip/sprm552",
++    sha256: "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
++    archive: {
++      member: "sprm552c.ibs",
++      sha256:
++        "f99cb588a07b2d77d4c52a3189933c8175467d8829b94d118173943b286990aa",
++    },
++  },
++  component: "am335x_zcz",
++  pinMap: { P1: "OUT", E5: "VDD", A1: "GND" },
++  modelSelections: { P1: "Model_655" },
++  references: { P1: { pullup: "VDD", pulldown: "GND" } },
++  corner: "typical",
++  packagePolicy: "omit",
++}
++export const generalSimulationPinLabels = {
++  pin1: "OUT",
++  pin2: "VDD",
++  pin3: "GND",
++}
+diff --git a/tests/types/general-simulation.tsx b/tests/types/general-simulation.tsx
+new file mode 100644
+index 0000000..070a353
+--- /dev/null
++++ b/tests/types/general-simulation.tsx
+@@ -0,0 +1,10 @@
++import { analog } from "lib/namespaced-elements/analog"
++
++const valid = <analog.eyediagram name="RX" probeRef=".VP" simulationRef=".SI" unitInterval="2.5ns" timeOrigin="0ns" />
++// @ts-expect-error A fixed epoch is required; receiver crossings must not supply it implicitly.
++const missingEpoch = <analog.eyediagram name="RX" probeRef=".VP" simulationRef=".SI" unitInterval="2.5ns" />
++// @ts-expect-error Solver duration belongs to the transient experiment.
++const duplicateDuration = <analog.eyediagram name="RX" probeRef=".VP" simulationRef=".SI" unitInterval="2.5ns" timeOrigin="0ns" duration="100ns" />
++// @ts-expect-error Enabled output intent must be explicit.
++const missingEnable = <analog.transientsimulation ibisPinStates={{ ".U1 > .OUT": { mode: "output" } }} />
++void [valid, missingEpoch, duplicateDuration, missingEnable]

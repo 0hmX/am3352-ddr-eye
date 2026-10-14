@@ -1,6 +1,6 @@
 {
-  "name": "am3352-ddr-eye",
-  "version": "0.1.0",
+  "name": "tscircuit-ibis-spice-examples",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.25.0",
@@ -13,20 +13,28 @@
     "typecheck": "tsc --noEmit",
     "simulate:setup": "pcb-spice-pipeline --setup",
     "simulate": "pcb-spice-pipeline index.circuit.tsx",
-    "simulate:repeat": "pcb-spice-pipeline --repeat index.circuit.tsx"
+    "simulate:repeat": "pcb-spice-pipeline --repeat index.circuit.tsx",
+    "postinstall": "pnpm --filter @tscircuit/ibis-to-spice build",
+    "test": "pnpm --filter @tscircuit/ibis-to-spice fixtures:fetch && pnpm --filter @tscircuit/ibis-to-spice test && pnpm --filter pcb-spice-pipeline test",
+    "test:native": "pnpm --filter pcb-spice-pipeline test:native",
+    "simulate:non-ddr": "pcb-spice-pipeline examples/differential-data/index.circuit.tsx",
+    "simulate:single-ended": "pcb-spice-pipeline examples/single-ended/index.circuit.tsx",
+    "simulate:prove": "node scripts/prove-all.mjs"
   },
   "dependencies": {
     "tscircuit": "file:.packages/tscircuit-experimental.tgz",
     "@tscircuit/core": "file:.packages/tscircuit-core-ibis-experimental.tgz",
     "@tscircuit/props": "file:.packages/tscircuit-props-ibis-experimental.tgz",
-    "@tscircuit/ibis-to-spice": "file:.packages/ibis-to-spice-0.0.1.tgz",
-    "react": "19.2.4"
+    "@tscircuit/ibis-to-spice": "workspace:*",
+    "react": "19.2.4",
+    "circuit-json": "file:.packages/circuit-json-general-experimental.tgz"
   },
   "devDependencies": {
     "@tscircuit/cli": "0.1.2237",
     "@tscircuit/eval": "0.0.1538",
     "@types/react": "19.3.0",
     "typescript": "5.9.3",
-    "pcb-spice-pipeline": "file:.packages/pcb-spice-pipeline-0.1.0.tgz"
-  }
+    "pcb-spice-pipeline": "workspace:*"
+  },
+  "description": "Normal tscircuit examples with reusable IBIS conversion and PCB SPICE eye simulation"
 }

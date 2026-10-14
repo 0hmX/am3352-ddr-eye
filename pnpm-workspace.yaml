@@ -1,5 +1,6 @@
 packages:
   - .
+  - packages/*
 blockExoticSubdeps: false
 allowBuilds:
   esbuild: true
@@ -8,7 +9,7 @@ allowBuilds:
 overrides:
   '@tscircuit/core': file:.packages/tscircuit-core-ibis-experimental.tgz
   '@tscircuit/props': file:.packages/tscircuit-props-ibis-experimental.tgz
-  '@tscircuit/ibis-to-spice': file:.packages/ibis-to-spice-0.0.1.tgz
+  '@tscircuit/ibis-to-spice': workspace:*
   '@tscircuit/cli': 0.1.2237
   '@tscircuit/eval': 0.0.1538
   tscircuit: file:.packages/tscircuit-experimental.tgz
@@ -24,7 +25,7 @@ overrides:
   "@tscircuit/modelprinter": "0.0.34"
   "@tscircuit/schematic-match-adapt": "0.0.22"
   "bpc-graph": "0.0.67"
-  "circuit-json": "0.0.528"
+  "circuit-json": file:.packages/circuit-json-general-experimental.tgz
   "circuit-json-to-bpc": "0.0.14"
   "circuit-json-to-connectivity-map": "0.0.33"
   "circuit-json-to-spice": "0.0.46"

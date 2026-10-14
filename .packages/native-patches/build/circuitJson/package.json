@@ -1,0 +1,15 @@
+{
+  "name": "native-circuitjson-build",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@types/bun": "1.2.14",
+    "@types/convert-units": "2.3.11",
+    "@types/node": "22.15.21",
+    "format-si-unit": "0.0.7",
+    "ts-expect": "1.3.0",
+    "tsup": "8.5.0",
+    "typescript": "5.8.3",
+    "zod": "3.25.76"
+  }
+}

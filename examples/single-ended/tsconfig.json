@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": [
+    "index.circuit.tsx",
+    "models.ts",
+    "simulation.config.ts",
+    "../differential-data/pcb.tsx"
+  ]
+}
