@@ -7,6 +7,7 @@ import { createRequire } from 'node:module'
 import { sha256, json, close, inventory, parseCsv, strictTimes, interpolate, completeWindows, boardGeometry } from './independent-helpers.mjs'
 import { auditMatrices } from './audit-matrices.mjs'
 import { auditIbis } from './audit-ibis.mjs'
+import { auditStartup } from './audit-startup.mjs'
 
 function unique(elements, key, label) {
   const ids = elements.map(element => element[key])
@@ -170,6 +171,7 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
     close(times.at(-1), run.durationSeconds, 'Solver reached requested duration', 1e-8, 1e-15)
     const probeValues = new Map()
     const vendorIbis = await auditIbis(out, experimentDir, circuit, run)
+    const physicalSanity = await auditStartup({ out, circuit, run, vendorIbis, nodeMap, csv })
     for (const probe of run.probes) {
       const declaredProbe = exactlyOne(probes, element => element.simulation_voltage_probe_id === probe.simulationVoltageProbeId, 'Referenced voltage probe')
       const index = csv.headers.indexOf(`${probe.simulationVoltageProbeId}_v`)
@@ -231,7 +233,7 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
       }
       checkedEyes.push({ id: eye.simulationEyeDiagramId, name: eye.name, probeId: eye.simulationVoltageProbeId, windows: windows.length, independentSamples: folded.rows.length, timeOriginSeconds: eye.timeOriginSeconds })
     }
-    studies.push({ id: run.simulationExperimentId, name: run.name, samples: times.length, probes: run.probes.map(probe => ({ ...probe, observedVoltageRangeV: probeValues.get(probe.simulationVoltageProbeId).observedVoltageRangeV, differential: probeValues.get(probe.simulationVoltageProbeId).differential })), eyes: checkedEyes, solverInvocations: actualSolverCommands.length, physicalSupplies, vendorIbis })
+    studies.push({ id: run.simulationExperimentId, name: run.name, samples: times.length, probes: run.probes.map(probe => ({ ...probe, observedVoltageRangeV: probeValues.get(probe.simulationVoltageProbeId).observedVoltageRangeV, differential: probeValues.get(probe.simulationVoltageProbeId).differential })), eyes: checkedEyes, solverInvocations: actualSolverCommands.length, physicalSupplies, vendorIbis, physicalSanity })
   }
   assert.equal(studies.reduce((count, run) => count + run.eyes.length, 0), eyes.length, 'Every native eye executed')
   return { status: verifyLiveSources ? 'passed' : 'preflight-passed', liveSourceAndDependencyVerification: verifyLiveSources, directory: out, generatedFilesIndependentlyHashed: Object.keys(hashes).length, packageSourcesIndependentlyHashed: sources.length, converterRuntimeFilesIndependentlyHashed: converterFilesIndependentlyHashed, projectInputsIndependentlyHashed: projectInputs.length, registeredSchemaRoundTripsChecked: schemaRoundTrips, preservedBoardGeometry, independentlyRecomputedMatrices, studies, commands, limitations: receipt.limitations, conclusion: verifyLiveSources ? 'Declared experiments were executed reproducibly and folded from actual voltage observations. This does not independently validate the reduced electrical model or board signal integrity.' : 'Preflight checks executed numerical artifacts and captured inputs only; current source/dependency identity is not accepted until a fresh frozen-source run.' }

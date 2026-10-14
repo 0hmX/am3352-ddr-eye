@@ -27,7 +27,23 @@ test('actual vendor non-DDR differential and CMOS single-ended data execute one 
     assert.equal(solverCommands.length,1,'multiple eyes share exactly one actual native process')
     const command=await readJson(join(dir,solverCommands[0]));assert.equal(command.exitCode,0)
     const circuit=(await readJson(join(dir,'circuit-results.json'))).map(record=>any_circuit_element.parse(record))
+    const assembly=await readJson(join(dir,experiment.directory,'native-ibis-assembly.json'))
+    for(const model of assembly) assert.equal(model.metadata.tableExtrapolation,'hold-endpoint-current','the numerical table boundary policy is recorded')
     const wave=(await readFile(join(dir,experiment.directory,'waveform.csv'),'utf8')).trim().split(/\r?\n/).slice(1).map(line=>line.split(',').map(Number))
+    if(name==='single-ended') {
+      const stimulus=input.circuitJson.find(record=>record.type==='simulation_digital_stimulus')
+      assert.equal(stimulus.initial_state,0);assert.equal(stimulus.inverted,false)
+      assert.equal(wave[0][0],0,'startup remains in the raw record before the eye gate')
+      const supply=input.circuitJson.find(record=>record.type==='simulation_voltage_source').voltage
+      for(const probe of experiment.probes) {
+        assert.ok(Math.abs(wave[0][probe.column])<.05,'declared low CMOS output and its DC-connected receiver settle near ground')
+        const peak=wave.reduce((largest,row)=>Math.max(largest,Math.abs(row[probe.column])),0)
+        // This fixture rings above its rail; the loose full-record guard catches the former 61 V false DC root.
+        assert.ok(peak<3*supply,`full raw CMOS ${probe.name} peak ${peak} V exceeds the fixture startup regression limit`)
+      }
+      const deck=await readFile(join(dir,experiment.directory,'simulation.cir'),'utf8')
+      assert.doesNotMatch(deck,/^\s*\.nodeset\b|^\s*\.ic\b|\buic\b/im,'startup comes from the nonlinear operating-point solve')
+    }
     for(const probe of experiment.probes) {
       const graph=circuit.find(record=>record.type==='simulation_transient_voltage_graph'&&record.simulation_experiment_id===experiment.simulationExperimentId&&record.simulation_voltage_probe_id===probe.simulationVoltageProbeId)
       assert.ok(graph,'registered result remains bound to its probe')

@@ -9,7 +9,7 @@
     "version": "0.0.1538",
     "commit": "1f3cc31db71c66c50a8593241f709665adbc85a1",
     "entrypoint": "webworker/entrypoint.ts",
-    "workerSha256": "a4a85c33c5fb77a213dc7b9d727aebbee873b156178f732720e9d7e066116c65",
+    "workerSha256": "224b4d6ba5a8a0b02ddd2f29abb45c19c4d4b789623cbd9d2518fc44d8350852",
     "configChange": "dts:false for runtime-only webworker build",
     "sourcesUnmodified": false,
     "sourcePatch": "browser-runtime/eval-local-proxy.patch"
@@ -25,6 +25,6 @@
     "execution": "external pending declarations; native CLI pipeline executes solver",
     "timeUnits": "milliseconds for raw numbers; unit-aware strings"
   },
-  "converterPackageSha256": "0d62f988a2ec9e6bffdd41befc3f518c3e1cdeeb0e6f02953e60044550404d7e",
+  "converterPackageSha256": "113e49691f4ad00d9e163dd1501e665c5e57c0b3ec100d1fb295160ddb636f55",
   "circuitJsonPackageSha256": "a75f32e3f2b9fdbc542e5a73365a66ff079a4c79f255ba97db9e85474651a881"
 }

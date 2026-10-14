@@ -5,9 +5,9 @@
   "sha256": {
     "circuit-json-general-experimental.tgz": "a75f32e3f2b9fdbc542e5a73365a66ff079a4c79f255ba97db9e85474651a881",
     "fanout-solver-experimental.tgz": "b1d57491aa1649451e7319125930062a7b6e84bf0238cc74abf9a08ca3b387e1",
-    "ibis-to-spice-0.0.2.tgz": "0d62f988a2ec9e6bffdd41befc3f518c3e1cdeeb0e6f02953e60044550404d7e",
+    "ibis-to-spice-0.0.2.tgz": "113e49691f4ad00d9e163dd1501e665c5e57c0b3ec100d1fb295160ddb636f55",
     "tscircuit-core-ibis-experimental.tgz": "885970ceaea6739bf489f88c9b143d15b1669541cf34003d2f835c3141da2631",
-    "tscircuit-experimental.tgz": "01214cbaa740f0c841776d7f61f5c91b01e8eef3e439d87911acb4308cd5ab1c",
+    "tscircuit-experimental.tgz": "bf18598a4bd9204e233cb56fb1e8d844b1e61c36b55629a662cfb8c9161dde19",
     "tscircuit-props-ibis-experimental.tgz": "c49c8e93e192d362043de9fca1e857f2aee541e194c3ab9aa4856a1640d8e757"
   },
   "workspaceSources": {

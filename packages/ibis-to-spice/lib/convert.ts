@@ -247,10 +247,14 @@ export function convertIbisBuffer(
     const pairs = tables.raw[key]
       .map(([x, y]) => `${spiceNumber(x)},${spiceNumber(y)}`)
       .join(",")
+    // Match interpolate(): vendor data defines this finite table domain only.
+    // Unbounded ngspice pwl() extrapolation can invent distant zero-current
+    // operating points when a final vendor segment has negative slope.
+    const boundedExpression = `min(max(${expression},${spiceNumber(tables.raw[key][0][0])}),${spiceNumber(tables.raw[key].at(-1)![0])})`
     const factor =
       key === "pu" || key === "pd" ? `V(K${key === "pu" ? "U" : "D"},${groundNode})*` : ""
     lines.push(
-      `B${key} PAD ${referenceNode(key)} I={${factor}pwl(${expression},${pairs})}`,
+      `B${key} PAD ${referenceNode(key)} I={${factor}pwl(${boundedExpression},${pairs})}`,
     )
   }
   lines.push(`.ends ${name}`)

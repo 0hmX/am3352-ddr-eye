@@ -18,7 +18,7 @@
       {
         "target": "pnpm-lock.yaml",
         "path": "native-patches/build/core/pnpm-lock.yaml",
-        "sha256": "a808fcbfdca1e2843068f571eca50917dbb0fa0c73e4b5c83f92c462f246828a"
+        "sha256": "5a992b189d980e771e1bcdf88d73215d0effd8a9324f63c7c4d65b85d6dfb06d"
       }
     ],
     "filename": "tscircuit-core-ibis-experimental.tgz",
@@ -76,6 +76,6 @@
   },
   "converter": {
     "filename": "ibis-to-spice-0.0.2.tgz",
-    "sha256": "0d62f988a2ec9e6bffdd41befc3f518c3e1cdeeb0e6f02953e60044550404d7e"
+    "sha256": "113e49691f4ad00d9e163dd1501e665c5e57c0b3ec100d1fb295160ddb636f55"
   }
 }

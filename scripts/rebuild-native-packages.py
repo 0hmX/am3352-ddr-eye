@@ -175,6 +175,9 @@ def main():
         for path in PACKAGES.glob("*.tgz"):
             shutil.copyfile(path, local_packages / path.name)
         converter = PROJECT / "packages" / "ibis-to-spice"
+        # tsup uses content-named chunks. Remove previous output explicitly so
+        # the workspace package is rebuilt from source without stale chunks.
+        shutil.rmtree(converter / "dist", ignore_errors=True)
         command(["pnpm", "--filter", "@tscircuit/ibis-to-spice", "build"], cwd=PROJECT)
         converter_info = json.loads((converter / "package.json").read_text())
         converter_name = manifest.get("converter", {}).get("filename", "ibis-to-spice-" + converter_info["version"] + ".tgz")

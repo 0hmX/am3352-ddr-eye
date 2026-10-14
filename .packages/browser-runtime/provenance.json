@@ -9,7 +9,7 @@
     "version": "0.0.1538",
     "commit": "1f3cc31db71c66c50a8593241f709665adbc85a1",
     "entrypoint": "webworker/entrypoint.ts",
-    "workerSha256": "a4a85c33c5fb77a213dc7b9d727aebbee873b156178f732720e9d7e066116c65",
+    "workerSha256": "224b4d6ba5a8a0b02ddd2f29abb45c19c4d4b789623cbd9d2518fc44d8350852",
     "configChange": "dts:false for runtime-only webworker build",
     "sourcesUnmodified": false,
     "sourcePatch": "browser-runtime/eval-local-proxy.patch"
@@ -19,8 +19,8 @@
   "build": "pnpm exec tsup --config tsup-webworker.config.ts",
   "assembly": "Official tscircuit copy-runframe-standalone semantics: replace exact embedded original eval worker with rebuilt eval worker; preserve published runframe UI. Replace exported webworker.min.js with same rebuilt worker.",
   "outputTarball": ".packages/tscircuit-experimental.tgz",
-  "outputSha256": "01214cbaa740f0c841776d7f61f5c91b01e8eef3e439d87911acb4308cd5ab1c",
-  "outputBytes": 13480047,
+  "outputSha256": "bf18598a4bd9204e233cb56fb1e8d844b1e61c36b55629a662cfb8c9161dde19",
+  "outputBytes": 13480414,
   "downloads": {
     "evalSource": {
       "url": "https://github.com/tscircuit/eval/archive/1f3cc31db71c66c50a8593241f709665adbc85a1.tar.gz",
@@ -36,7 +36,7 @@
     }
   },
   "patchSha256": "81c6dc01079de02c63287fbf4809ac9a875ffb6540e648ec3b811ac48cc70f7e",
-  "dependencyLockSha256": "4cd2aed77aa52daa7d704e01cffdd8c1af76bfbe3f9c40ef9906c483d742e1e7",
-  "converterPackageSha256": "0d62f988a2ec9e6bffdd41befc3f518c3e1cdeeb0e6f02953e60044550404d7e",
+  "dependencyLockSha256": "12120e9558e7886a2b8afc3546e4fdc5e940ca7226fafe2112835f4aaf5492e2",
+  "converterPackageSha256": "113e49691f4ad00d9e163dd1501e665c5e57c0b3ec100d1fb295160ddb636f55",
   "circuitJsonPackageSha256": "a75f32e3f2b9fdbc542e5a73365a66ff079a4c79f255ba97db9e85474651a881"
 }

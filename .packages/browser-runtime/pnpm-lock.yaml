@@ -760,7 +760,7 @@ packages:
       circuit-json: '*'
 
   '@tscircuit/ibis-to-spice@file:../../.packages/ibis-to-spice-0.0.2.tgz':
-    resolution: {integrity: sha512-d+3ASBNIVW7+0cu2ZMWUCszmfkE470f/cPfcpFDmmux4Zc5mklF4Ts8QWD76Zr5f8dIHN0SCIEYkxSl5+ba8UQ==, tarball: file:../../.packages/ibis-to-spice-0.0.2.tgz}
+    resolution: {integrity: sha512-9OCFJFjloEHXk8idrUIsEo9GcbykNj5Sfr7/QATqrCF6nHm2XKaEw7qdv9Zjo8J9fbtb15SSH/35r7Sqn7bTCQ==, tarball: file:../../.packages/ibis-to-spice-0.0.2.tgz}
     version: 0.0.2
     hasBin: true
 

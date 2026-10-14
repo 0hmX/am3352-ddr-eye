@@ -17,7 +17,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup lib/index.ts lib/cli.ts --format esm --dts",
+    "build": "tsup lib/index.ts lib/cli.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "fixtures:fetch": "bun scripts/fetch-vendor-fixtures.ts",

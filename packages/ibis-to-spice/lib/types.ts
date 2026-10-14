@@ -138,6 +138,7 @@ export interface IbisRunConfig {
   stimuli: Record<string, IbisBitsStimulus>
 }
 export interface IbisConversionMetadata {
+  tableExtrapolation: "hold-endpoint-current"
   converterVersion: string
   sourceSha256: string
   packagePolicy: "vendor" | "omit"

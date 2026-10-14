@@ -1980,7 +1980,7 @@ packages:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
 
   tscircuit@file:.packages/tscircuit-experimental.tgz:
-    resolution: {integrity: sha512-XjLVsTsSl67MjP5jtqMDnKEpiJPdUrMXrVWGjDJ4aGHPP/FXWnrOyZdeGcvx/T52dyKmu3TZlpqP4tMkaI9nlA==, tarball: file:.packages/tscircuit-experimental.tgz}
+    resolution: {integrity: sha512-gWJF4FS4HJr5+ScAJljvHcldyXGHrPu/sYaw7ruV3S7I0aEYuWEJZ3E7XnF1OEdFvGEm8vlKP/akZag0rqRmMw==, tarball: file:.packages/tscircuit-experimental.tgz}
     version: 0.0.2744
     hasBin: true
     peerDependencies:

@@ -106,6 +106,38 @@ test("real LVC electrical waveform matches both original vendor fixtures with ar
   console.log(`Real SN74LVC1G04 fixture maximum RMSE ${maximumRmse} V`)
 }, 60000)
 
+test("real LVC unloaded startup and out-of-domain currents do not invent an extrapolated DC root", async () => {
+  const definition = lvcDefinition()
+  const output = (state: 0 | 1) => convertIbisModelToSpice(lvcSource(), definition, {
+    duration: "40ns", pinStates: { Y: { mode: "output", enabled: true } },
+    stimuli: { Y: bits(String(state), { startTime: "0ns", initialState: state }) },
+  })
+  const low = output(0), high = output(1)
+  const inputDefinition: IbisModelDefinition = { ...definition, pinMap: { "2": "A", "5": "VCC", "3": "GND" }, modelSelections: { "2": "LVC1G04_IN_33" } }
+  const input = convertIbisModelToSpice(lvcSource(), inputDefinition, { duration: "40ns", pinStates: { A: { mode: "input" } }, stimuli: {} })
+  const name = (converted: typeof low) => converted.source.match(/\.subckt (\S+)/)![1]
+  // A capacitive receiver behind an RLC ladder retains the nonlinear DC solve;
+  // no nodeset, UIC, pad-voltage source or waveform cropping is used.
+  const ladder = Array.from({ length: 12 }, (_, index) => {
+    const from = index === 0 ? "IN" : `N${index}`, to = index === 11 ? "OUT" : `N${index + 1}`
+    return `R${index} ${from} R${index} 0.03\nL${index} R${index} ${to} 4n\nC${index} ${from} 0 0.07p`
+  }).join("\n")
+  const source = `Vendor LVC DC branch and finite table-domain check\n${low.source}${high.source}${input.source}\nVdd dd 0 3.3\nXlo txlo 0 dd ${name(low)}\nXhi txhi 0 dd ${name(high)}\nXrxlo rxlo 0 dd ${name(input)}\nXrxhi rxhi 0 dd ${name(input)}\n.subckt CHANNEL IN OUT\n${ladder}\n.ends CHANNEL\nXchlo txlo rxlo CHANNEL\nXchhi txhi rxhi CHANNEL\nVforce force 0 75\nRforce force forced 0.1\nXforced forced 0 dd ${name(low)}\n.options reltol=1e-7 abstol=1e-12 method=gear\n.tran 100p 40n 0 100p\n.end`
+  const engine = await createEngine(), { simulationResultCircuitJson: json } = await engine.simulate(source)
+  for (const port of ["txlo", "rxlo"]) {
+    const values = graph(json, port).voltage_levels
+    expect(Math.max(...values.map(Math.abs))).toBeLessThan(0.01)
+  }
+  for (const port of ["txhi", "rxhi"]) {
+    const values = graph(json, port).voltage_levels
+    expect(Math.max(...values.map((voltage) => Math.abs(voltage - 3.3)))).toBeLessThan(0.03)
+  }
+  const forced = graph(json, "forced").voltage_levels.at(-1)!
+  const buffer = parseIbis(lvcSource()).getBuffer("LVC1G04_OUT_33")
+  expect(Math.abs((75 - forced) / 0.1 - buffer.pulldown!.at(-1)![1]!)).toBeLessThan(1e-6)
+  expect(low.metadata.tableExtrapolation).toBe("hold-endpoint-current")
+}, 60000)
+
 test("real RS485 arbitrary data, repeated bits and complementary pad waveforms run through ngspice", async () => {
   const definition = hvdDefinition(), stimulus = bits("00110", { unitInterval: "4us", startTime: "4us" })
   const converted = convertIbisModelToSpice(definition.source.content!, definition, { duration: "28us", pinStates: { A: { mode: "output", enabled: true }, B: { mode: "output", enabled: true } }, stimuli: { A: stimulus, B: { ...stimulus, inverted: true } } })

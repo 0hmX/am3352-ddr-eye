@@ -63,6 +63,8 @@ Source forms are exactly one of `url`, `file` or `content`. URL sources require 
 
 New numeric time inputs are **milliseconds**, matching tscircuit's transient API; strings accept explicit `s`, `ms`, `us`, `ns` and `ps`. Stimuli drive the selected electrical buffer's logical control. Explicit caller inversion applies to the initial state and all pattern bits once; declared vendor `Polarity` applies separately once. Repeated equal bits hold their state without another transition. Nonrepeating bits must cover the run. Missing vendor polarity uses an explicitly reported noninverting pad-control convention; this does not infer a chip's functional truth table. `[Diff Pin]` does not invent another driver or complement a separately controlled leg.
 
+I/V tables use piecewise-linear interpolation and hold the endpoint **current** outside each vendor-supplied voltage domain, consistently in switching extraction and emitted SPICE. Metadata records `tableExtrapolation: "hold-endpoint-current"`. This numerical boundary policy does not clamp pad voltage or validate device behavior beyond the measured table domain. It avoids inventing distant DC roots by extrapolating a declining final segment; the LVC pulldown table, for example, otherwise extrapolates to a false zero-current root near 60.77V on a 3.3V supply. Raw startup and receiver ringing remain in solver output.
+
 Every modeled signal requires a compatible fixed run state. Enabled output requires one stimulus; input and disabled output prohibit stimulus. Fixed drive-enable intent follows vendor `Enable` polarity and is recorded in metadata. Dynamic direction/enable transitions remain unsupported.
 
 ## Electrical scope and evidence
