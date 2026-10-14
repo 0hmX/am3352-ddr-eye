@@ -50,6 +50,13 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
   assert.ok(projectInputs.length > 0, 'Real TSX project input fingerprints')
   if (verifyLiveSources) for (const [path, expected] of Object.entries(receipt.project?.dependencyFiles ?? {}))
     assert.equal(sha256(await readFile(path)), expected, `Executed dependency ${path}`)
+  let converterFilesIndependentlyHashed = 0
+  assert.ok(receipt.converter?.sourceRoot && receipt.converter.files, 'Complete converter runtime fingerprint manifest')
+  assert.deepEqual(await json(join(out, 'converter-runtime.json')), receipt.converter, 'Converter runtime manifest matches root receipt')
+  if (verifyLiveSources) for (const [path, expected] of Object.entries(receipt.converter.files)) {
+    assert.equal(sha256(await readFile(join(receipt.converter.sourceRoot, path))), expected, `Executed converter runtime file ${path}`)
+    converterFilesIndependentlyHashed++
+  }
 
   const inputBytes = await readFile(join(out, 'inputs/circuit.json'))
   const circuit = JSON.parse(inputBytes)
@@ -227,7 +234,7 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
     studies.push({ id: run.simulationExperimentId, name: run.name, samples: times.length, probes: run.probes.map(probe => ({ ...probe, observedVoltageRangeV: probeValues.get(probe.simulationVoltageProbeId).observedVoltageRangeV, differential: probeValues.get(probe.simulationVoltageProbeId).differential })), eyes: checkedEyes, solverInvocations: actualSolverCommands.length, physicalSupplies, vendorIbis })
   }
   assert.equal(studies.reduce((count, run) => count + run.eyes.length, 0), eyes.length, 'Every native eye executed')
-  return { status: verifyLiveSources ? 'passed' : 'preflight-passed', liveSourceAndDependencyVerification: verifyLiveSources, directory: out, generatedFilesIndependentlyHashed: Object.keys(hashes).length, packageSourcesIndependentlyHashed: sources.length, projectInputsIndependentlyHashed: projectInputs.length, registeredSchemaRoundTripsChecked: schemaRoundTrips, preservedBoardGeometry, independentlyRecomputedMatrices, studies, commands, limitations: receipt.limitations, conclusion: verifyLiveSources ? 'Declared experiments were executed reproducibly and folded from actual voltage observations. This does not independently validate the reduced electrical model or board signal integrity.' : 'Preflight checks executed numerical artifacts and captured inputs only; current source/dependency identity is not accepted until a fresh frozen-source run.' }
+  return { status: verifyLiveSources ? 'passed' : 'preflight-passed', liveSourceAndDependencyVerification: verifyLiveSources, directory: out, generatedFilesIndependentlyHashed: Object.keys(hashes).length, packageSourcesIndependentlyHashed: sources.length, converterRuntimeFilesIndependentlyHashed: converterFilesIndependentlyHashed, projectInputsIndependentlyHashed: projectInputs.length, registeredSchemaRoundTripsChecked: schemaRoundTrips, preservedBoardGeometry, independentlyRecomputedMatrices, studies, commands, limitations: receipt.limitations, conclusion: verifyLiveSources ? 'Declared experiments were executed reproducibly and folded from actual voltage observations. This does not independently validate the reduced electrical model or board signal integrity.' : 'Preflight checks executed numerical artifacts and captured inputs only; current source/dependency identity is not accepted until a fresh frozen-source run.' }
 }
 
 export async function compareRuns(a, b) {

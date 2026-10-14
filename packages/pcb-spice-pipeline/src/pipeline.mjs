@@ -27,7 +27,7 @@ const renderedBoardSummary=circuitJson=>{
 export async function loadEntry(path) {
   const absolute=resolve(path),baseDir=dirname(absolute)
   if(/\.(tsx|ts|mjs|js)$/.test(path)) {
-    const importedUrls=new Set(['@tscircuit/core','@tscircuit/props','@tscircuit/ibis-to-spice','react','tsx','fflate'].map(name=>import.meta.resolve(name)))
+    const importedUrls=new Set(['@tscircuit/core','@tscircuit/props','@tscircuit/ibis-to-spice','circuit-json','react','tsx','fflate'].map(name=>import.meta.resolve(name)))
     let tsconfig,search=baseDir
     while(true) {
       const candidate=join(search,'tsconfig.json')
