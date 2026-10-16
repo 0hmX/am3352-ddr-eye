@@ -11,13 +11,13 @@ export function channelSpice(extracted,sections) {
     for(let i=0;i<n;i++) {
       lines.push(`VS${g}_${i} ${before[i]} S${g}_${i} 0`,`R${g}_${i} S${g}_${i} R${g}_${i} ${num(R[i][i])}`)
       // Full symmetric R: self resistor plus cross voltage R_ij * I_j.
-      if(n===2) lines.push(`E${g}_${i} R${g}_${i} L${g}_${i} value={${num(R[i][1-i])}*i(VS${g}_${1-i})}`)
-      lines.push(`L${g}_${i} ${n===2?`L${g}_${i}`:`R${g}_${i}`} ${after[i]} ${num(L[i][i])}`)
+      if(n>1) lines.push(`E${g}_${i} R${g}_${i} L${g}_${i} value={${R[i].flatMap((r,j)=>j===i?[]:[`${num(r)}*i(VS${g}_${j})`]).join('+')}}`)
+      lines.push(`L${g}_${i} ${n>1?`L${g}_${i}`:`R${g}_${i}`} ${after[i]} ${num(L[i][i])}`)
     }
-    if(n===2) lines.push(`K${g} L${g}_0 L${g}_1 ${num(L[0][1]/Math.sqrt(L[0][0]*L[1][1]))}`)
+    for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) lines.push(`K${g}_${i}_${j} L${g}_${i} L${g}_${j} ${num(L[i][j]/Math.sqrt(L[i][i]*L[j][j]))}`)
     for(const [label,nodes] of [['a',before],['b',after]]) {
       for(let i=0;i<n;i++) lines.push(`CG${g}${label}${i} ${nodes[i]} REF ${num(sum(C[i])/2)}`)
-      if(n===2&&C[0][1]<0) lines.push(`CM${g}${label} ${nodes[0]} ${nodes[1]} ${num(-C[0][1]/2)}`)
+      for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) if(C[i][j]<0) lines.push(`CM${g}${label}${i}_${j} ${nodes[i]} ${nodes[j]} ${num(-C[i][j]/2)}`)
     }
   }
   lines.push('.ends CHANNEL')

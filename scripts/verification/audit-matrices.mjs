@@ -25,7 +25,7 @@ export async function auditMatrices(out, cell, modeling) {
   const frequency = Number(marker[1]), dimension = Number(marker[2])
   assert.equal(Number(marker[3]), dimension)
   assert.equal(dimension, cell.conductors.length, 'Raw solver conductor count agrees with generated geometry')
-  assert.ok(dimension === 2 || dimension === 3, 'Delivered backend contains one or two signals plus a return')
+  assert.ok([2, 3, 4].includes(dimension), 'Backend contains one to three signals plus a return')
   close(frequency, modeling.extraction.modelHz, 'Executed field-solver frequency')
   const complex = raw.slice(marker.index + marker[0].length).trim().split(/\r?\n/).slice(0, dimension)
     .map(line => line.trim().split(/\s+/).map(token => Number(token.replace(/j$/, ''))))

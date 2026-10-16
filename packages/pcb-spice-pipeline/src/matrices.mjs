@@ -26,7 +26,7 @@ export function validateMatrix(a, name, tolerance = 0.02) {
 }
 export function loopImpedance(a) {
   const n=a.length-1
-  if(![1,2].includes(n)) fail('matrix_dimension','One or two signals plus a return required')
+  if(![1,2,3].includes(n)) fail('matrix_dimension','One to three signals plus a return required')
   const A=Array.from({length:n+1},(_,i)=>Array.from({length:n},(_,j)=>i===n?-1:Number(i===j)))
   return multiply(multiply(transpose(A),a),A)
 }
@@ -43,7 +43,7 @@ export function parseFastHenry(text) {
   if(!blocks.length) fail('fasthenry_output','No frequency matrices in Zc.mat')
   return blocks.map(b=>{
     const n=Number(b[2]), rows=b[4].trim().split(/\n/).filter(r=>r.trim()).slice(0,n)
-    if(![2,3].includes(n) || Number(b[3])!==n) fail('fasthenry_ports', 'One or two signals and one return required')
+    if(![2,3,4].includes(n) || Number(b[3])!==n) fail('fasthenry_ports', 'One to three signals and one return required')
     const matrix=rows.map(r=>[...r.matchAll(/([+-]?[\d.]+(?:[eE][+-]?\d+)?)\s+([+-]?[\d.]+(?:[eE][+-]?\d+)?)j/g)].map(m=>[Number(m[1]),Number(m[2])]))
     if(matrix.length!==n || matrix.some(r=>r.length!==n)) fail('fasthenry_output','Malformed complex matrix')
     return {frequencyHz:Number(b[1]),R:matrix.map(r=>r.map(v=>v[0])),L:matrix.map(r=>r.map(v=>v[1]/(2*Math.PI*Number(b[1]))))}
@@ -53,7 +53,7 @@ export function parseFasterCap(text) {
   const blocks=[...text.matchAll(/Capacitance matrix is:\s*\nDimension\s+(\d+)\s+x\s+(\d+)\s*\n([^]*?)(?=\n\s*\n|\nTotal|\nMemory|$)/gi)]
   if(!blocks.length) fail('fastercap_output','No 3D capacitance matrix in solver stdout')
   const b=blocks.at(-1),n=Number(b[1])
-  if(![2,3].includes(n) || Number(b[2])!==n) fail('fastercap_ports','Expected 2x2 or 3x3 Maxwell matrix')
+  if(![2,3,4].includes(n) || Number(b[2])!==n) fail('fastercap_ports','Expected 2x2, 3x3 or 4x4 Maxwell matrix')
   const names=[],matrix=b[3].trim().split('\n').slice(0,n).map(r=>{const parts=r.trim().split(/\s+/);names.push(parts.shift());return parts.map(Number)})
   if(matrix.some(r=>r.length!==n || r.some(v=>!Number.isFinite(v)))) fail('fastercap_output','Malformed C matrix')
   return {names,matrix,units:'F (3D FasterCap coordinates in metres)'}

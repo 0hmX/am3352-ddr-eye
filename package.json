@@ -19,7 +19,8 @@
     "test:native": "pnpm --filter pcb-spice-pipeline test:native",
     "simulate:non-ddr": "pcb-spice-pipeline examples/differential-data/index.circuit.tsx",
     "simulate:single-ended": "pcb-spice-pipeline examples/single-ended/index.circuit.tsx",
-    "simulate:prove": "node scripts/prove-all.mjs"
+    "simulate:prove": "node scripts/prove-all.mjs",
+    "simulate:ddr-dq": "node examples/ddr-dq/run.mjs"
   },
   "dependencies": {
     "tscircuit": "file:.packages/tscircuit-experimental.tgz",

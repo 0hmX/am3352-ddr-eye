@@ -2,11 +2,14 @@
   "mainEntrypoint": "index.circuit.tsx",
   "includeBoardFiles": [
     "index.circuit.tsx",
+    "examples/ddr-dq/index.circuit.tsx",
     "examples/differential-data/index.circuit.tsx",
     "examples/single-ended/index.circuit.tsx"
   ],
   "siteDefaultComponentPath": "index.circuit.tsx",
-  "ignoredFiles": ["dist/**"],
+  "ignoredFiles": [
+    "dist/**"
+  ],
   "platformConfig": {
     "partsEngineDisabled": true
   }
