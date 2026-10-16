@@ -5,7 +5,7 @@ One normal tscircuit project, with a TSX entrypoint, the standard `tsci dev` pre
 | Example | Board and real vendor models | Signal and stimulus |
 | --- | --- | --- |
 | `index.circuit.tsx` | Published **astra/am3352-sbc v0.1.19** routing; TI AM335x + Winbond W631GG6MB-12 | DDR DQS differential clock, 2.5 ns UI |
-| [`examples/ddr-dq/index.circuit.tsx`](examples/ddr-dq/) | Same routed AM3352 board and vendor sources | DDR DQ0 with all eight three-bit histories and differential DQS strobe, 2.5 ns UI |
+| [`examples/ddr-dq/index.circuit.tsx`](examples/ddr-dq/index.circuit.tsx) | Same routed AM3352 board and vendor sources | DDR DQ0 with all eight three-bit histories and differential DQS strobe, 2.5 ns UI |
 | `examples/differential-data/index.circuit.tsx` | Designed routed fixture; TI SN65HVD72D | RS-485 differential arbitrary data, 4 us UI; differential and A-to-ground eyes |
 | `examples/single-ended/index.circuit.tsx` | Designed routed fixture; TI SN74LVC1G04_DCK | Single-ended CMOS output-pad data, 50 ns UI; TX and RX eyes |
 
@@ -51,9 +51,19 @@ pnpm test
 pnpm test:native
 ```
 
-`pnpm test` fetches hash-locked real vendor fixtures, then runs converter and pipeline tests. `test:native` executes the non-DDR and single-ended examples and checks serialized results and rejected declarations.
+`pnpm test` fetches hash-locked real vendor fixtures, then runs converter and pipeline tests. `test:native` executes the DDR DQ0, non-DDR and single-ended examples and checks serialized results and rejected declarations.
 
-See the [DDR DQ0 example](examples/ddr-dq/) for the all-eight-history TSX, run commands, vendor pin mapping, executed plots and limitations.
+The [DDR DQ0 example](examples/ddr-dq/index.circuit.tsx) is a single TSX file. It declares the vendor models, pin mapping, board construction, DQ0 traffic, DQS strobe, probes and eyes. The standard library CLI runs the simulation and generates the plots:
+
+```sh
+pnpm simulate:ddr-dq
+# Optional fresh repeated runs:
+pnpm simulate:ddr-dq --repeat --out dist/my-ddr-dq-proof
+```
+
+The printed output directory is under ignored `dist/`. Each `experiments/<id>/` contains `waveform.csv` and `waveform.png`; each `eyes/<id>/` contains `eye-data.csv` and `eye.png`. Plotting is implemented once in `pcb-spice-pipeline`, shared by every example. Generated plots and solver receipts are not checked in.
+
+DQ0 uses the routed U1.M3 → U3.E3 connection, TI `Model_343` and Winbond `ODT_60`; DQS retains U1.P1/P2 → U3.F3/G3 with TI `Model_655/847`. The shared hash-locked model sources remain active. DQ0 repeats `00010111` at a 2.5 ns UI; DQS alternates with a 1.25 ns offset. The native integration tests sample received DQ at both polarities of the received DQS crossing and require all eight three-bit histories in both the sampled data and eye windows.
 
 ## General TSX API
 
@@ -120,7 +130,7 @@ Vendor sources are official TI/Winbond downloads, pinned in `vendor-models.json`
 
 ## Modeling limits
 
-These are finite transient eyes, not BER extrapolation, jitter analysis, eye-mask certification or protocol compliance. The [DDR DQ0 example](examples/ddr-dq/) exercises varied data alongside a DQS strobe and documents its selected models, timing and protocol omissions. The single-ended fixture controls the CMOS output pad directly: its IBIS file has no Polarity keyword, so it does not invent an inverter logic-core relation or propagation delay.
+These are finite transient eyes, not BER extrapolation, jitter analysis, eye-mask certification or protocol compliance. The [DDR DQ0 example](examples/ddr-dq/index.circuit.tsx) is a continuous write-direction pad/channel experiment with a fixed eye timing origin. It omits DDR commands, bursts, training, memory/controller logic and clock recovery; selected I/O/ODT settings are explicit test assumptions. DQ0, DQS and DQSn use assumed uniform 0.75 mm center spacing. The single-ended fixture controls the CMOS output pad directly: its IBIS file has no Polarity keyword, so it does not invent an inverter logic-core relation or propagation delay.
 
 Outside each supplied IBIS I/V table's voltage range, the converter holds the endpoint current. This is an explicit modeling approximation, recorded as `tableExtrapolation="hold-endpoint-current"`; it prevents SPICE's linear extension from inventing a false high-voltage operating point. Verification examines the complete raw waveform, including startup before the eye gate. The unterminated single-ended receiver rings above its 3.3 V supply (about 5.63 V in this fixture). Its selected input model has no power-clamp table, and these excursions require endpoint extrapolation beyond its characterized input range. The plots retain those excursions; this example does not establish a safe or compliant interface.
 

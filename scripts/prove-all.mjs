@@ -29,7 +29,6 @@ for (const [name, entry] of cases) {
   await execute(args)
   const audit = join(directory, "independent-audit.json")
   await execute([join(project, "scripts/verification/audit-general.mjs"), project, join(directory, "run-a"), join(directory, "run-b"), audit])
-  if (name === "ddr-dq") await execute([join(project, "examples/ddr-dq/plot.py"), directory], (await runtimePaths({ projectDir: project })).python)
   const repeatability = JSON.parse(await readFile(join(directory, "repeatability.json")))
   results.push({ name, entry, directory, audit, status: repeatability.status, solverResultsReused: repeatability.solverResultsReused })
 }

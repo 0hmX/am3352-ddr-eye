@@ -9,6 +9,7 @@ import {any_circuit_element} from 'circuit-json'
 import {loadEntry,runPipeline} from '../src/pipeline.mjs'
 import {runtimePaths} from '../src/runtime.mjs'
 import {channelSpice} from '../src/spice.mjs'
+import {interpolate} from '../../../scripts/verification/independent-helpers.mjs'
 
 const root=fileURLToPath(new URL('../../../',import.meta.url)),output=join(root,'dist',`native-general-test-${Date.now()}`)
 const readJson=async path=>JSON.parse(await readFile(path,'utf8'))
@@ -50,10 +51,10 @@ test('native three-signal channel obeys the complete R + j*w*L impedance matrix 
   for(let i=0;i<3;i++) for(let part=0;part<2;part++) assert.ok(Math.abs(values[7+2*i+part]+supplyCurrent[i][part])<1e-8,'all Maxwell shunts and mutual capacitors survive')
 })
 
-test('actual vendor non-DDR differential and CMOS single-ended data execute one solver run for multiple eyes',async()=>{
+test('actual vendor DDR DQ, non-DDR and single-ended TSX generate waveforms and eyes through the shared pipeline',async()=>{
   await mkdir(output,{recursive:true})
   const runtime=await runtimePaths({projectDir:root})
-  for(const name of ['differential-data','single-ended']) {
+  for(const name of ['differential-data','single-ended','ddr-dq']) {
     const input=await loadEntry(join(root,'examples',name,'index.circuit.tsx')),dir=join(output,name)
     assert.ok(input.circuitJson.some(e=>e.type==='simulation_digital_stimulus'&&/(00|11)/.test(e.pattern.bits)),'source contains repeated arbitrary data bits')
     const receipt=await runPipeline({...input,...runtime,outputDir:dir})
@@ -69,6 +70,35 @@ test('actual vendor non-DDR differential and CMOS single-ended data execute one 
     const assembly=await readJson(join(dir,experiment.directory,'native-ibis-assembly.json'))
     for(const model of assembly) assert.equal(model.metadata.tableExtrapolation,'hold-endpoint-current','the numerical table boundary policy is recorded')
     const wave=(await readFile(join(dir,experiment.directory,'waveform.csv'),'utf8')).trim().split(/\r?\n/).slice(1).map(line=>line.split(',').map(Number))
+    if(name==='ddr-dq') {
+      const stimulus=input.circuitJson.find(record=>record.type==='simulation_digital_stimulus'&&record.name==='DQ0')
+      const columns=Object.fromEntries(experiment.probes.map(probe=>[probe.name,probe.column]))
+      const eye=experiment.eyes.find(eye=>eye.name==='DQ0_receive_eye')
+      const times=wave.map(row=>row[0]),voltages=wave.map(row=>row[columns.DQ0_RX]),samples=new Map()
+      const ui=stimulus.unit_interval_ms/1000,epoch=stimulus.start_time_ms/1000
+      const threshold=input.circuitJson.find(record=>record.type==='simulation_voltage_source').voltage/2
+      for(let i=1;i<wave.length;i++) {
+        const a=wave[i-1],b=wave[i],x=a[columns.DDR_RX],y=b[columns.DDR_RX]
+        if((x<0)===(y<0)) continue
+        const time=a[0]-x*(b[0]-a[0])/(y-x)
+        if(time<eye.startTimeSeconds||time>=eye.endTimeSeconds) continue
+        const index=Math.floor((time-epoch)/ui),voltage=interpolate(times,voltages,time),bit=Number(voltage>threshold)
+        assert.equal(bit,Number(stimulus.pattern.bits[index%stimulus.pattern.bits.length]),'received DQ matches transmitted data at actual DQS crossing')
+        assert.ok(Math.abs(voltage-threshold)>.05,'DQ sample is clear of the explicit analysis threshold')
+        if(samples.size) assert.equal(index,[...samples.keys()].at(-1)+1,'one DQS sample per consecutive DQ bit')
+        samples.set(index,bit)
+      }
+      const expected=['000','001','010','011','100','101','110','111']
+      const received=[...samples.values()],histories=[...new Set(received.slice(2).map((_,i)=>received.slice(i,i+3).join('')))].sort()
+      assert.deepEqual(histories,expected,'all eight histories occur in actual received bits')
+      const folded=await readJson(join(dir,experiment.directory,eye.directory,'eye-data.json'))
+      const eyeHistories=[...new Set(folded.boundaryIndices.map(boundary=>[boundary-1,boundary,boundary+1].map(index=>{
+        assert.ok(samples.has(index),'eye history uses an actual DQS-sampled received bit')
+        return samples.get(index)
+      }).join('')))].sort()
+      assert.deepEqual(eyeHistories,expected,'the ordinary library eye contains all eight received histories')
+      await writeFile(join(output,'ddr-dq-coverage.json'),JSON.stringify({receivedBits:samples.size,receivedHistories:histories,eyeHistories,eyeWindows:eye.windows},null,2)+'\n')
+    }
     if(name==='single-ended') {
       const stimulus=input.circuitJson.find(record=>record.type==='simulation_digital_stimulus')
       assert.equal(stimulus.initial_state,0);assert.equal(stimulus.inverted,false)
@@ -91,6 +121,9 @@ test('actual vendor non-DDR differential and CMOS single-ended data execute one 
       const range=graph.voltage_levels.reduce(([low,high],v)=>[Math.min(low,v),Math.max(high,v)],[Infinity,-Infinity])
       assert.ok(range[1]-range[0]>.5,'actual data waveform varies')
     }
+    const plotReceipt=await readJson(join(dir,experiment.directory,'plot-receipt.json'))
+    assert.deepEqual(plotReceipt.probeBindings,experiment.probes,'shared plotter consumes declared probe bindings')
+    assert.ok(await exists(join(dir,experiment.directory,'waveform.png')),'shared pipeline generates the waveform plot')
     for(const eye of experiment.eyes) {
       const declared=input.circuitJson.find(record=>record.type==='simulation_eye_diagram'&&record.simulation_eye_diagram_id===eye.simulationEyeDiagramId)
       assert.equal(eye.timeOriginSeconds,declared.time_origin_ms/1000)
@@ -98,6 +131,7 @@ test('actual vendor non-DDR differential and CMOS single-ended data execute one 
       const samples=(await readFile(join(dir,experiment.directory,eye.directory,'eye-data.csv'),'utf8')).trim().split(/\r?\n/)
       assert.equal(samples.shift(),'window,folded_time_s,time_s,voltage_v')
       assert.equal(samples.length,eye.windows*1200)
+      assert.ok(await exists(join(dir,experiment.directory,eye.directory,'eye.png')),'shared pipeline generates each declared eye plot')
     }
     for(const [label,mutate] of [
       ['bad-probe',cj=>{cj.find(record=>record.type==='simulation_eye_diagram').simulation_voltage_probe_id='missing'}],
