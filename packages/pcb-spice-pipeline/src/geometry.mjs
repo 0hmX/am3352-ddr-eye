@@ -3,15 +3,15 @@ const positive=(v,label)=>{if(!Number.isFinite(v)||v<=0) fail('modeling_input',`
 const finite=(v,label)=>{if(!Number.isFinite(v)) fail('modeling_input',`${label} must be explicit and finite`);return v}
 export function validateModeling(m) {
   if(m.circuitJsonUnits!=='mm') fail('units','Set circuitJsonUnits="mm" explicitly; solver decks use metres')
-  if(m.reduction!=='straightened-stages') fail('reduction','Select explicit straightened-stages approximation')
+  if(!['straightened-stages','routed-shapes'].includes(m.reduction)) fail('reduction','Select straightened-stages or routed-shapes explicitly')
   positive(m.conductivitySm,'conductivitySm')
   if(!Array.isArray(m.stackup)||!m.stackup.length) fail('stackup','Explicit copper layer zMinMm/zMaxMm is required')
   for(const l of m.stackup) {finite(l.zMinMm,`${l.name} zMinMm`);finite(l.zMaxMm,`${l.name} zMaxMm`);positive(l.zMaxMm-l.zMinMm,`${l.name} copper thickness`)}
-  if(!Array.isArray(m.lanes)||![1,2,3].includes(m.lanes.length)) fail('lanes','One to three explicit source/receiver lanes are supported')
+  if(!Array.isArray(m.lanes)||m.lanes.length<1||m.lanes.length>(m.reduction==='routed-shapes'?32:3)) fail('lanes','Select 1..3 reduced lanes or 1..32 routed lanes')
   for(const [i,l] of m.lanes.entries()) if(!l.port||!l.from||!l.to) fail('pin_mapping',`Lane ${i}: port/from/to mappings required`)
   if(new Set(m.lanes.map(l=>l.port)).size!==m.lanes.length) fail('pin_mapping','Lane port labels must be distinct')
-  if(!m.profiles) fail('return_geometry','Explicit profiles with reference conductor geometry and permittivity required')
-  for(const [name,p] of Object.entries(m.profiles)) {
+  if(m.reduction==='straightened-stages'&&!m.profiles) fail('return_geometry','Explicit profiles with reference conductor geometry and permittivity required')
+  for(const [name,p] of Object.entries(m.reduction==='straightened-stages'?m.profiles:{})) {
     positive(p.spacingMm,`${name} spacingMm`);positive(p.relativePermittivity,`${name} relativePermittivity`)
     if(!p.return) fail('return_geometry',`${name}: explicit finite return required`)
     for(const key of ['widthMm','thicknessMm','lengthFactor']) positive(p.return[key],`${name}.return.${key}`)
@@ -68,7 +68,7 @@ export function geometryFromCircuitJson(cj,m) {
         if(a.route_type!=='wire'||a.layer!==b.from_layer||b.from_layer===b.to_layer) fail('via_geometry','Via must continue preceding wire layer and change layer')
         const la=layer(b.from_layer),lb=layer(b.to_layer)
         positive(m.viaPlatingMm,'viaPlatingMm (not recorded in ordinary Circuit JSON)');positive(m.viaEquivalentWidthMm,'viaEquivalentWidthMm')
-        if(!m.omitThroughViaStubs) fail('via_stub','This reduction requires explicit omitThroughViaStubs=true')
+        if(m.reduction==='straightened-stages'&&!m.omitThroughViaStubs) fail('via_stub','This reduction requires explicit omitThroughViaStubs=true')
         const hole=positive(b.via_hole_diameter,'via_hole_diameter')
         const area=Math.PI*((hole/2+m.viaPlatingMm)**2-(hole/2)**2)
         const length=Math.abs((la.zMinMm+la.zMaxMm-lb.zMinMm-lb.zMaxMm)/2)
@@ -89,6 +89,18 @@ export function geometryFromCircuitJson(cj,m) {
     if(!stages.length) fail('empty_route',lane.port)
     routes.push(stages)
     mappings.push({port:lane.port,sourceTraceId:src.source_trace_id,pcbTraceId:traces[0].pcb_trace_id,from:from.source_port_id,to:to.source_port_id,pcbPorts:ports.map(p=>p.pcb_port_id),stages,originalRoute:route})
+  }
+  if(m.reduction==='routed-shapes') {
+    if(new Set(mappings.map(lane=>lane.sourceTraceId)).size!==mappings.length) fail('route_selection','Selected routed lanes must be distinct')
+    if(!m.routedExtraction||!m.boardConstruction) fail('routed_input','Routed extraction requires board construction and explicit extraction settings')
+    return {kind:'routed-shapes',mappings,cells:[],units:{circuitJson:'mm',geometry:'m',conductivity:'S/m'},approximations:[
+      'Actual routed centerlines, widths and barrels feed the impedance solve; saved copper surfaces, pads and pours feed capacitance with explicit boundary tolerances',
+      'Electrostatic/magnetoquasistatic whole-route matrices are homogenized into a uniform passive multiconductor pi ladder; spatially varying coupling and full-wave retardation are not solved',
+      'Selected power/ground references are ideal AC-connected at the chip terminals; package and PDN impedances remain omitted',
+      'Capacitance uses an explicit homogeneous effective permittivity throughout; dielectric layering and air-filled voids are not field-solved',
+      'Capacitance approximates copper foils and barrel walls as zero-thickness sheets at their midplanes; finite conductor thickness is retained in the impedance solve',
+      'Surrounding reference copper is clipped to an explicit route bounding box; mesh and crop parameters are explicit and require sensitivity assessment',
+    ]}
   }
   if(routes.some(route=>route.length!==routes[0].length||route.some((s,i)=>s.profile!==routes[0][i].profile))) fail('route_topology','Selected routes must have identical ordered layer/via stage topology')
   const cells=routes[0].map((_,i)=>{

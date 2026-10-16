@@ -20,7 +20,8 @@
     "simulate:non-ddr": "pcb-spice-pipeline examples/differential-data/index.circuit.tsx",
     "simulate:single-ended": "pcb-spice-pipeline examples/single-ended/index.circuit.tsx",
     "simulate:prove": "node scripts/prove-all.mjs",
-    "simulate:ddr-dq": "pcb-spice-pipeline examples/ddr-dq/index.circuit.tsx"
+    "simulate:ddr-dq": "pcb-spice-pipeline examples/ddr-dq/index.circuit.tsx",
+    "simulate:ddr-routed": "pcb-spice-pipeline examples/ddr-routed/index.circuit.tsx"
   },
   "dependencies": {
     "tscircuit": "file:.packages/tscircuit-experimental.tgz",

@@ -344,7 +344,9 @@ export async function compareFreshRuns(aDir, bDir) {
   const paths = a.schemaVersion===3
     ? Object.keys(a.files).filter(path=>/\.(?:cir|lib|csv|png|svg)$/.test(path)||/^(?:inputs\/circuit|geometry|vendor-sources|electrical-node-map|converter-runtime|circuit-results)\.json$/.test(path)||/(?:extraction|experiment|waveform|eyes|eye-data|native-ibis-assembly)\.json$/.test(path)).sort()
     : ['channel.cir', 'simulation.cir', 'driver.lib', 'receiver.lib', 'waveform.csv', 'metrics.json', 'inputs/circuit.json', 'geometry.json']
-  for (const e of a.matrices) paths.push(`stage-${e.stage}/Zc.mat`, `stage-${e.stage}/refinement/Zc.mat`, `stage-${e.stage}/channel.csv`, `stage-${e.stage}/extraction.json`)
+  if(a.files['routed-extraction/extraction.json']) {
+    paths.push(...Object.keys(a.files).filter(path=>path.startsWith('routed-extraction/')&&/\.(?:inp|lst|msh|txt)$/.test(path)), 'routed-extraction/Zc.mat', 'routed-extraction/channel.csv', 'routed-extraction/physical-input.json', 'routed-extraction/geometry-summary.json')
+  } else for (const e of a.matrices) paths.push(`stage-${e.stage}/Zc.mat`, `stage-${e.stage}/refinement/Zc.mat`, `stage-${e.stage}/channel.csv`, `stage-${e.stage}/extraction.json`)
   for (const path of ['native-ibis-assembly.json','project-provenance.json','eyediagram.json', 'eye-data.csv', 'eye.png', 'eye.svg', 'waveform.png', 'waveform.svg']) if (a.files[path]&&!paths.includes(path)) paths.push(path)
   const compared = []
   for (const path of paths) {

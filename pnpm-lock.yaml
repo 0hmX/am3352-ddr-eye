@@ -106,6 +106,9 @@ importers:
       circuit-json:
         specifier: file:../../.packages/circuit-json-general-experimental.tgz
         version: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json-to-gmsh:
+        specifier: github:tscircuit/circuit-json-to-gmsh#9c7f34b7e502b8339a6659cb268b1540867a672d
+        version: https://codeload.github.com/tscircuit/circuit-json-to-gmsh/tar.gz/9c7f34b7e502b8339a6659cb268b1540867a672d(format-si-unit@0.0.12(typescript@5.9.3))(typescript@5.9.3)
       fflate:
         specifier: 0.8.2
         version: 0.8.2
@@ -1183,6 +1186,11 @@ packages:
       '@resvg/resvg-wasm':
         optional: true
 
+  circuit-json-to-gmsh@https://codeload.github.com/tscircuit/circuit-json-to-gmsh/tar.gz/9c7f34b7e502b8339a6659cb268b1540867a672d:
+    resolution: {gitHosted: true, integrity: sha512-5AikOoFGJyaT2t5l9tI8nU66VnfZT13D8S1D2Gf1FvOWaqyVo2CYshi9lxrJ00J6FVnikh0z/+zFh8RNcXuIWw==, tarball: https://codeload.github.com/tscircuit/circuit-json-to-gmsh/tar.gz/9c7f34b7e502b8339a6659cb268b1540867a672d}
+    version: 0.0.1
+    hasBin: true
+
   circuit-json-to-pnp-csv@0.0.16:
     resolution: {integrity: sha512-LTMg6Tumhmbu3vumeJMQsRWdMuJ+ijb+6pmM+av6WjJP6cgAv8ek0VV5P2+C2t9hWRExU7Rg49CkXou71aW7qw==}
     version: 0.0.16
@@ -1713,6 +1721,11 @@ packages:
 
   poppygl@0.0.30:
     resolution: {integrity: sha512-ZFPP+x69FWI6ccnxwrH3K2ADjionmfW3Y9RWr3tEETXOYSg9JB/IJlfuryS+22jwE5TDFFV7PqT4dmTBzIsQIA==}
+    peerDependencies:
+      typescript: ^5
+
+  poppygl@0.0.34:
+    resolution: {integrity: sha512-H5JPlkwyrImV6h9+dVT7boTy6T/mwKnIHBjOJSYzmQ/GUBAUy876Ccm2mH1/mW5o54kNy16341BHUMTAa4XMJA==}
     peerDependencies:
       typescript: ^5
 
@@ -3392,6 +3405,16 @@ snapshots:
       - three
       - zod
 
+  circuit-json-to-gmsh@https://codeload.github.com/tscircuit/circuit-json-to-gmsh/tar.gz/9c7f34b7e502b8339a6659cb268b1540867a672d(format-si-unit@0.0.12(typescript@5.9.3))(typescript@5.9.3):
+    dependencies:
+      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      poppygl: 0.0.34(typescript@5.9.3)
+      transformation-matrix: 2.16.1
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - format-si-unit
+      - typescript
+
   circuit-json-to-pnp-csv@0.0.16(@tscircuit/soup-util@0.0.41(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(typescript@5.9.3)(zod@3.25.76):
     dependencies:
       '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
@@ -3979,6 +4002,14 @@ snapshots:
       '@babel/runtime': 7.29.10
 
   poppygl@0.0.30(typescript@5.9.3):
+    dependencies:
+      fast-png: 8.0.0
+      gl-matrix: 3.4.4
+      pureimage: 0.4.20
+      readable-stream: 4.8.0
+      typescript: 5.9.3
+
+  poppygl@0.0.34(typescript@5.9.3):
     dependencies:
       fast-png: 8.0.0
       gl-matrix: 3.4.4

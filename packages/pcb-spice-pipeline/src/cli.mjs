@@ -5,6 +5,10 @@ import { runtimePaths,setupRuntime } from './runtime.mjs'
 import { repeatEntry } from './repeat.mjs'
 const args=process.argv.slice(2),usage='Usage: pcb-spice-pipeline [--repeat] ENTRY.tsx|ENTRY.json [--out FRESH_DIRECTORY]\n       pcb-spice-pipeline --setup'
 try {
+  if(args[0]==='compare') {
+    const {compareFromArgs}=await import('./comparison.mjs')
+    console.log(JSON.stringify(await compareFromArgs(args.slice(1)),null,2));process.exit(0)
+  }
   if(args.includes('--help')) {console.log(usage);process.exit(0)}
   if(args.includes('--setup')) {
     if(args.length!==1) throw new Error('--setup takes no entry or output arguments')

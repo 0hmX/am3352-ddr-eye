@@ -7,7 +7,7 @@ import {
   modeling as dqsModeling,
 } from "../../simulation.config"
 
-const driver: IbisModelDefinition = {
+export const driver: IbisModelDefinition = {
   ...dqsDriver,
   pinMap: { ...dqsDriver.pinMap, M3: "M3" },
   modelSelections: { ...dqsDriver.modelSelections, M3: "Model_343" },
@@ -17,7 +17,7 @@ const driver: IbisModelDefinition = {
   },
 }
 
-const receiver: IbisModelDefinition = {
+export const receiver: IbisModelDefinition = {
   ...dqsReceiver,
   pinMap: { ...dqsReceiver.pinMap, E3: "E3" },
   modelSelections: { ...dqsReceiver.modelSelections, E3: "ODT_60" },
