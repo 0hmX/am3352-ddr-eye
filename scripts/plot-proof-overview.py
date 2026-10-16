@@ -1,4 +1,4 @@
-"""Compare the three actual receiver eyes on a common two-UI time axis."""
+"""Compare the actual receiver eyes on a common two-UI time axis."""
 import csv
 import json
 import sys
@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 
 root = Path(sys.argv[1])
 proof = json.loads((root / "proof.json").read_text())
-titles = {"ddr": "DDR · TI AM335x → Winbond", "differential-data": "RS-485 · TI SN65HVD72", "single-ended": "CMOS · TI SN74LVC1G04"}
-figure, axes = plt.subplots(1, len(proof["cases"]), figsize=(15, 4.5))
+titles = {"ddr": "DDR DQS · TI → Winbond", "ddr-dq": "DDR DQ0 · TI → Winbond", "differential-data": "RS-485 · TI SN65HVD72", "single-ended": "CMOS · TI SN74LVC1G04"}
+figure, axes = plt.subplots(1, len(proof["cases"]), figsize=(5 * len(proof["cases"]), 4.5))
 for axis, case in zip(axes, proof["cases"]):
     run = root / case["name"] / "run-a"
     receipt = json.loads((run / "receipt.json").read_text())

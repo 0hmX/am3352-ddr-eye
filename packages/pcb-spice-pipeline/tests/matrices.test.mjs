@@ -1,9 +1,17 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { validateMatrix,loopImpedance,referenceCapacitance,multiply,transpose } from '../src/matrices.mjs'
+import { validateMatrix,loopImpedance,referenceCapacitance,multiply,transpose,parseFastHenry,parseFasterCap } from '../src/matrices.mjs'
 test('shared return resistance survives the full loop transform',()=>{
   assert.deepEqual(loopImpedance([[2,0,0],[0,3,0],[0,0,5]]),[[7,5],[5,8]])
   validateMatrix([[7,5],[5,8]],'R')
+})
+test('three signals retain shared-return coupling and parse four-conductor solver output',()=>{
+  assert.deepEqual(loopImpedance([[2,0,0,0],[0,3,0,0],[0,0,4,0],[0,0,0,5]]),[[7,5,5],[5,8,5],[5,5,9]])
+  const impedance='Impedance matrix for frequency = 1 4 x 4\n'+Array.from({length:4},(_,i)=>Array.from({length:4},(_,j)=>`${i===j?i+2:0} 0j`).join(' ')).join('\n')
+  assert.equal(parseFastHenry(impedance)[0].R.length,4)
+  const cap='Capacitance matrix is:\nDimension 4 x 4\n'+Array.from({length:4},(_,i)=>'g_'+i+' '+Array.from({length:4},(_,j)=>i===j?5:-1).join(' ')).join('\n')
+  const parsed=parseFasterCap(cap)
+  assert.equal(referenceCapacitance(parsed.matrix).matrix.length,3)
 })
 test('neutral capacitance reduction preserves electrostatic energy and charge neutrality',()=>{
   const C=[[4,-1,-2],[-1,5,-3],[-2,-3,7]],r=referenceCapacitance(C),v=[1.2,-.7]

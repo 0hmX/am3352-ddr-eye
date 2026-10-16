@@ -91,7 +91,7 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
   assert.ok(modeling.stackup.length > 0 && modeling.profiles && modeling.extraction, 'Locked board construction and extraction inputs')
   assert.ok(circuit.some(element => element.type === 'pcb_board'), 'Actual TSX board was rendered')
   assert.ok(circuit.some(element => element.type === 'pcb_trace'), 'Actual routed copper is present')
-  assert.ok(geometry.mappings.length === 1 || geometry.mappings.length === 2, 'Declared present backend supports one or two lanes')
+  assert.ok([1, 2, 3].includes(geometry.mappings.length), 'Declared backend supports one to three lanes')
   for (const mapping of geometry.mappings) {
     assert.notEqual(mapping.from, mapping.to, 'Distinct physical transmitter and receiver contacts')
     assert.notEqual(nodeMap.nodes[mapping.from], nodeMap.nodes[mapping.to], 'Extracted route is not bypassed by an ideal endpoint short')

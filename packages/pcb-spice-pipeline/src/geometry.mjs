@@ -7,7 +7,7 @@ export function validateModeling(m) {
   positive(m.conductivitySm,'conductivitySm')
   if(!Array.isArray(m.stackup)||!m.stackup.length) fail('stackup','Explicit copper layer zMinMm/zMaxMm is required')
   for(const l of m.stackup) {finite(l.zMinMm,`${l.name} zMinMm`);finite(l.zMaxMm,`${l.name} zMaxMm`);positive(l.zMaxMm-l.zMinMm,`${l.name} copper thickness`)}
-  if(!Array.isArray(m.lanes)||![1,2].includes(m.lanes.length)) fail('lanes','One or two explicit source/receiver lanes are supported')
+  if(!Array.isArray(m.lanes)||![1,2,3].includes(m.lanes.length)) fail('lanes','One to three explicit source/receiver lanes are supported')
   for(const [i,l] of m.lanes.entries()) if(!l.port||!l.from||!l.to) fail('pin_mapping',`Lane ${i}: port/from/to mappings required`)
   if(new Set(m.lanes.map(l=>l.port)).size!==m.lanes.length) fail('pin_mapping','Lane port labels must be distinct')
   if(!m.profiles) fail('return_geometry','Explicit profiles with reference conductor geometry and permittivity required')

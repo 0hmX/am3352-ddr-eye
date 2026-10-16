@@ -12,6 +12,15 @@ test('actual original routed DQS lengths and 4 physical endpoints are retained',
   assert.ok(Math.abs(g.cells[2].conductors[0].lengthM-.04273605248690546)<1e-12)
   assert.ok(Math.abs(g.cells[2].conductors[1].lengthM-.04378753604968599)<1e-12)
 })
+test('real DQ0 and both DQS legs retain six endpoints and a shared return',()=>{
+  const m=structuredClone(real.modeling)
+  m.lanes.unshift({port:'DQ0',from:{component:'U1',port:'M3'},to:{component:'U3',port:'E3'}})
+  const g=geometryFromCircuitJson(real.circuitJson,m)
+  assert.equal(g.cells.length,5)
+  assert.deepEqual(g.mappings.map(mapping=>mapping.sourceTraceId),['source_trace_14','source_trace_15','source_trace_16'])
+  assert.equal(new Set(g.mappings.flatMap(mapping=>[mapping.from,mapping.to])).size,6)
+  assert.ok(g.cells.every(cell=>cell.conductors.length===4))
+})
 test('unknown stackup, return, units and omitted pin mapping produce explicit diagnostics',()=>{
   for(const [key,value,pattern] of [['stackup',[],/stackup/],['profiles',{},/return_geometry/],['circuitJsonUnits',undefined,/units/],['lanes',[],/lanes/]]) {
     assert.throws(()=>geometryFromCircuitJson(small.circuitJson,{...small.modeling,[key]:value}),pattern)
