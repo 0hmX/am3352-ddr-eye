@@ -1,11 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFile} from 'node:fs/promises'
-import {geometryFromCircuitJson,fastHenryDeck,fasterCapDeck,selectPort} from '../src/geometry.mjs'
-import {generalDeclarations,circuitNodes,modelRunDefinition} from '../src/declarations.mjs'
+import {geometryFromCircuitJson,fastHenryDeck,fasterCapDeck,selectPort} from '../src/geometry.js'
+import {generalDeclarations,circuitNodes,modelRunDefinition} from '../src/declarations.js'
 import {foldProbeEye,probeWaveformRows} from '../src/metrics.mjs'
 import {loopImpedance,referenceCapacitance} from '../src/matrices.mjs'
-import {generalSimulationSpice,electricalSources,validateProbeScope} from '../src/general-spice.mjs'
+import {generalSimulationSpice,electricalSources,validateProbeScope} from '../src/general-spice.js'
 
 const read=async path=>JSON.parse(await readFile(new URL(path,import.meta.url),'utf8'))
 const circuit=await read('./fixtures/straight.circuit.json'),physical=await read('./fixtures/straight.modeling.json')
@@ -44,9 +44,25 @@ test('serialized arbitrary data and two eye measurements share one experiment de
   const extraction=[{R:[[1,0],[0,1]],L:[[1,0],[0,1]],C:[[1,0],[0,1]]}],electrical=electricalSources(cj,m,nodes)
   const deck=generalSimulationSpice(plan,g,m,extraction,compiled,nodes,electrical)
   assert.equal(deck.match(/^tran /gm).length,1)
+  assert.match(deck,/^save all$/m,'retain internal branch currents referenced by vendor IBIS behavioral sources')
   assert.match(deck,/wrdata waveform.dat probe0 probe1/)
   assert.match(deck,/VDECLARED0 n\d+ 0 3\.3/)
   assert.equal(deck,generalSimulationSpice({...plan,eyes:[]},g,m,extraction,compiled,nodes,electrical),'eye display metadata never changes the electrical experiment')
+})
+
+test('canonical DC port and net terminals preserve the explicit supply reference',()=>{
+  for(const useNets of [false,true]) {
+    const {cj,m,g}=fixture()
+    m.supplies=[]
+    cj.push({type:'source_net',source_net_id:'vdd-net'},{type:'source_net',source_net_id:'gnd-net'},...['v0','g0'].map((id,i)=>({type:'source_trace',source_trace_id:`rail-${i}`,connected_source_port_ids:[id],connected_source_net_ids:[i?'gnd-net':'vdd-net']})))
+    const source={type:'simulation_voltage_source',simulation_voltage_source_id:'dc-rail',is_dc_source:true,voltage:3.3,...(useNets?{positive_source_net_id:'vdd-net',negative_source_net_id:'gnd-net'}:{positive_source_port_id:'v0',negative_source_port_id:'g0'})}
+    cj.push(source)
+    const nodes=circuitNodes(cj,g,m),electrical=electricalSources(cj,m,nodes)
+    assert.deepEqual(electrical.lines,[`VPHYSICAL0 ${nodes.node('v0')} 0 3.3`])
+    assert.ok(electrical.grounded.has(nodes.node('v0')))
+    delete source.negative_source_net_id;delete source.negative_source_port_id
+    assert.throws(()=>electricalSources(cj,m,nodes),/supply_reference/)
+  }
 })
 
 test('missing references, duplicate controls, invalid gates and noncovering bits fail before solver execution',()=>{
@@ -96,4 +112,25 @@ test('recorded probe columns remain bound and finite timestamps strictly increas
   assert.deepEqual(probeWaveformRows('time a b\n0 1 2\n.3 1.2 2.3\n',[{},{}]),[[0,1,2],[.3,1.2,2.3]])
   assert.throws(()=>probeWaveformRows('time a\n0 1\n0 2\n',[{}]),/strictly increase/)
   assert.throws(()=>probeWaveformRows('time a\n0 NaN\n',[{}]),/finite/)
+})
+
+test('every selected lane endpoint requires one modeled pin and explicit state before extraction',()=>{
+  for(const mutate of [
+    cj=>{
+      for(const model of cj.filter(e=>e.type==='simulation_ibis_model')) for(const [pin,port] of Object.entries(model.pin_to_source_port_map)) if(['p1','p3'].includes(port)) delete model.pin_to_source_port_map[pin]
+      return cj.filter(e=>!(['simulation_ibis_pin_state','simulation_digital_stimulus'].includes(e.type)&&['p1','p3'].includes(e.source_port_id)))
+    },
+    cj=>cj.filter(e=>!(e.type==='simulation_ibis_pin_state'&&e.source_port_id==='p3')),
+    cj=>{cj.find(e=>e.type==='simulation_ibis_model'&&e.source_component_id==='u1').pin_to_source_port_map.alias='p3';return cj},
+  ]) {
+    const {cj,m,g}=fixture()
+    assert.throws(()=>generalDeclarations(mutate(cj),g,m),/channel_model.*endpoint p[13].*exactly one modeled physical pin/)
+  }
+  const {cj,m,g}=fixture()
+  for(const state of cj.filter(e=>e.type==='simulation_ibis_pin_state')) {
+    state.mode=['p2','p3'].includes(state.source_port_id)?'output':'input'
+    state.enabled=state.mode==='output'
+  }
+  for(const stimulus of cj.filter(e=>e.type==='simulation_digital_stimulus')) stimulus.source_port_id=stimulus.source_port_id==='p0'?'p2':'p3'
+  assert.doesNotThrow(()=>generalDeclarations(cj,g,m),'physical route orientation does not constrain bidirectional run roles')
 })

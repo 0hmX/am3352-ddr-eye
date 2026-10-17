@@ -4,7 +4,7 @@ import {access,mkdtemp,rm} from 'node:fs/promises'
 import {join} from 'node:path'
 import {tmpdir} from 'node:os'
 import {validateCircuitRecords} from '../src/circuit-schema.mjs'
-import {runGeneralPipeline} from '../src/general-pipeline.mjs'
+import {runGeneralPipeline} from '../src/general-pipeline.js'
 
 test('malformed physical record fails registered validation before output or solvers',async()=>{
   const root=await mkdtemp(join(tmpdir(),'circuit-schema-preflight-')),output=join(root,'fresh')

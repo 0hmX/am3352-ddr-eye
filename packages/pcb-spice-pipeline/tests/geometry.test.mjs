@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFile} from 'node:fs/promises'
 const readJson=async path=>JSON.parse(await readFile(new URL(path,import.meta.url),'utf8'))
-import {geometryFromCircuitJson} from '../src/geometry.mjs'
+import {geometryFromCircuitJson} from '../src/geometry.js'
 const small={circuitJson:await readJson('./fixtures/straight.circuit.json'),modeling:await readJson('./fixtures/straight.modeling.json')}
 const real={circuitJson:await readJson('../../../am3352.circuit.json'),modeling:await readJson('./fixtures/am3352.modeling.json')}
 test('actual original routed DQS lengths and 4 physical endpoints are retained',()=>{

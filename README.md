@@ -5,11 +5,11 @@ One normal tscircuit project, with a TSX entrypoint, the standard `tsci dev` pre
 | Example | Board and real vendor models | Signal and stimulus |
 | --- | --- | --- |
 | `index.circuit.tsx` | Published **astra/am3352-sbc v0.1.19** routing; TI AM335x + Winbond W631GG6MB-12 | DDR DQS differential clock, 2.5 ns UI |
-| [`examples/ddr-dq/index.circuit.tsx`](examples/ddr-dq/index.circuit.tsx) | Same routed AM3352 board and vendor sources | DDR DQ0 with all eight three-bit histories and differential DQS strobe, 2.5 ns UI |
+| [`examples/ddr-dq/index.circuit.tsx`](examples/ddr-dq/index.circuit.tsx) | Same routed AM3352 board and vendor sources | DQ0 victim with quiet/switching DQS neighbors, 2.5 ns UI |
 | `examples/differential-data/index.circuit.tsx` | Designed routed fixture; TI SN65HVD72D | RS-485 differential arbitrary data, 4 us UI; differential and A-to-ground eyes |
 | `examples/single-ended/index.circuit.tsx` | Designed routed fixture; TI SN74LVC1G04_DCK | Single-ended CMOS output-pad data, 50 ns UI; TX and RX eyes |
 
-All examples use the same API, converter, extraction and native solver pipeline. Each declares two eyes sharing one transient simulation. The two new fixtures contain real footprints, native manually routed traces, explicit voltage sources and board construction. They are pad/channel experiments, not complete functional products or independently validated boards.
+All examples use the same API, converter, extraction and native solver pipeline. The DDR DQ0 example declares two controlled transient experiments; each case has two eyes sharing its waveform. Other examples share one transient between their declared eyes. The two new fixtures contain real footprints, native manually routed traces, explicit voltage sources and board construction. They are pad/channel experiments, not complete functional products or independently validated boards.
 
 ## Run locally
 
@@ -26,7 +26,7 @@ pnpm dev --port 3091
 
 Open the ordinary file selector to preview any example TSX. Generated `dist/**` files are ignored by the dev server so saved simulation output does not enter its source watcher. Supplier metadata lookup is disabled in `tscircuit.config.json`; the build uses the standard `--disable-parts-engine` flag.
 
-For simulation, also install Python **3.11**, Git and a C/C++ compiler. macOS needs Homebrew and Xcode command-line tools. Setup builds pinned FastHenry, FasterCap and ngspice and installs the pinned plotting environment. Setup installs native dependencies through Homebrew on macOS or apt on Linux; this delivery was executed on macOS arm64.
+For simulation, also install Python **3.11**, Git and a C/C++ compiler. macOS needs Homebrew and Xcode command-line tools. Setup builds unmodified pinned FastHenry, FasterCap and ngspice sources and installs the pinned plotting environment. It builds pinned wxWidgets 3.0 for upstream FasterCap; macOS uses Homebrew LLVM and libomp. Source trees and binary hashes are checked in the build receipt. Earlier runtimes built with solver patches are rejected; rerun setup in a fresh cache if it reports modified sources. Setup installs native dependencies through Homebrew on macOS or apt on Linux; this delivery was executed on macOS arm64.
 
 ```sh
 pnpm simulate:setup
@@ -53,17 +53,18 @@ pnpm test:native
 
 `pnpm test` fetches hash-locked real vendor fixtures, then runs converter and pipeline tests. `test:native` executes the DDR DQ0, non-DDR and single-ended examples and checks serialized results and rejected declarations.
 
-The [DDR DQ0 example](examples/ddr-dq/index.circuit.tsx) is a single TSX file. It declares the vendor models, pin mapping, board construction, DQ0 traffic, DQS strobe, probes and eyes. The standard library CLI runs the simulation and generates the plots:
+The [DDR DQ0 example](examples/ddr-dq/index.circuit.tsx) compares a switching victim with two selected neighbors. `DDR_QUIET` holds DQS/DQSn at complementary constant levels; `DDR_SWITCHING` toggles them. Both cases retain identical victim traffic, IBIS states/models, rails, probes, geometry and coupled R/L/C matrices. Each runs one fresh ngspice transient.
 
 ```sh
-pnpm simulate:ddr-dq
-# Optional fresh repeated runs:
-pnpm simulate:ddr-dq --repeat --out dist/my-ddr-dq-proof
+pnpm simulate:ddr-dq --out dist/ddr-multisignal
+pnpm simulate:compare dist/ddr-multisignal --probe DQ0_RX --out dist/ddr-comparison
 ```
 
-The printed output directory is under ignored `dist/`. Each `experiments/<id>/` contains `waveform.csv` and `waveform.png`; each `eyes/<id>/` contains `eye-data.csv` and `eye.png`. Plotting is implemented once in `pcb-spice-pipeline`, shared by every example. Generated plots and solver receipts are not checked in.
+The first command writes waveforms and declared eyes under `experiments/<id>/`. The comparison currently supports a ground-referenced, single-ended victim probe. It writes `comparison.json`, `waveform-comparison.png` and `eye-comparison.png`. It verifies saved artifact hashes and matching electrical conditions, and rejects a changed victim, model, reference, network or timing. Voltage differences use both adaptive time axes with linear interpolation; RMS is integrated over the declared eye observation gate. These are deterministic case differences within the modeled network.
 
-DQ0 uses the routed U1.M3 → U3.E3 connection, TI `Model_343` and Winbond `ODT_60`; DQS retains U1.P1/P2 → U3.F3/G3 with TI `Model_655/847`. The shared hash-locked model sources remain active. DQ0 repeats `00010111` at a 2.5 ns UI; DQS alternates with a 1.25 ns offset. The native integration tests sample received DQ at both polarities of the received DQS crossing and require all eight three-bit histories in both the sampled data and eye windows.
+DQ0 uses U1.M3 → U3.E3, TI `Model_343` and Winbond `ODT_60`; DQS/DQSn use U1.P1/P2 → U3.F3/G3 with TI `Model_655/847`. Hash-locked official vendor sources remain active. DQ0 repeats `00010111` at a 2.5 ns UI, covering every three-bit history; switching neighbors alternate with a 1.25 ns offset. All selected signals are solved together, preserving mutual R/L/C and the shared return. Uniform 0.75 mm center spacing is an explicit equivalent-channel assumption; the board's varying spacing and bends are not extracted.
+
+The shared library rejects unsupported fan-out, ambiguous or duplicate physical lane selections, incomplete solver matrices, and failed physical/convergence checks. Generated plots and solver receipts stay local and are not checked in.
 
 ## General TSX API
 

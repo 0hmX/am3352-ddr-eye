@@ -22,13 +22,13 @@ export async function auditProject(projectRoot) {
   assert.deepEqual(ci, [], 'No CI configuration/workflow/scripts delivered')
   const pkg = await json(join(root, 'package.json'))
   assert.match(pkg.scripts.dev, /^tsci dev(?:\s|$)/, 'Ordinary tscircuit dev command')
-  assert.match(pkg.scripts.build, /^tsci build(?:\s|$)/, 'Ordinary tscircuit build command')
+  assert.match(pkg.scripts.build, /(?:^|&& )tsci build(?:\s|$)/, 'Ordinary tscircuit build command')
   assert.match(pkg.scripts.typecheck, /^tsc --noEmit(?:\s|$)/, 'Ordinary TypeScript type checking')
   assert.ok(!Object.keys(pkg.scripts).some(name => /(^|:)ci($|:)/i.test(name)), 'No CI npm scripts')
   const required = [
     'index.circuit.tsx', 'tsconfig.json', 'tscircuit.config.json', 'pnpm-workspace.yaml', 'pnpm-lock.yaml',
     'packages/ibis-to-spice/package.json', 'packages/ibis-to-spice/lib/convert.ts', 'packages/ibis-to-spice/lib/parse-ibis.ts', 'packages/ibis-to-spice/lib/load.ts',
-    'packages/pcb-spice-pipeline/package.json', 'packages/pcb-spice-pipeline/src/pipeline.mjs', 'packages/pcb-spice-pipeline/src/geometry.mjs', 'packages/pcb-spice-pipeline/src/spice.mjs', 'packages/pcb-spice-pipeline/src/cli.mjs',
+    'packages/pcb-spice-pipeline/package.json', 'packages/pcb-spice-pipeline/src/pipeline.mjs', 'packages/pcb-spice-pipeline/src/geometry.ts', 'packages/pcb-spice-pipeline/src/spice.ts', 'packages/pcb-spice-pipeline/src/cli.mjs',
     '.packages/native-patches/core.patch', '.packages/native-patches/props.patch', '.packages/native-patches/manifest.json',
   ]
   const sourceHashes = {}

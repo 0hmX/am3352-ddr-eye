@@ -2,7 +2,7 @@ import {mkdir,writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
-import {sha256} from '../src/pipeline.mjs'
+import {sha256} from '../src/io.mjs'
 export async function analyticCapacitanceCheck(executable,dir) {
   await mkdir(dir,{recursive:true})
   const rectangle=(name,y)=>`* 2D closed rectangle\nS ${name} -10 ${y} 10 ${y}\nS ${name} 10 ${y} 10 ${y+.035}\nS ${name} 10 ${y+.035} -10 ${y+.035}\nS ${name} -10 ${y+.035} -10 ${y}\n`

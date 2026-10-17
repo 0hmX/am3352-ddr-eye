@@ -10,7 +10,7 @@ const project = resolve(projectArgument), positive = resolve(positiveRunArgument
 const receipt = await json(join(positive, 'receipt.json'))
 const original = await json(join(positive, 'inputs/circuit.json'))
 const modeling = await json(join(positive, 'inputs/modeling.json'))
-const { runPipeline } = await import(pathToFileURL(join(receipt.sourceRoot, 'src/pipeline.mjs')).href)
+const { runPipeline } = await import(pathToFileURL(join(receipt.sourceRoot, 'dist/pipeline.mjs')).href)
 const firstStimulus = original.find(record => record.type === 'simulation_digital_stimulus')
 assert.ok(firstStimulus)
 const mutations = [

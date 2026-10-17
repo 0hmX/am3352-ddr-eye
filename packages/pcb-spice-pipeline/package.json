@@ -8,22 +8,25 @@
     "node": ">=22"
   },
   "packageManager": "pnpm@11.25.0",
-  "exports": "./src/pipeline.mjs",
+  "exports": "./dist/pipeline.mjs",
   "files": [
+    "dist",
     "src",
     "scripts/setup-tools.py",
     "scripts/plot.py",
     "scripts/audit-eye.mjs",
     "requirements.lock.txt",
-    "toolchain-lock.json"
+    "toolchain-lock.json",
+    "scripts/plot-comparison.py"
   ],
   "bin": {
-    "pcb-spice-pipeline": "src/cli.mjs"
+    "pcb-spice-pipeline": "dist/cli.mjs"
   },
   "scripts": {
-    "test": "node --test tests/*.test.mjs",
-    "test:native": "node --test tests/general.integration.mjs",
-    "typecheck": "tsc --noEmit"
+    "test": "node --import tsx --test tests/*.test.mjs tests/*.test.ts",
+    "test:native": "node --import tsx --test tests/general.integration.mjs",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
   },
   "dependencies": {
     "fflate": "0.8.2",

@@ -1,7 +1,8 @@
 export class Diagnostic extends Error {
   constructor(code, message) { super(`${code}: ${message}`); this.code = code }
 }
-export const fail = (code, message) => { throw new Diagnostic(code, message) }
+/** @param {string} code @param {string} message @returns {never} */
+export function fail(code, message) { throw new Diagnostic(code, message) }
 export const sum = xs => xs.reduce((a,b) => a+b,0)
 export const scale = (a,k) => a.map(r => r.map(v => v*k))
 export const transpose = a => a[0].map((_,j) => a.map(r => r[j]))

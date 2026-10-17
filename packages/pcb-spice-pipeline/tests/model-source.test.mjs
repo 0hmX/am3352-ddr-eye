@@ -4,7 +4,7 @@ import {mkdtemp,readdir,writeFile,rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {zipSync} from 'fflate'
-import {loadModelSource} from '../src/general-pipeline.mjs'
+import {loadModelSource} from '../src/general-pipeline.js'
 import {sha256} from '../src/io.mjs'
 
 const first=Buffer.from('\uFEFF[IBIS Ver] 4.2\r\n[File Name] first.ibs\r\n[End]\r\n')
