@@ -1,5 +1,5 @@
-import type { BoardProps, IbisModelDefinition } from "@tscircuit/props"
-import { analog } from "@tscircuit/core"
+import type { IbisModelDefinition } from "@tscircuit/ibis-to-spice"
+import { si } from "pcb-spice-pipeline/tsx"
 import routedBoard from "../../am3352.circuit.json"
 import {
   driver as dqsDriver,
@@ -53,27 +53,22 @@ export const modeling = {
 
 export default function Board() {
   return (
-    <board
-      circuitJson={routedBoard as NonNullable<BoardProps["circuitJson"]>}
-      routingDisabled
-      schematicDisabled
-    >
-      <ibismodel componentRef=".U1" {...driver} />
-      <ibismodel componentRef=".U3" {...receiver} />
-      <voltagesource name="V1" doNotPlace voltage="1.5V"
-        connections={{ pos: ".U1 > .E5", neg: ".U1 > .A1" }} />
-      <voltageprobe name="DDR_RX" connectsTo=".U3 > .F3" referenceTo=".U3 > .G3" />
-      <voltageprobe name="DDR_TX" connectsTo=".U1 > .P1" referenceTo=".U1 > .P2" />
-      <voltageprobe name="DQ0_RX" connectsTo=".U3 > .E3" referenceTo=".U3 > .B1" />
-      <voltageprobe name="DQ0_TX" connectsTo=".U1 > .M3" referenceTo=".U1 > .A1" />
-      <voltageprobe name="DQS_RX" connectsTo=".U3 > .F3" referenceTo=".U3 > .B1" />
-      <voltageprobe name="DQSn_RX" connectsTo=".U3 > .G3" referenceTo=".U3 > .B1" />
+    <>
+    <si.ImportedBoard circuitJson={routedBoard} />
+      <si.Model componentRef=".U1" {...driver} />
+      <si.Model componentRef=".U3" {...receiver} />
+      <si.Probe name="DDR_RX" connectsTo=".U3 > .F3" referenceTo=".U3 > .G3" />
+      <si.Probe name="DDR_TX" connectsTo=".U1 > .P1" referenceTo=".U1 > .P2" />
+      <si.Probe name="DQ0_RX" connectsTo=".U3 > .E3" referenceTo=".U3 > .B1" />
+      <si.Probe name="DQ0_TX" connectsTo=".U1 > .M3" referenceTo=".U1 > .A1" />
+      <si.Probe name="DQS_RX" connectsTo=".U3 > .F3" referenceTo=".U3 > .B1" />
+      <si.Probe name="DQSn_RX" connectsTo=".U3 > .G3" referenceTo=".U3 > .B1" />
       {/* Keep the coupled geometry, buffers, rails and victim identical in both runs. */}
       {(["QUIET", "SWITCHING"] as const).map((activity) => {
         const simulationRef = `.DDR_${activity}`
         const neighborBits = activity === "QUIET" ? "0" : "01"
         return [
-          <analog.transientsimulation key={`simulation-${activity}`} name={`DDR_${activity}`} duration="160ns"
+          <si.Transient key={`simulation-${activity}`} name={`DDR_${activity}`} duration="160ns"
             timePerStep="10ps" spiceEngine="ngspice" ibisPinStates={{
               ".U1 > .M3": { mode: "output", enabled: true },
               ".U1 > .P1": { mode: "output", enabled: true },
@@ -83,22 +78,22 @@ export default function Board() {
               ".U3 > .G3": { mode: "input" },
             }} />,
           // Repeating 00010111 covers all eight three-bit victim histories.
-          <analog.digitalstimulus key={`victim-${activity}`} name={`DQ0_${activity}`} simulationRef={simulationRef}
+          <si.Stimulus key={`victim-${activity}`} name={`DQ0_${activity}`} simulationRef={simulationRef}
             drives=".U1 > .M3" unitInterval="2.5ns" startTime="0ns"
             initialState={0} pattern={{ type: "bits", bits: "00010111", repeat: true }} />,
           // Quiet neighbors remain driven low/high. Switching edges are DQ-centered.
-          <analog.digitalstimulus key={`dqs-${activity}`} name={`DQS_P_${activity}`} simulationRef={simulationRef}
+          <si.Stimulus key={`dqs-${activity}`} name={`DQS_P_${activity}`} simulationRef={simulationRef}
             drives=".U1 > .P1" unitInterval="2.5ns" startTime="1.25ns"
             initialState={0} pattern={{ type: "bits", bits: neighborBits, repeat: true }} />,
-          <analog.digitalstimulus key={`dqsn-${activity}`} name={`DQS_N_${activity}`} simulationRef={simulationRef}
+          <si.Stimulus key={`dqsn-${activity}`} name={`DQS_N_${activity}`} simulationRef={simulationRef}
             drives=".U1 > .P2" unitInterval="2.5ns" startTime="1.25ns"
             initialState={0} inverted pattern={{ type: "bits", bits: neighborBits, repeat: true }} />,
-          <analog.eyediagram key={`victim-eye-${activity}`} name={`DQ0_receive_eye_${activity}`} simulationRef={simulationRef}
+          <si.Eye key={`victim-eye-${activity}`} name={`DQ0_receive_eye_${activity}`} simulationRef={simulationRef}
             probeRef=".DQ0_RX" unitInterval="2.5ns" timeOrigin="0ns" startTime="40ns" />,
-          <analog.eyediagram key={`strobe-eye-${activity}`} name={`DQS_receive_eye_${activity}`} simulationRef={simulationRef}
+          <si.Eye key={`strobe-eye-${activity}`} name={`DQS_receive_eye_${activity}`} simulationRef={simulationRef}
             probeRef=".DDR_RX" unitInterval="2.5ns" timeOrigin="1.25ns" startTime="40ns" />,
         ]
       })}
-    </board>
+    </>
   )
 }

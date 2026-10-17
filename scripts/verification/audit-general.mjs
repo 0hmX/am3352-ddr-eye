@@ -73,12 +73,11 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
   assert.ok(eyes.length && experiments.length, 'Native eye and experiment declarations serialized')
   const graphs = results.filter(element => element.type === 'simulation_transient_voltage_graph')
   unique(graphs, 'simulation_transient_voltage_graph_id', 'Waveform results')
-  const requireSchema = createRequire(join(packageRoot, 'package.json'))
-  const { any_circuit_element } = await import(pathToFileURL(requireSchema.resolve('circuit-json')).href)
+  const { parseRecord } = await import(pathToFileURL(join(projectRoot,'packages/pcb-spice-pipeline/dist/schema.js')).href)
   const serializedTypes = new Set(['simulation_experiment', 'simulation_voltage_probe', 'simulation_eye_diagram', 'simulation_digital_stimulus', 'simulation_ibis_model', 'simulation_ibis_pin_state', 'simulation_transient_voltage_graph'])
   let schemaRoundTrips = 0
   for (const record of [...circuit, ...graphs].filter(record => serializedTypes.has(record.type))) {
-    const roundTrip = any_circuit_element.parse(JSON.parse(JSON.stringify(record)))
+    const roundTrip = parseRecord(JSON.parse(JSON.stringify(record)))
     assert.deepEqual(JSON.parse(JSON.stringify(roundTrip)), record, `Registered Circuit JSON roundtrip preserves ${record.type} fields and IDs`)
     schemaRoundTrips++
   }

@@ -1,4 +1,4 @@
-import type { IbisModelDefinition } from "@tscircuit/props"
+import type { IbisModelDefinition } from "@tscircuit/ibis-to-spice"
 import settings from "./simulation.json"
 import boardConstruction from "./board-construction.json"
 import sourceProvenance from "./source-provenance.json"
@@ -41,6 +41,7 @@ export const receiver: IbisModelDefinition = {
 export const modeling = {
   ...settings,
   stackup: boardConstruction.copperLayers,
+  supplies: [{ positive: { component: "U1", port: "E5" }, negative: { component: "U1", port: "A1" }, voltageV: 1.5 }],
   channelReference: { component: "U1", port: "A1" },
   boardConstruction,
   sourceProvenance,

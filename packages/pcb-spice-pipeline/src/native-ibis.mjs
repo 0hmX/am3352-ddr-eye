@@ -8,7 +8,7 @@ export function useNativeIbis(circuitJson,geometry,modeling,independent) {
     const componentIds=[...new Set(ports.map(p=>p.source_component_id))]
     if(componentIds.length!==1) fail('native_ibis',`${role}: both lanes must belong to one selected chip`)
     const componentId=componentIds[0],models=circuitJson.filter(e=>e.type==='simulation_spice_subcircuit'&&e.source_component_id===componentId)
-    if(models.length!==1) fail('native_ibis',`${role}: expected one native chip.ibisModel subcircuit, got ${models.length}; install the pinned experimental core/props`)
+    if(models.length!==1) fail('native_ibis',`${role}: expected one native chip.ibisModel subcircuit, got ${models.length}; use the typed si.Model declarations for new TSX entries`)
     const native=models[0],expected=independent[role],mapping=native.spice_pin_to_source_port_map
     if(native.subcircuit_source!==expected.source) fail('native_ibis',`${role}: native emitted source differs from independent conversion of hash-locked original bytes`)
     if(Object.keys(mapping).length!==Object.keys(expected.spicePinMapping).length) fail('native_ibis',`${role}: terminal map dimension differs`)

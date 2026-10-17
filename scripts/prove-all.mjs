@@ -2,7 +2,7 @@ import { spawn } from "node:child_process"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { runtimePaths } from "../packages/pcb-spice-pipeline/src/runtime.mjs"
+
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const output = resolve(process.argv[2] ?? join(project, "dist", `proof-${Date.now()}`))
@@ -38,5 +38,4 @@ await execute([join(verify, "audit-project.mjs"), project, projectAudit])
 await execute([join(verify, "negative-contract-check.mjs"), project, join(output, "ddr/run-a"), negatives])
 await execute([join(verify, "postprocess-check.mjs"), join(output, "ddr/run-a"), postprocessing])
 await writeFile(join(output, "proof.json"), JSON.stringify({ status: "passed", cases: results, projectAudit, negatives, postprocessing }, null, 2) + "\n")
-await execute([join(project, "scripts/plot-proof-overview.py"), output], (await runtimePaths({ projectDir: project })).python)
 console.log(`All ${cases.length} fresh repeated workflows passed: ${join(output, "proof.json")}`)

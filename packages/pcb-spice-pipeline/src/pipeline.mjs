@@ -17,6 +17,9 @@ import { waveformRows, measureWaveform, foldEye } from './metrics.mjs'
 import { useNativeIbis } from './native-ibis.mjs'
 import { eyeSimulation, resolveEyeDiagram } from './eyediagram.mjs'
 import { projectProvenance } from './project-provenance.mjs'
+import { collectSimulation } from 'pcb-spice-pipeline/tsx'
+import { serializeSimulation } from './tsx-render.js'
+import { writeViewer } from './viewer.js'
 const exec=promisify(execFile),repo=resolve(dirname(fileURLToPath(import.meta.url)),'..')
 export {sha256} from './io.mjs'
 export {compareRuns} from './comparison.js'
@@ -40,8 +43,9 @@ export async function loadEntry(path) {
     if(!cj) {
       const {Circuit}=await import('@tscircuit/core'),c=new Circuit()
       if(!mod.default) fail('tsx_entry','Export default TSX board or circuitJson, plus modeling')
-      c.add(typeof mod.default==='function'?mod.default():mod.default);await c.renderUntilSettled();cj=c.getCircuitJson()
-      if(!cj.some(e=>e.type==='simulation_eye_diagram')) eyeDiagrams=c.selectAll('eyediagram').map(eye=>eye.getEyeDiagramDescriptor())
+      const collector=new Map()
+      c.add(collectSimulation(typeof mod.default==='function'?mod.default():mod.default,collector))
+      await c.renderUntilSettled();cj=serializeSimulation(c,collector)
     }
     if(!mod.modeling) fail('tsx_entry','Export modeling with explicit physical inputs')
     let originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256
@@ -62,8 +66,8 @@ export async function loadEntry(path) {
   if(modeling.fixtureProvenance?.originalJsonSha256&&sha256(bytes)!==modeling.fixtureProvenance.originalJsonSha256) fail('geometry_hash','Original source Circuit JSON differs from pinned provenance')
   return {circuitJson,modeling,baseDir,entryBytes,entryPath:absolute,circuitBytes:bytes,originalCircuitBytes:original,circuitPath,project:await projectProvenance(absolute,[],[circuitPath])}
 }
-export async function runPipeline({circuitJson,modeling,eyeDiagrams=[],outputDir,tools,baseDir=repo,entryBytes,entryPath,circuitBytes,originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256,project,python,vendorCache=join(repo,'.cache/vendors'),onProgress=()=>{}}) {
-  if(circuitJson.some(e=>e.type==='simulation_ibis_model')) return runGeneralPipeline({circuitJson,modeling,outputDir,tools,baseDir,entryBytes,entryPath,circuitBytes,originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256,project,python,vendorCache,onProgress})
+export async function runPipeline({circuitJson,modeling,eyeDiagrams=[],outputDir,tools,baseDir=repo,entryBytes,entryPath,circuitBytes,originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256,project,vendorCache=join(repo,'.cache/vendors'),onProgress=()=>{}}) {
+  if(circuitJson.some(e=>e.type==='simulation_ibis_model')) return runGeneralPipeline({circuitJson,modeling,outputDir,tools,baseDir,entryBytes,entryPath,circuitBytes,originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256,project,vendorCache,onProgress})
   const out=resolve(outputDir)
   try {await stat(out);fail('output_exists',`Use a fresh output directory for regeneration: ${out}`)} catch(e) {if(e.code!=='ENOENT') throw e}
   modeling=eyeSimulation(modeling,eyeDiagrams)
@@ -118,11 +122,10 @@ export async function runPipeline({circuitJson,modeling,eyeDiagrams=[],outputDir
   await json(join(out,'metrics.json'),metrics)
   await writeFile(join(out,'eye-data.csv'),'window,folded_time_s,differential_v\n'+folded.samples.map(r=>r.join(',')).join('\n')+'\n')
   await json(join(out,'eye-data.json'),{name:eye.name,endpoint:eye.endpoint,polarity:eye.polarity,windows:folded.windows,pointsPerWindow:folded.pointsPerWindow,interpolation:'linear interpolation of executed adaptive ngspice samples',source:'waveform.csv',sourceSha256:sha256(await readFile(join(out,'waveform.csv')))})
-  onProgress('Plot measured transient and deterministic clock eye')
-  await command(python??process.env.PCB_SPICE_PYTHON??join(repo,'.venv/bin/python3'),[join(repo,'scripts/plot.py'),out],out,'plot')
+  await writeViewer(out,[{name:eye.name,directory:'.',probes:[{name:'receiver_diff',simulationVoltageProbeId:'receiver_diff',column:5}],eyes:[{name:eye.name,simulationVoltageProbeId:'receiver_diff',unitIntervalSeconds:modeling.simulation.uiSeconds,windowOriginsSeconds:folded.windowOriginsSeconds??[]}]}],geometry.approximations)
   let gitCommit=null,sourceTreeDirty=null
   try {if(resolve((await exec('git',['rev-parse','--show-toplevel'],{cwd:repo})).stdout.trim())===repo) {gitCommit=(await exec('git',['rev-parse','HEAD'],{cwd:repo})).stdout.trim();sourceTreeDirty=Boolean((await exec('git',['status','--porcelain'],{cwd:repo})).stdout.trim())}} catch {}
-  const sourceRoots=['.gitignore','.github','LICENSE','README.md','examples','package.json','pnpm-lock.yaml','pnpm-workspace.yaml','requirements.lock.txt','scripts','src','tests','toolchain-lock.json','tsconfig.json','vendor']
+  const sourceRoots=['.gitignore','.github','LICENSE','README.md','examples','package.json','pnpm-lock.yaml','pnpm-workspace.yaml','scripts','src','tests','toolchain-lock.json','tsconfig.json','vendor']
   const sourceFiles=await hashes(repo,'',(await readdir(repo)).filter(name=>!sourceRoots.includes(name)))
   const receipt={schemaVersion:2,status:'executed',execution:{host:hostname(),platform:platform(),architecture:arch(),nativeLocalMac:platform()==='darwin',timestampUtc:new Date().toISOString(),node:process.version,gitCommit,sourceTreeDirty,solverResultCache:false},sourceFiles,project:project??null,entryPath:entryPath??null,description:modeling.description,sourceCircuitJsonSha256:sha256(circuitBytes??JSON.stringify(circuitJson,null,2)+'\n'),originalSourceCircuitJsonSha256:originalSourceCircuitJsonSha256??(originalCircuitBytes?sha256(circuitPath.endsWith('.gz')?gunzipSync(originalCircuitBytes):originalCircuitBytes):null),originalSourceArchiveSha256:originalCircuitBytes?sha256(originalCircuitBytes):null,fixtureProvenance:modeling.fixtureProvenance??null,sourceProvenance:modeling.sourceProvenance??null,preSolvedAssessment:modeling.sourceProvenance?.preSolvedAssessment??null,renderedBoard,converter:handoff,nativeIbis:nativeEvidence,eyeDiagram:eye,toolEvidence,matrices:extracted.map(e=>({stage:e.stage,R:e.R,L:e.L,C:e.C,units:e.units})),metrics,limitations:[...geometry.approximations,...driver.warnings,...receiver.warnings,'TI Model_655/847 and Winbond ODT_60 are explicit demonstration IO settings, not known board firmware','This reduced channel is not full-board EM extraction or independent silicon validation'],files:await hashes(out)}
   await json(join(out,'receipt.json'),receipt)

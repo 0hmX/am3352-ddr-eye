@@ -5,7 +5,7 @@ import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
 import {resolve,join} from 'node:path'
 import {fileURLToPath} from 'node:url'
-import {any_circuit_element} from 'circuit-json'
+import {parseRecord} from '../src/schema.js'
 import {loadEntry,runPipeline} from '../src/pipeline.mjs'
 import {runtimePaths} from '../src/runtime.mjs'
 import {channelSpice} from '../src/spice.js'
@@ -68,7 +68,7 @@ test('actual vendor DDR DQ, non-DDR and single-ended TSX generate waveforms and 
       assert.equal(command.exitCode,0)
       assert.ok(command.args.includes('-n'),'native pipeline ignores local and user startup files')
     }
-    const circuit=(await readJson(join(dir,'circuit-results.json'))).map(record=>any_circuit_element.parse(record))
+    const circuit=(await readJson(join(dir,'circuit-results.json'))).map(record=>parseRecord(record))
     for(const experiment of receipt.experiments) {
     assert.ok(experiment.eyes.length>=2)
     assert.equal(experiment.solverInvocations,1)
@@ -81,7 +81,7 @@ test('actual vendor DDR DQ, non-DDR and single-ended TSX generate waveforms and 
       const eye=experiment.eyes.find(eye=>eye.name==='DQ0_receive_eye_SWITCHING')
       const times=wave.map(row=>row[0]),voltages=wave.map(row=>row[columns.DQ0_RX]),samples=new Map()
       const ui=stimulus.unit_interval_ms/1000,epoch=stimulus.start_time_ms/1000
-      const threshold=input.circuitJson.find(record=>record.type==='simulation_voltage_source').voltage/2
+      const threshold=(input.circuitJson.find(record=>record.type==='simulation_voltage_source')?.voltage??input.modeling.supplies[0].voltageV)/2
       for(let i=1;i<wave.length;i++) {
         const a=wave[i-1],b=wave[i],x=a[columns.DDR_RX],y=b[columns.DDR_RX]
         if((x<0)===(y<0)) continue
@@ -128,9 +128,7 @@ test('actual vendor DDR DQ, non-DDR and single-ended TSX generate waveforms and 
         assert.ok(range[1]-range[0]>.5,'actual driven data waveform varies')
       else assert.ok(range[1]-range[0]<.5,'quiet neighbors remain driven without rail-to-rail switching')
     }
-    const plotReceipt=await readJson(join(dir,experiment.directory,'plot-receipt.json'))
-    assert.deepEqual(plotReceipt.probeBindings,experiment.probes,'shared plotter consumes declared probe bindings')
-    assert.ok(await exists(join(dir,experiment.directory,'waveform.png')),'shared pipeline generates the waveform plot')
+    assert.ok(await exists(join(dir,'results.html')),'interactive viewer is generated without Python')
     for(const eye of experiment.eyes) {
       const declared=input.circuitJson.find(record=>record.type==='simulation_eye_diagram'&&record.simulation_eye_diagram_id===eye.simulationEyeDiagramId)
       assert.equal(eye.timeOriginSeconds,declared.time_origin_ms/1000)
@@ -138,7 +136,6 @@ test('actual vendor DDR DQ, non-DDR and single-ended TSX generate waveforms and 
       const samples=(await readFile(join(dir,experiment.directory,eye.directory,'eye-data.csv'),'utf8')).trim().split(/\r?\n/)
       assert.equal(samples.shift(),'window,folded_time_s,time_s,voltage_v')
       assert.equal(samples.length,eye.windows*1200)
-      assert.ok(await exists(join(dir,experiment.directory,eye.directory,'eye.png')),'shared pipeline generates each declared eye plot')
     }
     }
     for(const [label,mutate] of [

@@ -1,6 +1,6 @@
 # @tscircuit/ibis-to-spice
 
-Deterministic IBIS electrical-table conversion to ngspice behavioral subcircuits. This source package lives in the normal tscircuit example's workspace; no LLM runs during conversion or simulation. The experimental native props, extraction pipeline and examples are documented by the repository's root README.
+Deterministic IBIS electrical-table conversion to ngspice behavioral subcircuits. This source package lives in the normal tscircuit example's workspace; no LLM runs during conversion or simulation. The typed TSX adapter, extraction pipeline and examples are documented by the repository's root README.
 
 From the repository root:
 

@@ -1,21 +1,26 @@
 {
   "compilerOptions": {
     "jsx": "react-jsx",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2023",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "types": [
-      "node",
-      "@tscircuit/core"
+      "node"
     ],
     "strict": true,
     "skipLibCheck": true,
     "allowJs": true,
     "checkJs": false,
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "declaration": true,
+    "paths": {
+      "@tscircuit/fanout-solver": [
+        "../../node_modules/.cache/tscircuit-declarations/fanout/index.d.ts"
+      ]
+    }
   },
   "include": [
     "src/**/*.mjs",

@@ -1,7 +1,7 @@
 import {fail} from './matrices.mjs'
 import {selectPort} from './geometry.js'
 
-import type {CircuitJson, SimulationExperiment, SimulationIbisModel, SimulationIbisPinState, SimulationDigitalStimulus} from 'circuit-json'
+import type {CircuitJson, SimulationExperiment, SimulationIbisModel, SimulationIbisPinState, SimulationDigitalStimulus} from './schema.js'
 import type {IbisModelDefinition, IbisRunConfig, IbisReferencePorts} from '@tscircuit/ibis-to-spice'
 import type {Geometry, Modeling} from './geometry.js'
 

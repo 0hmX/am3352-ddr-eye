@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { sha256, json, zipMember, vendorPinEvidence, bitSchedule, close } from './independent-helpers.mjs'
+import { sha256, json, zipMember, vendorPinEvidence, bitSchedule, close, declaredDcSupplies } from './independent-helpers.mjs'
 
 function one(elements, predicate, label) {
   const matches = elements.filter(predicate)
@@ -39,8 +39,8 @@ export async function auditIbis(out, experimentDir, circuit, run) {
   const stimuli = circuit.filter(element => element.type === 'simulation_digital_stimulus' && element.simulation_experiment_id === run.simulationExperimentId)
   const nodeMap = await json(join(out, 'electrical-node-map.json'))
   const deck = await readFile(join(experimentDir, 'simulation.cir'), 'utf8')
-  const declaredDcRailNodes = new Set(circuit.filter(element => element.type === 'simulation_voltage_source' && !element.wave_shape)
-    .flatMap(source => [nodeMap.nodes[source.terminal1_source_port_id], nodeMap.nodes[source.terminal2_source_port_id]]))
+  const declaredDcRailNodes = new Set((await declaredDcSupplies(out,circuit,nodeMap,deck))
+    .flatMap(source => [source.positiveNode,source.negativeNode]))
   assert.equal(new Set(states.map(state => state.source_port_id)).size, states.length, 'Unique fixed state for each physical pin')
   assert.equal(new Set(stimuli.map(stimulus => stimulus.source_port_id)).size, stimuli.length, 'No duplicate driver stimulus')
   const evidence = []

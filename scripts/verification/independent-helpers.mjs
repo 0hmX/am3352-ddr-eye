@@ -7,6 +7,35 @@ import { inflateRawSync } from 'node:zlib'
 
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex')
 export const json = async path => JSON.parse(await readFile(path, 'utf8'))
+// Resolve declared supplies independently, including the modeling-side rails
+// used with immutable imported PCBs. Every declaration must appear in SPICE.
+export async function declaredDcSupplies(out, circuit, nodeMap, deck) {
+  const modeling = await json(join(out, 'inputs/modeling.json'))
+  const port = selector => {
+    const components = selector.sourcePortId ? [] : circuit.filter(record => record.type === 'source_component' && record.name === selector.component)
+    if (!selector.sourcePortId) assert.equal(components.length, 1, 'Supply selector identifies one component')
+    const ports = circuit.filter(record => record.type === 'source_port' && (selector.sourcePortId
+      ? record.source_port_id === selector.sourcePortId
+      : record.source_component_id === components[0].source_component_id && (record.name === selector.port || record.port_hints?.includes(selector.port) || `pin${record.pin_number}` === selector.port)))
+    assert.equal(ports.length, 1, 'Supply selector identifies one physical port')
+    return ports[0].source_port_id
+  }
+  const physical = circuit.filter(record => record.type === 'simulation_voltage_source').flatMap((source, index) => source.wave_shape ? [] : [{
+    name: `VPHYSICAL${index}`, voltageV: source.voltage,
+    positive: source.positive_source_port_id ?? source.positive_source_net_id ?? source.terminal1_source_port_id,
+    negative: source.negative_source_port_id ?? source.negative_source_net_id ?? source.terminal2_source_port_id,
+  }])
+  const declared = (modeling.supplies ?? []).map((source, index) => ({name:`VDECLARED${index}`,voltageV:source.voltageV,positive:port(source.positive),negative:port(source.negative)}))
+  return [...physical,...declared].map(source => {
+    const positiveNode = nodeMap.nodes[source.positive], negativeNode = nodeMap.nodes[source.negative]
+    assert.ok(positiveNode && negativeNode && Number.isFinite(source.voltageV), 'Finite supply binds two actual electrical nodes')
+    const lines = deck.split(/\r?\n/).map(line => line.trim().split(/\s+/)).filter(parts => parts[0] === source.name)
+    assert.equal(lines.length, 1, `Actual SPICE deck contains ${source.name} exactly once`)
+    assert.deepEqual(lines[0].slice(1,3),[positiveNode,negativeNode], 'Actual supply has the declared physical polarity')
+    close(Number(lines[0][3]),source.voltageV,'Actual supply has the declared DC voltage',1e-12,1e-15)
+    return {name:source.name,voltageV:source.voltageV,positiveNode,negativeNode}
+  })
+}
 export function close(actual, expected, label, relative = 1e-9, absolute = 1e-15) {
   assert.ok(Number.isFinite(actual) && Number.isFinite(expected), `${label}: finite values required`)
   assert.ok(Math.abs(actual - expected) <= Math.max(absolute, Math.abs(expected) * relative), `${label}: ${actual} != ${expected}`)

@@ -1,4 +1,4 @@
-import type { CircuitJson } from 'circuit-json'
+import type { CircuitJson } from './schema.js'
 import { fail } from './matrices.mjs'
 
 export type PortSelector = { sourcePortId: string; component?: never; port?: never } | { sourcePortId?: never; component: string; port: string }

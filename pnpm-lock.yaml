@@ -5,12 +5,12 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@tscircuit/core': file:.packages/tscircuit-core-ibis-experimental.tgz
-  '@tscircuit/props': file:.packages/tscircuit-props-ibis-experimental.tgz
+  '@tscircuit/core': 0.0.2171
+  '@tscircuit/props': 0.0.704
   '@tscircuit/ibis-to-spice': workspace:*
   '@tscircuit/cli': 0.1.2237
   '@tscircuit/eval': 0.0.1538
-  tscircuit: file:.packages/tscircuit-experimental.tgz
+  tscircuit: 0.0.2940
   '@tscircuit/cableprinter': 0.0.6
   '@tscircuit/capacity-autorouter': 0.0.974
   '@tscircuit/checks': 0.0.248
@@ -23,43 +23,43 @@ overrides:
   '@tscircuit/modelprinter': 0.0.34
   '@tscircuit/schematic-match-adapt': 0.0.22
   bpc-graph: 0.0.67
-  circuit-json: file:.packages/circuit-json-general-experimental.tgz
+  circuit-json: 0.0.528
   circuit-json-to-bpc: 0.0.14
   circuit-json-to-connectivity-map: 0.0.33
   circuit-json-to-spice: 0.0.46
   schematic-symbols: 0.0.248
   spicets: 0.0.5
-  '@tscircuit/fanout-solver': file:.packages/fanout-solver-experimental.tgz
+  '@tscircuit/fanout-solver': 0.0.81
 
 importers:
 
   .:
     dependencies:
       '@tscircuit/core':
-        specifier: file:.packages/tscircuit-core-ibis-experimental.tgz
-        version: file:.packages/tscircuit-core-ibis-experimental.tgz(c7c67592cfd35ee4702a2bbc0b48cab7)
+        specifier: 0.0.2171
+        version: 0.0.2171(d7ca3144df51af6e38f950f61100264b)
       '@tscircuit/ibis-to-spice':
         specifier: workspace:*
         version: link:packages/ibis-to-spice
       '@tscircuit/props':
-        specifier: file:.packages/tscircuit-props-ibis-experimental.tgz
-        version: file:.packages/tscircuit-props-ibis-experimental.tgz(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+        specifier: 0.0.704
+        version: 0.0.704(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
       circuit-json:
-        specifier: file:.packages/circuit-json-general-experimental.tgz
-        version: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+        specifier: 0.0.528
+        version: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       react:
         specifier: 19.2.4
         version: 19.2.4
       tscircuit:
-        specifier: file:.packages/tscircuit-experimental.tgz
-        version: file:.packages/tscircuit-experimental.tgz(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3)
+        specifier: 0.0.2940
+        version: 0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3)
     devDependencies:
       '@tscircuit/cli':
         specifier: 0.1.2237
-        version: 0.1.2237(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(tscircuit@file:.packages/tscircuit-experimental.tgz(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))
+        version: 0.1.2237(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(tscircuit@0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))
       '@tscircuit/eval':
         specifier: 0.0.1538
-        version: 0.0.1538(@tscircuit/core@file:.packages/tscircuit-core-ibis-experimental.tgz(c7c67592cfd35ee4702a2bbc0b48cab7))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)
+        version: 0.0.1538(@tscircuit/core@0.0.2171(d7ca3144df51af6e38f950f61100264b))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
@@ -81,13 +81,13 @@ importers:
     devDependencies:
       '@tscircuit/ngspice-spice-engine':
         specifier: 0.0.20
-        version: 0.0.20(@tscircuit/props@file:.packages/tscircuit-props-ibis-experimental.tgz(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
+        version: 0.0.20(@tscircuit/props@0.0.704(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
       '@types/bun':
         specifier: 1.4.3
         version: 1.4.3
       circuit-json:
-        specifier: file:../../.packages/circuit-json-general-experimental.tgz
-        version: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+        specifier: 0.0.528
+        version: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       tsup:
         specifier: 8.5.1
         version: 8.5.1(tsx@4.23.15)(typescript@5.9.3)
@@ -97,28 +97,34 @@ importers:
 
   packages/pcb-spice-pipeline:
     dependencies:
-      '@tscircuit/core':
-        specifier: file:../../.packages/tscircuit-core-ibis-experimental.tgz
-        version: file:.packages/tscircuit-core-ibis-experimental.tgz(37ab6d50455dbd3a34f592ae7da22389)
-      '@tscircuit/props':
-        specifier: file:../../.packages/tscircuit-props-ibis-experimental.tgz
-        version: file:.packages/tscircuit-props-ibis-experimental.tgz(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
       circuit-json:
-        specifier: file:../../.packages/circuit-json-general-experimental.tgz
-        version: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+        specifier: 0.0.528
+        version: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       fflate:
         specifier: 0.8.2
         version: 0.8.2
       react:
         specifier: 19.2.4
         version: 19.2.4
+      tar:
+        specifier: 7.5.22
+        version: 7.5.22
       tsx:
         specifier: 4.23.15
         version: 4.23.15
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
+      '@tscircuit/core':
+        specifier: 0.0.2171
+        version: 0.0.2171(ffb9b8dfd5331a934cf51869b1090654)
       '@tscircuit/ibis-to-spice':
         specifier: workspace:*
         version: link:../ibis-to-spice
+      '@tscircuit/props':
+        specifier: 0.0.704
+        version: 0.0.704(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5
@@ -463,6 +469,10 @@ packages:
     resolution: {integrity: sha512-Lv3eaITqU20WD+5W8L7JeJdjDXC9hfTUEzY0cRLx/sXj1+P3XdK6Fig4UdxvsekakTK8XeOwnpAKEpTI728U4g==}
     engines: {node: '>=16.0.0'}
 
+  '@isaacs/fs-minipass@4.0.1':
+    resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
+    engines: {node: '>=18.0.0'}
+
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
 
@@ -801,30 +811,27 @@ packages:
 
   '@tscircuit/checks@0.0.248':
     resolution: {integrity: sha512-oi5U5UqwhWjUnoA6K5C2SOhR1kqrUTtQP9BHovK8bq1uIbL9quNyRSGlMVtYpYeiFl5ONBc0k6FQSdvuunhzDA==}
-    version: 0.0.248
     peerDependencies:
       '@flatten-js/core': '*'
       '@tscircuit/circuit-json-util': 0.0.121
       '@tscircuit/math-utils': 0.0.38
-      circuit-json: '*'
+      circuit-json: 0.0.528
       circuit-json-to-connectivity-map: 0.0.33
       typescript: ^5.5.3
 
   '@tscircuit/circuit-json-util@0.0.121':
     resolution: {integrity: sha512-taiMCW9mgYV5+VL4MvudI6QRV5jVsVtacRHgaDkP+90qkf+/00VdFVTUFK9sokO7O+WdOhn++7UlkR12RGzGqg==}
-    version: 0.0.121
     peerDependencies:
-      circuit-json: '*'
+      circuit-json: 0.0.528
       transformation-matrix: '*'
       zod: '3'
 
   '@tscircuit/cli@0.1.2237':
     resolution: {integrity: sha512-iG8VTp8+6hNVbwFJlK+dVoTUUjmLxHbKQAzvJPa3GxI2Ioyuv0lwXamBmdm/eMUGfHVggwr7cMpFK098zIewrw==}
-    version: 0.1.2237
     hasBin: true
     peerDependencies:
-      circuit-json: ^0.0.489
-      tscircuit: '*'
+      circuit-json: 0.0.528
+      tscircuit: 0.0.2940
 
   '@tscircuit/copper-pour-solver@0.0.59':
     resolution: {integrity: sha512-4ue1tEwz5RkvWWhlwtwe/j1CbsHuv7gsrhxQZ+OveBbZTpSx6cSZNqw7+HOmfvL/A628w8ymIz16ZU1rPBBFMQ==}
@@ -836,9 +843,8 @@ packages:
     peerDependencies:
       typescript: ^5
 
-  '@tscircuit/core@file:.packages/tscircuit-core-ibis-experimental.tgz':
-    resolution: {integrity: sha512-Obfto2eU8wiWClEJxA+nHLSxkytKLiaxos/97A2LuFuqvJf1bwHjHWkJpS+pwCkw6yyfxpxhiBi7jMuXSKgq3g==, tarball: file:.packages/tscircuit-core-ibis-experimental.tgz}
-    version: 0.0.2148
+  '@tscircuit/core@0.0.2171':
+    resolution: {integrity: sha512-LaCUWtsNucMewIfgMvrJatGPJNzJJpg6z7bFanT13oq8/cejvvOJtT0nJi2n0JAs4z4+8v8EyecQ7VKXk+luIg==}
     peerDependencies:
       '@tscircuit/cableprinter': 0.0.6
       '@tscircuit/capacity-autorouter': 0.0.974
@@ -850,10 +856,10 @@ packages:
       '@tscircuit/matchpack': 0.0.100
       '@tscircuit/math-utils': 0.0.38
       '@tscircuit/modelprinter': 0.0.34
-      '@tscircuit/props': '*'
+      '@tscircuit/props': 0.0.704
       '@tscircuit/schematic-match-adapt': 0.0.22
       bpc-graph: 0.0.67
-      circuit-json: '*'
+      circuit-json: 0.0.528
       circuit-json-to-bpc: 0.0.14
       circuit-json-to-connectivity-map: 0.0.33
       circuit-json-to-spice: 0.0.46
@@ -868,24 +874,21 @@ packages:
 
   '@tscircuit/eval@0.0.1538':
     resolution: {integrity: sha512-0AUZM8qTTs+SnG9oPa1Cp3mRDnSRKXExbfp9vAh8c5ubjgZpVR/SZ5BTiX+rEXZqRYtg2j8rO0YbK5qhOPK97Q==}
-    version: 0.0.1538
     peerDependencies:
-      '@tscircuit/core': '>=0.0.1906'
-      circuit-json: '*'
+      '@tscircuit/core': 0.0.2171
+      circuit-json: 0.0.528
       typescript: ^5.0.0
       zod: '3'
 
-  '@tscircuit/fanout-solver@file:.packages/fanout-solver-experimental.tgz':
-    resolution: {integrity: sha512-WzaGGTCF9s2PhZ5u3cgpyJF5eMDHrJNOA4EKDKoGA88d6aHfiHDwfbcssADTIGBA4010av7BxaA71a49LvDC5Q==, tarball: file:.packages/fanout-solver-experimental.tgz}
-    version: 0.0.78
+  '@tscircuit/fanout-solver@0.0.81':
+    resolution: {integrity: sha512-CgYkaW27+evr5fJcch2hIRxV3iOQe+2N+q1uB1+lYUN5hoROK7TweLCUFQG9LZxaE3iFZ+QR4q5oI+0hgVpw0Q==}
     peerDependencies:
       typescript: ^5
 
   '@tscircuit/footprinter@0.0.437':
     resolution: {integrity: sha512-e2Pe0VGlyT2osk7B7MzUiBYMG5/IfcZYwbZeSpre+E+ac8JZ5Ay0j1C+VZV8lhZdbtRXyuWitHRbnmfCl3asWg==}
-    version: 0.0.437
     peerDependencies:
-      circuit-json: '*'
+      circuit-json: 0.0.528
 
   '@tscircuit/image-utils@0.0.8':
     resolution: {integrity: sha512-/a/dyd0Ly+YSk73pNXi0M02nfaiZ1NQ8PVNDBTOHHESyTOrNHiVAT+NWxsWi44gHZ/ivLegAmjxSSbSSGfU+sQ==}
@@ -903,9 +906,8 @@ packages:
 
   '@tscircuit/krt-wasm@0.1.9':
     resolution: {integrity: sha512-GQ/qmP+LBLtrACv/Ft5qC0ksCnvA+rxb6lhxyGiWseFeV2uviMYNKGis2QDLNxQlBxxOfKQ+73s8bC1mdLFKYg==}
-    version: 0.1.9
     peerDependencies:
-      tscircuit: '*'
+      tscircuit: 0.0.2940
 
   '@tscircuit/manifold-2d@0.0.6':
     resolution: {integrity: sha512-kYny1hDwPHOwRfMQtbfLh0nvCQ7nM91kkHy7pnj1UrqM6rcgDymZVCZB7ib5Cx1aZFIs8xCCF7lA51tq+giDcw==}
@@ -942,10 +944,9 @@ packages:
 
   '@tscircuit/ngspice-spice-engine@0.0.20':
     resolution: {integrity: sha512-dXjH51Wl95B6yEVkWCz65DpAHWTJRLHDyD/09eJUpGwLcYfd1F9m4E0XWbuiYZ8wKygYlACTozrSX9n3/LtfwA==}
-    version: 0.0.20
     peerDependencies:
-      '@tscircuit/props': '*'
-      circuit-json: '*'
+      '@tscircuit/props': 0.0.704
+      circuit-json: 0.0.528
       spicets: 0.0.5
       typescript: ^5
 
@@ -953,16 +954,15 @@ packages:
     resolution: {gitHosted: true, tarball: https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123}
     version: 0.0.1
 
-  '@tscircuit/props@file:.packages/tscircuit-props-ibis-experimental.tgz':
-    resolution: {integrity: sha512-HfooWeanuJSvc2x99EOZh5UaYOH/xIjqKQl7qsTBjXAn0AL95UN+jIGLsYLM6T7QG5UmX83uDQBgcuv4CJuOKw==, tarball: file:.packages/tscircuit-props-ibis-experimental.tgz}
-    version: 0.0.702
+  '@tscircuit/props@0.0.704':
+    resolution: {integrity: sha512-jv3xdOY/WaEHbO/r3PAla1AkCVZ0eJFS4y7zDbq73+Nyhxb7IvhGjQcJRwObLIP9+7fgUI1bu4urFxxtg9+rng==}
     peerDependencies:
-      circuit-json: '*'
+      circuit-json: 0.0.528
       react: '*'
       zod: '*'
 
-  '@tscircuit/runframe@0.0.2897':
-    resolution: {integrity: sha512-8aLM7Yve1jBrWkiA2O2vf7h91+FAQDK5LqdIlHKz352f/41WtOma5nXqCG/v9SKSGndSfPVtTqlJH1j2p0CPPA==}
+  '@tscircuit/runframe@0.0.3012':
+    resolution: {integrity: sha512-JF/kNiwEguYAqhd2VGRCXXndIAFhzNpXX7mAXStDowHNQpXOXw8LgjQsJazuol4z2VHgJhggKsmEbs1K2duEIQ==}
 
   '@tscircuit/schematic-match-adapt@0.0.22':
     resolution: {integrity: sha512-37R3qEY0BRiG1VeqHYzbl53H+cVT8VWLjTwrxkP0cuV7+V+T3HG29B4Y9XtcyoQCkVe2ZcvWd9qMCBqrHRFVjg==}
@@ -997,9 +997,8 @@ packages:
 
   '@tscircuit/soup-util@0.0.41':
     resolution: {integrity: sha512-47JKWBUKkRVHhad0HhBbdOJxB6v/eiac46beiKRBMlJqiZ1gPGI276v9iZfpF7c4hXR69cURcgiwuA5vowrFEg==}
-    version: 0.0.41
     peerDependencies:
-      circuit-json: '*'
+      circuit-json: 0.0.528
       transformation-matrix: '*'
       zod: '*'
 
@@ -1143,7 +1142,6 @@ packages:
 
   calculate-packing@0.0.90:
     resolution: {integrity: sha512-DcmNPrTrUtrDyGVGD6EBN/WnR9/Eln21OnXC58bGnWS/3LCu4jjV68AW0BUVIJ8El6SUUkBbhJ4jEPvzGmg6Jg==}
-    version: 0.0.90
     peerDependencies:
       '@tscircuit/circuit-json-util': 0.0.121
       typescript: ^5
@@ -1155,12 +1153,15 @@ packages:
   chownr@1.1.4:
     resolution: {integrity: sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg==}
 
+  chownr@3.0.0:
+    resolution: {integrity: sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==}
+    engines: {node: '>=18'}
+
   circuit-json-to-bpc@0.0.14:
     resolution: {integrity: sha512-jcgWTgkFepJzSbX8LOk+ZcuZFLVun7EVslfRF1LnZK5pPFWhfSMWE+PJUTDBGIikgs3mYZ4IIZSkjpmMfXvFhA==}
-    version: 0.0.14
     peerDependencies:
       bpc-graph: 0.0.67
-      circuit-json: '*'
+      circuit-json: 0.0.528
       typescript: ^5
 
   circuit-json-to-connectivity-map@0.0.33:
@@ -1168,14 +1169,14 @@ packages:
     peerDependencies:
       typescript: ^5.9.3
 
-  circuit-json-to-gltf@0.0.143:
-    resolution: {integrity: sha512-J2NF2p8jspKd49NkAO/TMwLw4qKNrD0X5KXaIb6srQ80wydlcgQl3sK9PNRSRJt9nwswXBWhSV/k9ORPUDN4zA==}
+  circuit-json-to-gltf@0.0.151:
+    resolution: {integrity: sha512-grhSbZl25w3bTxoEx6cYHsYhdg3erynfdirrVS/HmLkSpyOQthcQez7+TZLdrId4b80AdTUnf3bGMcPLK3u83Q==}
     peerDependencies:
       '@resvg/resvg-js': '2'
       '@resvg/resvg-wasm': '2'
       '@tscircuit/circuit-json-util': 0.0.121
-      circuit-json: '*'
-      circuit-to-svg: '>=0.0.429'
+      circuit-json: 0.0.528
+      circuit-to-svg: '>=0.0.445'
       typescript: ^5
     peerDependenciesMeta:
       '@resvg/resvg-js':
@@ -1183,13 +1184,13 @@ packages:
       '@resvg/resvg-wasm':
         optional: true
 
-  circuit-json-to-pnp-csv@0.0.16:
-    resolution: {integrity: sha512-LTMg6Tumhmbu3vumeJMQsRWdMuJ+ijb+6pmM+av6WjJP6cgAv8ek0VV5P2+C2t9hWRExU7Rg49CkXou71aW7qw==}
-    version: 0.0.16
+  circuit-json-to-pnp-csv@0.0.20:
+    resolution: {integrity: sha512-8zKl6jNSvhLcVfOz4D7pGyEyNlzZ5WedPPGxEKikhDVANJ7n10ecruszHb6krqsIsNS8yGPJUlQM0RBZ+dXjtQ==}
     peerDependencies:
+      '@tscircuit/circuit-json-util': 0.0.121
       '@tscircuit/soup-util': '*'
-      circuit-json: ^0.0.489
-      typescript: ^5.0.0
+      circuit-json: 0.0.528
+      typescript: '*'
 
   circuit-json-to-simple-3d@0.0.9:
     resolution: {integrity: sha512-thpCtDb9LpAQfGO+Z0hae19sxVAmJAMYM/It9UTMCtyXC3zoUHwRcp/oqtMO/ZIW+JDBhiR8AHmmtKScL2kW7Q==}
@@ -1198,27 +1199,24 @@ packages:
 
   circuit-json-to-spice@0.0.46:
     resolution: {integrity: sha512-C5HkbAWq/UJS2es+J1VUmGcmweKLZfIfp0Q3ZYeBm5sPBDb1JD1abJN0BBo+scQSw4u9RFC/7/PEv+UljHjZLg==}
-    version: 0.0.46
     peerDependencies:
       '@tscircuit/circuit-json-util': 0.0.121
-      circuit-json: '*'
+      circuit-json: 0.0.528
       spicets: 0.0.5
       typescript: ^5.0.0
 
-  circuit-json@file:.packages/circuit-json-general-experimental.tgz:
-    resolution: {integrity: sha512-nZZew1PLq+nyD63Yx4qQnZAAfTt2Pnxza0ZhQJEwd8+FpyMn6709F4SaecSQLIssuvwIXh+lQIJn99UXVKN7tg==, tarball: file:.packages/circuit-json-general-experimental.tgz}
-    version: 0.0.528
+  circuit-json@0.0.528:
+    resolution: {integrity: sha512-B9yGwpboXYPhXPrj49LNrDrC10hLHJrdm4MvIj7iwUneL1QYXuVfyQYz/qta1uAOSLpqSqCbX71nPF731F9RtQ==}
     peerDependencies:
       format-si-unit: '*'
 
-  circuit-to-svg@0.0.438:
-    resolution: {integrity: sha512-E74mFtqBleh6ptRRLyQ6ucjyq9aD/nBpihIT6SaqvX++oGlpyU1p3XOKKo6rjSX3V9DVd1Ric+OQP6Slr6MK6g==}
-    version: 0.0.438
+  circuit-to-svg@0.0.450:
+    resolution: {integrity: sha512-MpLOY27PJIDa4DKYp/RK/iIokBU3WqmV2G/t1L5HTevgTvy3lBwKClaiUEeKgEjWNMoHMKf/YHpDu74S0rMQrw==}
     engines: {node: 24.x}
     peerDependencies:
       '@tscircuit/alphabet': '*'
       '@tscircuit/circuit-json-util': 0.0.121
-      circuit-json: '*'
+      circuit-json: 0.0.528
       circuit-json-to-connectivity-map: 0.0.33
       schematic-symbols: 0.0.248
 
@@ -1229,18 +1227,34 @@ packages:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
     engines: {node: '>=7.0.0'}
 
+  color-convert@3.1.3:
+    resolution: {integrity: sha512-fasDH2ont2GqF5HpyO4w0+BcewlhHEZOFn9c1ckZdHpJ56Qb7MHhH/IcJZbBGgvdtwdwNbLvxiBEdg336iA9Sg==}
+    engines: {node: '>=14.6'}
+
   color-diff@1.4.0:
     resolution: {integrity: sha512-4oDB/o78lNdppbaqrg0HjOp7pHmUc+dfCxWKWFnQg6AB/1dkjtBDop3RZht5386cq9xBUDRvDvSCA7WUlM9Jqw==}
 
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
 
+  color-name@2.1.1:
+    resolution: {integrity: sha512-p2FdgwVx1a9yWBHP2wI0VgShkDpgN4kZISkxdNipGBJWpa5G6b04OINlVWCyJj0JmfvcPrgqt95E9k8yvaOJFg==}
+    engines: {node: '>=12.20'}
+
   color-string@1.9.1:
     resolution: {integrity: sha512-shrVawQFojnZv6xM40anx4CkoDP+fZsw/ZerEMsW/pyzsRbElpsL/DBVW7q3ExxwusdNXI3lXpuhEZkzs8p5Eg==}
+
+  color-string@2.1.4:
+    resolution: {integrity: sha512-Bb6Cq8oq0IjDOe8wJmi4JeNn763Xs9cfrBcaylK1tPypWzyoy2G3l90v9k64kjphl/ZJjPIShFztenRomi8WTg==}
+    engines: {node: '>=18'}
 
   color@4.2.3:
     resolution: {integrity: sha512-1rXeuUUiGGrykh+CeBdu5Ie7OJwinCgQY0bc7GCRxy5xVHy+moaqkpL/jqQq0MtQOeYcrqEz4abc5f0KtU7W4A==}
     engines: {node: '>=12.5.0'}
+
+  color@5.0.3:
+    resolution: {integrity: sha512-ezmVcLR3xAVp8kYOm4GS45ZLLgIE6SPAFoduLr6hTDajwb3KZ2F46gulK3XpcwRFb5KKGCSezCBAY4Dw4HsyXA==}
+    engines: {node: '>=18'}
 
   comlink@4.4.2:
     resolution: {integrity: sha512-OxGdvBmJuNKSCMO4NTl1L47VRp6xn2wG4F/2hYzB6tiCb709otOxtEYCSvK80PtjODfXXZu8ds+Nw5kVCjqd2g==}
@@ -1498,16 +1512,15 @@ packages:
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
-  jscad-electronics@0.0.182:
-    resolution: {integrity: sha512-aSZnwEZr/VhOmw3+hOKJEJQVQJlra5tw6u524oQW0d4nZEwB4W/ihQZMPuiw6hF8s9/V2n7HKKwgHjoQ+HNoTA==}
-    version: 0.0.182
+  jscad-electronics@0.0.210:
+    resolution: {integrity: sha512-4oWXjJiMFabldB+GhXuSVZYSEEOe1IgNOWCvGleBJgsu64cvXaJ1FEF7GBL6TeB5kU4XTauctw9cSt11+2lHqw==}
     engines: {node: 24.x}
     peerDependencies:
       '@jscad/modeling': ^2.12.5
       '@tscircuit/alphabet': ^0.0.24
       '@tscircuit/footprinter': 0.0.437
-      circuit-json: ^0.0.426
-      jscad-fiber: ^0.0.85
+      circuit-json: 0.0.528
+      jscad-fiber: ^0.0.89
       react: 19.1.0
       react-dom: 19.1.0
       three: ^0.179.1
@@ -1541,6 +1554,11 @@ packages:
 
   jscad-planner@0.0.18:
     resolution: {integrity: sha512-PkVg4kc59/d8mfx22k2S2QPXL6K4xN+Etn6BvK3lCne5yH+jgN9F4JHpucASwPrwFVh/V4KvMVs4oZ8BZUFY8A==}
+    peerDependencies:
+      typescript: ^5.0.0
+
+  jscad-planner@0.0.19:
+    resolution: {integrity: sha512-VTK4wI8wZAty2oRNcPktSrdJD9XfnHWsXJjx4tf20JcMZnlbGYZ5ikTHEFQByRXrMAK3HSUilc+MQUapXRLO9Q==}
     peerDependencies:
       typescript: ^5.0.0
 
@@ -1615,6 +1633,14 @@ packages:
 
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
+
+  minipass@7.1.3:
+    resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
+    engines: {node: '>=16 || 14 >=14.17'}
+
+  minizlib@3.1.0:
+    resolution: {integrity: sha512-KZxYo1BUkWD2TVFLr0MQoM8vUUigWD3LlD83a/75BqC+4qE0Hb1Vo5v1FgcfaNXvfXzr+5EhQ6ing/CaBijTlw==}
+    engines: {node: '>= 18'}
 
   mkdirp-classic@0.5.3:
     resolution: {integrity: sha512-gKLcREMhtuZRwRAfqP3RFW+TK4JqApVBtOIftVgjuABpAtpxhPGaDcfvbhNvD0B8iD1oUr/txX35NjcaY6Ns/A==}
@@ -1711,8 +1737,8 @@ packages:
     resolution: {integrity: sha512-OBatVyC/N7SCW/FaDHrSd+vn0o5cS855TOmYi4OkdWUMSJCET/xip//ch8xGUvtr3i44X9LVyWwQlRMTN3pwSA==}
     engines: {node: '>=10'}
 
-  poppygl@0.0.30:
-    resolution: {integrity: sha512-ZFPP+x69FWI6ccnxwrH3K2ADjionmfW3Y9RWr3tEETXOYSg9JB/IJlfuryS+22jwE5TDFFV7PqT4dmTBzIsQIA==}
+  poppygl@0.0.34:
+    resolution: {integrity: sha512-H5JPlkwyrImV6h9+dVT7boTy6T/mwKnIHBjOJSYzmQ/GUBAUy876Ccm2mH1/mW5o54kNy16341BHUMTAa4XMJA==}
     peerDependencies:
       typescript: ^5
 
@@ -1943,6 +1969,10 @@ packages:
   tar-stream@3.2.2:
     resolution: {integrity: sha512-+8NeqHRjQWH9nYlwo2gamAMImZCVzI4UoEgDpWorBt9OEfppiZn+uSkskzQKPWIZyji/C8fpWO7u69G0DX0tbg==}
 
+  tar@7.5.22:
+    resolution: {integrity: sha512-MFO/QzvtAOmJbkhOaCTvbGcFN9L9b+JunIsDwaKljSOdcLMea3NJ1k9Usz/rjdfSXTq4dfzfeS7W4p4YOAAHeA==}
+    engines: {node: '>=18'}
+
   teex@1.0.1:
     resolution: {integrity: sha512-eYE6iEI62Ni1H8oIa7KlDU6uQBtqr4Eajni3wX7rpfXD8ysFx8z0+dri+KWEPWpBsxXfxu58x/0jvTVT1ekOSg==}
 
@@ -1979,9 +2009,8 @@ packages:
   ts-interface-checker@0.1.13:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
 
-  tscircuit@file:.packages/tscircuit-experimental.tgz:
-    resolution: {integrity: sha512-o6LUPHg2mBgIWQnc3xHHqYv1vF0PmVo3A0zGkOqdXoD5jBt6QueT2Gz0G7gIYRZjuZG9LbtI61zHbgRWWKT0Ow==, tarball: file:.packages/tscircuit-experimental.tgz}
-    version: 0.0.2744
+  tscircuit@0.0.2940:
+    resolution: {integrity: sha512-mtqW5g/WZZYVrigpoObXEAum5TpJou+Z26LMnZJEXumixw6Vd1468/Cf+3pWEcoXGnGIymuu1t6En8/LQ5JTaA==}
     hasBin: true
     peerDependencies:
       typescript: ^5.0.0
@@ -2054,6 +2083,10 @@ packages:
 
   xml-reader@2.4.3:
     resolution: {integrity: sha512-xWldrIxjeAMAu6+HSf9t50ot1uL5M+BtOidRCWHXIeewvSeIpscWCsp4Zxjk8kHHhdqFBrfK8U0EJeCcnyQ/gA==}
+
+  yallist@5.0.0:
+    resolution: {integrity: sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw==}
+    engines: {node: '>=18'}
 
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
@@ -2234,6 +2267,10 @@ snapshots:
   '@flatten-js/interval-tree@2.0.3':
     dependencies:
       tslib: 2.8.1
+
+  '@isaacs/fs-minipass@4.0.1':
+    dependencies:
+      minipass: 7.1.3
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -2462,9 +2499,9 @@ snapshots:
     dependencies:
       zod: 3.25.76
 
-  '@tscircuit/capacity-autorouter@0.0.974(2118d75cfbf6fac4d8abbde1382b5a92)':
+  '@tscircuit/capacity-autorouter@0.0.974(2e7abf2c0e4421d037f8430e5b9c4bf7)':
     dependencies:
-      '@tscircuit/pcb-trace-linter': https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(08f7f595bed69dce23e5ad66920adbef)
+      '@tscircuit/pcb-trace-linter': https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(e1aa763e397d856b21a803ee418aa5b7)
       fast-json-stable-stringify: 2.1.0
       object-hash: 3.0.0
       stack-svgs: 0.0.1(typescript@5.9.3)
@@ -2499,9 +2536,9 @@ snapshots:
       - typescript
       - zod
 
-  '@tscircuit/capacity-autorouter@0.0.974(c023cf8757766e210ca143bc1df64a2b)':
+  '@tscircuit/capacity-autorouter@0.0.974(dd521ce4b24711c10fd552f6f18a5ad9)':
     dependencies:
-      '@tscircuit/pcb-trace-linter': https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(2804b81f2cd5a2c6497910d01ae514fe)
+      '@tscircuit/pcb-trace-linter': https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(3dd424486b7bc1047a44cfaa7b17754c)
       fast-json-stable-stringify: 2.1.0
       object-hash: 3.0.0
       stack-svgs: 0.0.1(typescript@5.9.3)
@@ -2536,9 +2573,9 @@ snapshots:
       - typescript
       - zod
 
-  '@tscircuit/capacity-autorouter@0.0.974(e1acf638be0b25eb068780a8548d8d8f)':
+  '@tscircuit/capacity-autorouter@0.0.974(fea061a799ff4100f09e0c112adecd2a)':
     dependencies:
-      '@tscircuit/pcb-trace-linter': https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(268978a78e583ac77db30a0676c8e2ea)
+      '@tscircuit/pcb-trace-linter': https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(989393e824ecc141cc9c81a7bb0f5cb9)
       fast-json-stable-stringify: 2.1.0
       object-hash: 3.0.0
       stack-svgs: 0.0.1(typescript@5.9.3)
@@ -2573,46 +2610,46 @@ snapshots:
       - typescript
       - zod
 
-  '@tscircuit/checks@0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)':
+  '@tscircuit/checks@0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)':
     dependencies:
       '@flatten-js/core': 1.6.14
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
       '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       circuit-json-to-connectivity-map: 0.0.33(typescript@5.9.3)
       flatbush: 4.6.2
       typescript: 5.9.3
 
-  '@tscircuit/checks@0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)':
+  '@tscircuit/checks@0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)':
     dependencies:
       '@flatten-js/core': 1.6.14
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
       '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       circuit-json-to-connectivity-map: 0.0.33(typescript@5.9.3)
       flatbush: 4.6.2
       typescript: 5.9.3
 
-  '@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)':
+  '@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)':
     dependencies:
       '@flatten-js/core': 1.6.14
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       parsel-js: 1.2.3
       transformation-matrix: 2.16.1
       zod: 3.25.76
 
-  '@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)':
+  '@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)':
     dependencies:
       '@flatten-js/core': 1.6.14
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       parsel-js: 1.2.3
       transformation-matrix: 3.1.0
       zod: 3.25.76
 
-  '@tscircuit/cli@0.1.2237(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(tscircuit@file:.packages/tscircuit-experimental.tgz(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))':
+  '@tscircuit/cli@0.1.2237(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(tscircuit@0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))':
     dependencies:
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
-      tscircuit: file:.packages/tscircuit-experimental.tgz(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
+      tscircuit: 0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3)
 
   '@tscircuit/copper-pour-solver@0.0.59(typescript@5.9.3)':
     dependencies:
@@ -2624,30 +2661,119 @@ snapshots:
       '@tscircuit/manifold-2d': 0.0.6
       typescript: 5.9.3
 
-  '@tscircuit/core@file:.packages/tscircuit-core-ibis-experimental.tgz(37ab6d50455dbd3a34f592ae7da22389)':
+  '@tscircuit/core@0.0.2171(39bfa024cb71406f3cf8f16784f2cc77)':
     dependencies:
       '@flatten-js/core': 1.6.14
       '@lume/kiwi': 0.4.4
       '@tscircuit/cableprinter': 0.0.6
-      '@tscircuit/capacity-autorouter': 0.0.974(c023cf8757766e210ca143bc1df64a2b)
-      '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
+      '@tscircuit/capacity-autorouter': 0.0.974(dd521ce4b24711c10fd552f6f18a5ad9)
+      '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
       '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
-      '@tscircuit/footprinter': 0.0.437(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
-      '@tscircuit/ibis-to-spice': link:packages/ibis-to-spice
+      '@tscircuit/footprinter': 0.0.437(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       '@tscircuit/infgrid-ijump-astar': 0.0.35
       '@tscircuit/matchpack': 0.0.100(typescript@5.9.3)
       '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
       '@tscircuit/modelprinter': 0.0.34(typescript@5.9.3)(zod@3.25.76)
-      '@tscircuit/props': file:.packages/tscircuit-props-ibis-experimental.tgz(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      '@tscircuit/props': 0.0.704(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
+      bpc-graph: 0.0.67(typescript@5.9.3)
+      calculate-cell-boundaries: 0.0.25(@types/react@19.3.0)(graphics-debug@0.0.95(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
+      calculate-packing: 0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(typescript@5.9.3)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json-to-bpc: 0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      circuit-json-to-connectivity-map: 0.0.33(typescript@5.9.3)
+      circuit-json-to-spice: 0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
+      css-select: 5.1.0
+      format-si-unit: 0.0.12(typescript@5.9.3)
+      gl-matrix: 3.4.4
+      jscad-fiber: 0.0.88(@jscad/modeling@2.13.0)(react-dom@19.3.0(react@19.2.4))(react-reconciler@0.32.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3)
+      jscad-planner: 0.0.18(typescript@5.9.3)
+      nanoid: 5.1.16
+      performance-now: 2.1.0
+      react-reconciler: 0.32.0(react@19.2.4)
+      schematic-symbols: 0.0.248(typescript@5.9.3)
+      spicets: 0.0.5(typescript@5.9.3)
+      svg-path-commander: 2.3.3
+      transformation-matrix: 2.16.1
+      typescript: 5.9.3
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - '@jscad/modeling'
+      - '@types/react'
+      - graphics-debug
+      - react
+      - react-dom
+      - three
+
+  '@tscircuit/core@0.0.2171(a5a1598b6df07e5b6c3ad91293cc99a6)':
+    dependencies:
+      '@flatten-js/core': 1.6.14
+      '@lume/kiwi': 0.4.4
+      '@tscircuit/cableprinter': 0.0.6
+      '@tscircuit/capacity-autorouter': 0.0.974(dd521ce4b24711c10fd552f6f18a5ad9)
+      '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
+      '@tscircuit/footprinter': 0.0.437(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      '@tscircuit/infgrid-ijump-astar': 0.0.35
+      '@tscircuit/matchpack': 0.0.100(typescript@5.9.3)
+      '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
+      '@tscircuit/modelprinter': 0.0.34(typescript@5.9.3)(zod@3.25.76)
+      '@tscircuit/props': 0.0.704(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
+      bpc-graph: 0.0.67(typescript@5.9.3)
+      calculate-cell-boundaries: 0.0.25(@types/react@19.3.0)(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
+      calculate-packing: 0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(typescript@5.9.3)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json-to-bpc: 0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      circuit-json-to-connectivity-map: 0.0.33(typescript@5.9.3)
+      circuit-json-to-spice: 0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
+      css-select: 5.1.0
+      format-si-unit: 0.0.12(typescript@5.9.3)
+      gl-matrix: 3.4.4
+      jscad-fiber: 0.0.88(@jscad/modeling@2.13.0)(react-dom@19.3.0(react@19.2.4))(react-reconciler@0.32.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3)
+      jscad-planner: 0.0.18(typescript@5.9.3)
+      nanoid: 5.1.16
+      performance-now: 2.1.0
+      react-reconciler: 0.32.0(react@19.2.4)
+      schematic-symbols: 0.0.248(typescript@5.9.3)
+      spicets: 0.0.5(typescript@5.9.3)
+      svg-path-commander: 2.3.3
+      transformation-matrix: 2.16.1
+      typescript: 5.9.3
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - '@jscad/modeling'
+      - '@types/react'
+      - graphics-debug
+      - react
+      - react-dom
+      - three
+
+  '@tscircuit/core@0.0.2171(d7ca3144df51af6e38f950f61100264b)':
+    dependencies:
+      '@flatten-js/core': 1.6.14
+      '@lume/kiwi': 0.4.4
+      '@tscircuit/cableprinter': 0.0.6
+      '@tscircuit/capacity-autorouter': 0.0.974(dd521ce4b24711c10fd552f6f18a5ad9)
+      '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
+      '@tscircuit/footprinter': 0.0.437(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      '@tscircuit/infgrid-ijump-astar': 0.0.35
+      '@tscircuit/matchpack': 0.0.100(typescript@5.9.3)
+      '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
+      '@tscircuit/modelprinter': 0.0.34(typescript@5.9.3)(zod@3.25.76)
+      '@tscircuit/props': 0.0.704(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
       '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
       bpc-graph: 0.0.67(typescript@5.9.3)
       calculate-cell-boundaries: 0.0.25(@types/react@19.3.0)(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
-      calculate-packing: 0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(typescript@5.9.3)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
-      circuit-json-to-bpc: 0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      calculate-packing: 0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(typescript@5.9.3)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json-to-bpc: 0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       circuit-json-to-connectivity-map: 0.0.33(typescript@5.9.3)
-      circuit-json-to-spice: 0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
+      circuit-json-to-spice: 0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
       css-select: 5.1.0
       format-si-unit: 0.0.12(typescript@5.9.3)
       gl-matrix: 3.4.4
@@ -2670,122 +2796,29 @@ snapshots:
       - react-dom
       - three
 
-  '@tscircuit/core@file:.packages/tscircuit-core-ibis-experimental.tgz(893ff87705dd56f1e66e2fadf25b685d)':
+  '@tscircuit/core@0.0.2171(ffb9b8dfd5331a934cf51869b1090654)':
     dependencies:
       '@flatten-js/core': 1.6.14
       '@lume/kiwi': 0.4.4
       '@tscircuit/cableprinter': 0.0.6
-      '@tscircuit/capacity-autorouter': 0.0.974(e1acf638be0b25eb068780a8548d8d8f)
-      '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      '@tscircuit/capacity-autorouter': 0.0.974(fea061a799ff4100f09e0c112adecd2a)
+      '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
       '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
-      '@tscircuit/footprinter': 0.0.437(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
-      '@tscircuit/ibis-to-spice': link:packages/ibis-to-spice
+      '@tscircuit/footprinter': 0.0.437(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       '@tscircuit/infgrid-ijump-astar': 0.0.35
       '@tscircuit/matchpack': 0.0.100(typescript@5.9.3)
       '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
       '@tscircuit/modelprinter': 0.0.34(typescript@5.9.3)(zod@3.25.76)
-      '@tscircuit/props': file:.packages/tscircuit-props-ibis-experimental.tgz(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
-      '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
-      bpc-graph: 0.0.67(typescript@5.9.3)
-      calculate-cell-boundaries: 0.0.25(@types/react@19.3.0)(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
-      calculate-packing: 0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(typescript@5.9.3)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
-      circuit-json-to-bpc: 0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
-      circuit-json-to-connectivity-map: 0.0.33(typescript@5.9.3)
-      circuit-json-to-spice: 0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
-      css-select: 5.1.0
-      format-si-unit: 0.0.12(typescript@5.9.3)
-      gl-matrix: 3.4.4
-      jscad-fiber: 0.0.88(@jscad/modeling@2.13.0)(react-dom@19.3.0(react@19.2.4))(react-reconciler@0.32.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3)
-      jscad-planner: 0.0.18(typescript@5.9.3)
-      nanoid: 5.1.16
-      performance-now: 2.1.0
-      react-reconciler: 0.32.0(react@19.2.4)
-      schematic-symbols: 0.0.248(typescript@5.9.3)
-      spicets: 0.0.5(typescript@5.9.3)
-      svg-path-commander: 2.3.3
-      transformation-matrix: 2.16.1
-      typescript: 5.9.3
-      zod: 3.25.76
-    transitivePeerDependencies:
-      - '@jscad/modeling'
-      - '@types/react'
-      - graphics-debug
-      - react
-      - react-dom
-      - three
-
-  '@tscircuit/core@file:.packages/tscircuit-core-ibis-experimental.tgz(b3e96a51d535049684146d799f1dc89c)':
-    dependencies:
-      '@flatten-js/core': 1.6.14
-      '@lume/kiwi': 0.4.4
-      '@tscircuit/cableprinter': 0.0.6
-      '@tscircuit/capacity-autorouter': 0.0.974(e1acf638be0b25eb068780a8548d8d8f)
-      '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
-      '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
-      '@tscircuit/footprinter': 0.0.437(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
-      '@tscircuit/ibis-to-spice': link:packages/ibis-to-spice
-      '@tscircuit/infgrid-ijump-astar': 0.0.35
-      '@tscircuit/matchpack': 0.0.100(typescript@5.9.3)
-      '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
-      '@tscircuit/modelprinter': 0.0.34(typescript@5.9.3)(zod@3.25.76)
-      '@tscircuit/props': file:.packages/tscircuit-props-ibis-experimental.tgz(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
-      '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
-      bpc-graph: 0.0.67(typescript@5.9.3)
-      calculate-cell-boundaries: 0.0.25(@types/react@19.3.0)(graphics-debug@0.0.95(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
-      calculate-packing: 0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(typescript@5.9.3)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
-      circuit-json-to-bpc: 0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
-      circuit-json-to-connectivity-map: 0.0.33(typescript@5.9.3)
-      circuit-json-to-spice: 0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
-      css-select: 5.1.0
-      format-si-unit: 0.0.12(typescript@5.9.3)
-      gl-matrix: 3.4.4
-      jscad-fiber: 0.0.88(@jscad/modeling@2.13.0)(react-dom@19.3.0(react@19.2.4))(react-reconciler@0.32.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3)
-      jscad-planner: 0.0.18(typescript@5.9.3)
-      nanoid: 5.1.16
-      performance-now: 2.1.0
-      react-reconciler: 0.32.0(react@19.2.4)
-      schematic-symbols: 0.0.248(typescript@5.9.3)
-      spicets: 0.0.5(typescript@5.9.3)
-      svg-path-commander: 2.3.3
-      transformation-matrix: 2.16.1
-      typescript: 5.9.3
-      zod: 3.25.76
-    transitivePeerDependencies:
-      - '@jscad/modeling'
-      - '@types/react'
-      - graphics-debug
-      - react
-      - react-dom
-      - three
-
-  '@tscircuit/core@file:.packages/tscircuit-core-ibis-experimental.tgz(c7c67592cfd35ee4702a2bbc0b48cab7)':
-    dependencies:
-      '@flatten-js/core': 1.6.14
-      '@lume/kiwi': 0.4.4
-      '@tscircuit/cableprinter': 0.0.6
-      '@tscircuit/capacity-autorouter': 0.0.974(e1acf638be0b25eb068780a8548d8d8f)
-      '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
-      '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
-      '@tscircuit/footprinter': 0.0.437(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
-      '@tscircuit/ibis-to-spice': link:packages/ibis-to-spice
-      '@tscircuit/infgrid-ijump-astar': 0.0.35
-      '@tscircuit/matchpack': 0.0.100(typescript@5.9.3)
-      '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
-      '@tscircuit/modelprinter': 0.0.34(typescript@5.9.3)(zod@3.25.76)
-      '@tscircuit/props': file:.packages/tscircuit-props-ibis-experimental.tgz(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      '@tscircuit/props': 0.0.704(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
       '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
       bpc-graph: 0.0.67(typescript@5.9.3)
       calculate-cell-boundaries: 0.0.25(@types/react@19.3.0)(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
-      calculate-packing: 0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(typescript@5.9.3)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
-      circuit-json-to-bpc: 0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      calculate-packing: 0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(typescript@5.9.3)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json-to-bpc: 0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       circuit-json-to-connectivity-map: 0.0.33(typescript@5.9.3)
-      circuit-json-to-spice: 0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
+      circuit-json-to-spice: 0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
       css-select: 5.1.0
       format-si-unit: 0.0.12(typescript@5.9.3)
       gl-matrix: 3.4.4
@@ -2834,16 +2867,16 @@ snapshots:
       - react
       - react-dom
 
-  '@tscircuit/eval@0.0.1538(@tscircuit/core@file:.packages/tscircuit-core-ibis-experimental.tgz(c7c67592cfd35ee4702a2bbc0b48cab7))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)':
+  '@tscircuit/eval@0.0.1538(@tscircuit/core@0.0.2171(d7ca3144df51af6e38f950f61100264b))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)':
     dependencies:
-      '@tscircuit/core': file:.packages/tscircuit-core-ibis-experimental.tgz(c7c67592cfd35ee4702a2bbc0b48cab7)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      '@tscircuit/core': 0.0.2171(d7ca3144df51af6e38f950f61100264b)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       typescript: 5.9.3
       zod: 3.25.76
 
-  '@tscircuit/fanout-solver@file:.packages/fanout-solver-experimental.tgz(2118d75cfbf6fac4d8abbde1382b5a92)':
+  '@tscircuit/fanout-solver@0.0.81(2e7abf2c0e4421d037f8430e5b9c4bf7)':
     dependencies:
-      '@tscircuit/capacity-autorouter': 0.0.974(2118d75cfbf6fac4d8abbde1382b5a92)
+      '@tscircuit/capacity-autorouter': 0.0.974(2e7abf2c0e4421d037f8430e5b9c4bf7)
       '@tscircuit/solver-utils': 0.0.19(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
       graphics-debug: 0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
       typescript: 5.9.3
@@ -2877,10 +2910,10 @@ snapshots:
       - transformation-matrix
       - zod
 
-  '@tscircuit/footprinter@0.0.437(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)':
+  '@tscircuit/footprinter@0.0.437(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)':
     dependencies:
       '@tscircuit/mm': 0.0.8(typescript@5.9.3)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       zod: 3.25.76
     transitivePeerDependencies:
       - typescript
@@ -2901,9 +2934,9 @@ snapshots:
 
   '@tscircuit/internal-dynamic-import@0.0.11': {}
 
-  '@tscircuit/krt-wasm@0.1.9(tscircuit@file:.packages/tscircuit-experimental.tgz(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))':
+  '@tscircuit/krt-wasm@0.1.9(tscircuit@0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))':
     dependencies:
-      tscircuit: file:.packages/tscircuit-experimental.tgz(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3)
+      tscircuit: 0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3)
 
   '@tscircuit/manifold-2d@0.0.6': {}
 
@@ -2934,24 +2967,122 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@tscircuit/ngspice-spice-engine@0.0.20(@tscircuit/props@file:.packages/tscircuit-props-ibis-experimental.tgz(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)':
+  '@tscircuit/ngspice-spice-engine@0.0.20(@tscircuit/props@0.0.704(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)':
     dependencies:
-      '@tscircuit/props': file:.packages/tscircuit-props-ibis-experimental.tgz(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      '@tscircuit/props': 0.0.704(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       spicets: 0.0.5(typescript@5.9.3)
       typescript: 5.9.3
 
-  '@tscircuit/pcb-trace-linter@https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(08f7f595bed69dce23e5ad66920adbef)':
+  '@tscircuit/pcb-trace-linter@https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(3dd424486b7bc1047a44cfaa7b17754c)':
     dependencies:
       '@tscircuit/copper-pour-solver': 0.0.59(typescript@5.9.3)
-      '@tscircuit/core': file:.packages/tscircuit-core-ibis-experimental.tgz(893ff87705dd56f1e66e2fadf25b685d)
+      '@tscircuit/core': 0.0.2171(d7ca3144df51af6e38f950f61100264b)
+      '@tscircuit/infer-cable-insertion-point': 0.0.4(typescript@5.9.3)
+      '@tscircuit/miniflex': 0.0.4(typescript@5.9.3)
+      '@tscircuit/schematic-trace-solver': 0.0.208(typescript@5.9.3)
+      '@tscircuit/solver-utils': 0.0.21(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
+      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      calculate-elbow: 0.0.13(typescript@5.9.3)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
+      connectivity-map: 1.0.1(typescript@5.9.3)
+      debug: 4.4.3
+      earcut: 3.2.4
+      graphics-debug: 0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
+      minicssgrid: 0.0.9(typescript@5.9.3)
+      spicey: 0.0.14(typescript@5.9.3)
+    transitivePeerDependencies:
+      - '@jscad/modeling'
+      - '@resvg/resvg-js'
+      - '@tscircuit/cableprinter'
+      - '@tscircuit/capacity-autorouter'
+      - '@tscircuit/checks'
+      - '@tscircuit/circuit-json-util'
+      - '@tscircuit/create-fdm-enclosure'
+      - '@tscircuit/footprinter'
+      - '@tscircuit/image-utils'
+      - '@tscircuit/infgrid-ijump-astar'
+      - '@tscircuit/matchpack'
+      - '@tscircuit/math-utils'
+      - '@tscircuit/modelprinter'
+      - '@tscircuit/props'
+      - '@tscircuit/schematic-match-adapt'
+      - '@types/react'
+      - bpc-graph
+      - circuit-json-to-bpc
+      - circuit-json-to-connectivity-map
+      - circuit-json-to-spice
+      - format-si-unit
+      - react
+      - react-dom
+      - schematic-symbols
+      - spicets
+      - supports-color
+      - three
+      - transformation-matrix
+      - typescript
+      - zod
+
+  '@tscircuit/pcb-trace-linter@https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(989393e824ecc141cc9c81a7bb0f5cb9)':
+    dependencies:
+      '@tscircuit/copper-pour-solver': 0.0.59(typescript@5.9.3)
+      '@tscircuit/core': 0.0.2171(ffb9b8dfd5331a934cf51869b1090654)
+      '@tscircuit/infer-cable-insertion-point': 0.0.4(typescript@5.9.3)
+      '@tscircuit/miniflex': 0.0.4(typescript@5.9.3)
+      '@tscircuit/schematic-trace-solver': 0.0.208(typescript@5.9.3)
+      '@tscircuit/solver-utils': 0.0.21(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
+      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
+      calculate-elbow: 0.0.13(typescript@5.9.3)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
+      connectivity-map: 1.0.1(typescript@5.9.3)
+      debug: 4.4.3
+      earcut: 3.2.4
+      graphics-debug: 0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
+      minicssgrid: 0.0.9(typescript@5.9.3)
+      spicey: 0.0.14(typescript@5.9.3)
+    transitivePeerDependencies:
+      - '@jscad/modeling'
+      - '@resvg/resvg-js'
+      - '@tscircuit/cableprinter'
+      - '@tscircuit/capacity-autorouter'
+      - '@tscircuit/checks'
+      - '@tscircuit/circuit-json-util'
+      - '@tscircuit/create-fdm-enclosure'
+      - '@tscircuit/footprinter'
+      - '@tscircuit/image-utils'
+      - '@tscircuit/infgrid-ijump-astar'
+      - '@tscircuit/matchpack'
+      - '@tscircuit/math-utils'
+      - '@tscircuit/modelprinter'
+      - '@tscircuit/props'
+      - '@tscircuit/schematic-match-adapt'
+      - '@types/react'
+      - bpc-graph
+      - circuit-json-to-bpc
+      - circuit-json-to-connectivity-map
+      - circuit-json-to-spice
+      - format-si-unit
+      - react
+      - react-dom
+      - schematic-symbols
+      - spicets
+      - supports-color
+      - three
+      - transformation-matrix
+      - typescript
+      - zod
+
+  '@tscircuit/pcb-trace-linter@https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(e1aa763e397d856b21a803ee418aa5b7)':
+    dependencies:
+      '@tscircuit/copper-pour-solver': 0.0.59(typescript@5.9.3)
+      '@tscircuit/core': 0.0.2171(a5a1598b6df07e5b6c3ad91293cc99a6)
       '@tscircuit/infer-cable-insertion-point': 0.0.4(typescript@5.9.3)
       '@tscircuit/miniflex': 0.0.4(typescript@5.9.3)
       '@tscircuit/schematic-trace-solver': 0.0.208(typescript@5.9.3)
       '@tscircuit/solver-utils': 0.0.21(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
-      '@tscircuit/soup-util': 0.0.41(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
       calculate-elbow: 0.0.13(typescript@5.9.3)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       connectivity-map: 1.0.1(typescript@5.9.3)
       debug: 4.4.3
       earcut: 3.2.4
@@ -2990,114 +3121,16 @@ snapshots:
       - typescript
       - zod
 
-  '@tscircuit/pcb-trace-linter@https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(268978a78e583ac77db30a0676c8e2ea)':
+  '@tscircuit/props@0.0.704(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)':
     dependencies:
-      '@tscircuit/copper-pour-solver': 0.0.59(typescript@5.9.3)
-      '@tscircuit/core': file:.packages/tscircuit-core-ibis-experimental.tgz(c7c67592cfd35ee4702a2bbc0b48cab7)
-      '@tscircuit/infer-cable-insertion-point': 0.0.4(typescript@5.9.3)
-      '@tscircuit/miniflex': 0.0.4(typescript@5.9.3)
-      '@tscircuit/schematic-trace-solver': 0.0.208(typescript@5.9.3)
-      '@tscircuit/solver-utils': 0.0.21(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
-      '@tscircuit/soup-util': 0.0.41(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
-      calculate-elbow: 0.0.13(typescript@5.9.3)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
-      connectivity-map: 1.0.1(typescript@5.9.3)
-      debug: 4.4.3
-      earcut: 3.2.4
-      graphics-debug: 0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
-      minicssgrid: 0.0.9(typescript@5.9.3)
-      spicey: 0.0.14(typescript@5.9.3)
-    transitivePeerDependencies:
-      - '@jscad/modeling'
-      - '@resvg/resvg-js'
-      - '@tscircuit/cableprinter'
-      - '@tscircuit/capacity-autorouter'
-      - '@tscircuit/checks'
-      - '@tscircuit/circuit-json-util'
-      - '@tscircuit/create-fdm-enclosure'
-      - '@tscircuit/footprinter'
-      - '@tscircuit/image-utils'
-      - '@tscircuit/infgrid-ijump-astar'
-      - '@tscircuit/matchpack'
-      - '@tscircuit/math-utils'
-      - '@tscircuit/modelprinter'
-      - '@tscircuit/props'
-      - '@tscircuit/schematic-match-adapt'
-      - '@types/react'
-      - bpc-graph
-      - circuit-json-to-bpc
-      - circuit-json-to-connectivity-map
-      - circuit-json-to-spice
-      - format-si-unit
-      - react
-      - react-dom
-      - schematic-symbols
-      - spicets
-      - supports-color
-      - three
-      - transformation-matrix
-      - typescript
-      - zod
-
-  '@tscircuit/pcb-trace-linter@https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(2804b81f2cd5a2c6497910d01ae514fe)':
-    dependencies:
-      '@tscircuit/copper-pour-solver': 0.0.59(typescript@5.9.3)
-      '@tscircuit/core': file:.packages/tscircuit-core-ibis-experimental.tgz(37ab6d50455dbd3a34f592ae7da22389)
-      '@tscircuit/infer-cable-insertion-point': 0.0.4(typescript@5.9.3)
-      '@tscircuit/miniflex': 0.0.4(typescript@5.9.3)
-      '@tscircuit/schematic-trace-solver': 0.0.208(typescript@5.9.3)
-      '@tscircuit/solver-utils': 0.0.21(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
-      '@tscircuit/soup-util': 0.0.41(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
-      calculate-elbow: 0.0.13(typescript@5.9.3)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
-      connectivity-map: 1.0.1(typescript@5.9.3)
-      debug: 4.4.3
-      earcut: 3.2.4
-      graphics-debug: 0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
-      minicssgrid: 0.0.9(typescript@5.9.3)
-      spicey: 0.0.14(typescript@5.9.3)
-    transitivePeerDependencies:
-      - '@jscad/modeling'
-      - '@resvg/resvg-js'
-      - '@tscircuit/cableprinter'
-      - '@tscircuit/capacity-autorouter'
-      - '@tscircuit/checks'
-      - '@tscircuit/circuit-json-util'
-      - '@tscircuit/create-fdm-enclosure'
-      - '@tscircuit/footprinter'
-      - '@tscircuit/image-utils'
-      - '@tscircuit/infgrid-ijump-astar'
-      - '@tscircuit/matchpack'
-      - '@tscircuit/math-utils'
-      - '@tscircuit/modelprinter'
-      - '@tscircuit/props'
-      - '@tscircuit/schematic-match-adapt'
-      - '@types/react'
-      - bpc-graph
-      - circuit-json-to-bpc
-      - circuit-json-to-connectivity-map
-      - circuit-json-to-spice
-      - format-si-unit
-      - react
-      - react-dom
-      - schematic-symbols
-      - spicets
-      - supports-color
-      - three
-      - transformation-matrix
-      - typescript
-      - zod
-
-  '@tscircuit/props@file:.packages/tscircuit-props-ibis-experimental.tgz(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)':
-    dependencies:
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       react: 19.2.4
       zod: 3.25.76
 
-  '@tscircuit/runframe@0.0.2897(a4befa4d8b01c917b7b118db15a6380c)':
+  '@tscircuit/runframe@0.0.3012(b2d1bbfc7d846d501d9b745094bc1761)':
     dependencies:
-      '@tscircuit/core': file:.packages/tscircuit-core-ibis-experimental.tgz(b3e96a51d535049684146d799f1dc89c)
-      '@tscircuit/eval': 0.0.1538(@tscircuit/core@file:.packages/tscircuit-core-ibis-experimental.tgz(c7c67592cfd35ee4702a2bbc0b48cab7))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)
+      '@tscircuit/core': 0.0.2171(39bfa024cb71406f3cf8f16784f2cc77)
+      '@tscircuit/eval': 0.0.1538(@tscircuit/core@0.0.2171(d7ca3144df51af6e38f950f61100264b))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)
       '@tscircuit/solver-utils': 0.0.16(graphics-debug@0.0.95(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
       debug: 4.4.3
       format-si-unit: 0.0.12(typescript@5.9.3)
@@ -3174,16 +3207,16 @@ snapshots:
       graphics-debug: 0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
       typescript: 5.9.3
 
-  '@tscircuit/soup-util@0.0.41(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)':
+  '@tscircuit/soup-util@0.0.41(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)':
     dependencies:
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       parsel-js: 1.2.3
       transformation-matrix: 2.16.1
       zod: 3.25.76
 
-  '@tscircuit/soup-util@0.0.41(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)':
+  '@tscircuit/soup-util@0.0.41(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)':
     dependencies:
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       parsel-js: 1.2.3
       transformation-matrix: 3.1.0
       zod: 3.25.76
@@ -3341,14 +3374,14 @@ snapshots:
     dependencies:
       typescript: 5.9.3
 
-  calculate-packing@0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(typescript@5.9.3):
+  calculate-packing@0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(typescript@5.9.3):
     dependencies:
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
       typescript: 5.9.3
 
-  calculate-packing@0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(typescript@5.9.3):
+  calculate-packing@0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(typescript@5.9.3):
     dependencies:
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
       typescript: 5.9.3
 
   chokidar@4.0.3:
@@ -3357,10 +3390,12 @@ snapshots:
 
   chownr@1.1.4: {}
 
-  circuit-json-to-bpc@0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3):
+  chownr@3.0.0: {}
+
+  circuit-json-to-bpc@0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3):
     dependencies:
       bpc-graph: 0.0.67(typescript@5.9.3)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       typescript: 5.9.3
 
   circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3):
@@ -3368,17 +3403,18 @@ snapshots:
       '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
       typescript: 5.9.3
 
-  circuit-json-to-gltf@0.0.143(56b6a507004306aec55964aad4b6f1ec):
+  circuit-json-to-gltf@0.0.151(@resvg/resvg-js@2.6.2)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/footprinter@0.0.437(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(circuit-to-svg@0.0.450(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3))(jscad-fiber@0.0.88(@jscad/modeling@2.13.0)(react-dom@19.3.0(react@19.2.4))(react-reconciler@0.32.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3))(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3)(zod@3.25.76):
     dependencies:
       '@jscad/modeling': 2.13.0
       '@tscircuit/alphabet': 0.0.25(typescript@5.9.3)
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
-      circuit-to-svg: 0.0.438(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3)
+      '@tscircuit/cableprinter': 0.0.6
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-to-svg: 0.0.450(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3)
       earcut: 3.2.4
       gl-matrix: 3.4.4
-      jscad-electronics: 0.0.182(@jscad/modeling@2.13.0)(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/footprinter@0.0.437(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(jscad-fiber@0.0.88(@jscad/modeling@2.13.0)(react-dom@19.3.0(react@19.2.4))(react-reconciler@0.32.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3))(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3)(zod@3.25.76)
-      jscad-planner: 0.0.14(typescript@5.9.3)
+      jscad-electronics: 0.0.210(@jscad/modeling@2.13.0)(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/footprinter@0.0.437(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(jscad-fiber@0.0.88(@jscad/modeling@2.13.0)(react-dom@19.3.0(react@19.2.4))(react-reconciler@0.32.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3))(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3)(zod@3.25.76)
+      jscad-planner: 0.0.19(typescript@5.9.3)
       jscad-to-gltf: 0.0.5(typescript@5.9.3)
       occt-import-js: 0.0.23
       typescript: 5.9.3
@@ -3392,50 +3428,48 @@ snapshots:
       - three
       - zod
 
-  circuit-json-to-pnp-csv@0.0.16(@tscircuit/soup-util@0.0.41(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(typescript@5.9.3)(zod@3.25.76):
+  circuit-json-to-pnp-csv@0.0.20(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup-util@0.0.41(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3):
     dependencies:
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
-      '@tscircuit/soup-util': 0.0.41(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       papaparse: 5.7.0
       typescript: 5.9.3
-    transitivePeerDependencies:
-      - transformation-matrix
-      - zod
 
   circuit-json-to-simple-3d@0.0.9(typescript@5.9.3):
     dependencies:
       typescript: 5.9.3
 
-  circuit-json-to-spice@0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3):
+  circuit-json-to-spice@0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3):
     dependencies:
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       circuit-json-to-connectivity-map: 0.0.33(typescript@5.9.3)
       spicets: 0.0.5(typescript@5.9.3)
       typescript: 5.9.3
 
-  circuit-json-to-spice@0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3):
+  circuit-json-to-spice@0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3):
     dependencies:
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       circuit-json-to-connectivity-map: 0.0.33(typescript@5.9.3)
       spicets: 0.0.5(typescript@5.9.3)
       typescript: 5.9.3
 
-  circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)):
+  circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)):
     dependencies:
       format-si-unit: 0.0.12(typescript@5.9.3)
 
-  circuit-to-svg@0.0.438(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3):
+  circuit-to-svg@0.0.450(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3):
     dependencies:
       '@tscircuit/alphabet': 0.0.25(typescript@5.9.3)
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
       '@types/node': 22.20.5
       bun-types: 1.4.3
       calculate-elbow: 0.0.12(typescript@5.9.3)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       circuit-json-to-connectivity-map: 0.0.33(typescript@5.9.3)
+      color: 5.0.3
       debug: 4.4.3
       schematic-symbols: 0.0.248(typescript@5.9.3)
       svg-path-commander: 2.3.3
@@ -3451,19 +3485,34 @@ snapshots:
     dependencies:
       color-name: 1.1.4
 
+  color-convert@3.1.3:
+    dependencies:
+      color-name: 2.1.1
+
   color-diff@1.4.0: {}
 
   color-name@1.1.4: {}
+
+  color-name@2.1.1: {}
 
   color-string@1.9.1:
     dependencies:
       color-name: 1.1.4
       simple-swizzle: 0.2.4
 
+  color-string@2.1.4:
+    dependencies:
+      color-name: 2.1.1
+
   color@4.2.3:
     dependencies:
       color-convert: 2.0.1
       color-string: 1.9.1
+
+  color@5.0.3:
+    dependencies:
+      color-convert: 3.1.3
+      color-string: 2.1.4
 
   comlink@4.4.2: {}
 
@@ -3774,14 +3823,14 @@ snapshots:
 
   js-tokens@4.0.0: {}
 
-  jscad-electronics@0.0.182(@jscad/modeling@2.13.0)(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/footprinter@0.0.437(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(jscad-fiber@0.0.88(@jscad/modeling@2.13.0)(react-dom@19.3.0(react@19.2.4))(react-reconciler@0.32.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3))(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3)(zod@3.25.76):
+  jscad-electronics@0.0.210(@jscad/modeling@2.13.0)(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/footprinter@0.0.437(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(jscad-fiber@0.0.88(@jscad/modeling@2.13.0)(react-dom@19.3.0(react@19.2.4))(react-reconciler@0.32.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3))(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3)(zod@3.25.76):
     dependencies:
       '@jscad/modeling': 2.13.0
       '@tscircuit/alphabet': 0.0.25(typescript@5.9.3)
-      '@tscircuit/footprinter': 0.0.437(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      '@tscircuit/footprinter': 0.0.437(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       '@tscircuit/mm': 0.0.8(typescript@5.9.3)
       '@tscircuit/modelprinter': 0.0.34(typescript@5.9.3)(zod@3.25.76)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       earcut: 3.2.4
       react: 19.2.4
       react-dom: 19.3.0(react@19.2.4)
@@ -3827,6 +3876,11 @@ snapshots:
       typescript: 5.9.3
 
   jscad-planner@0.0.18(typescript@5.9.3):
+    dependencies:
+      gl-matrix: 3.4.4
+      typescript: 5.9.3
+
+  jscad-planner@0.0.19(typescript@5.9.3):
     dependencies:
       gl-matrix: 3.4.4
       typescript: 5.9.3
@@ -3898,6 +3952,12 @@ snapshots:
       typescript: 5.9.3
 
   minimist@1.2.8: {}
+
+  minipass@7.1.3: {}
+
+  minizlib@3.1.0:
+    dependencies:
+      minipass: 7.1.3
 
   mkdirp-classic@0.5.3: {}
 
@@ -3978,7 +4038,7 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.29.10
 
-  poppygl@0.0.30(typescript@5.9.3):
+  poppygl@0.0.34(typescript@5.9.3):
     dependencies:
       fast-png: 8.0.0
       gl-matrix: 3.4.4
@@ -4292,6 +4352,14 @@ snapshots:
       - bare-buffer
       - react-native-b4a
 
+  tar@7.5.22:
+    dependencies:
+      '@isaacs/fs-minipass': 4.0.1
+      chownr: 3.0.0
+      minipass: 7.1.3
+      minizlib: 3.1.0
+      yallist: 5.0.0
+
   teex@1.0.1:
     dependencies:
       streamx: 2.28.1
@@ -4330,7 +4398,7 @@ snapshots:
 
   ts-interface-checker@0.1.13: {}
 
-  tscircuit@file:.packages/tscircuit-experimental.tgz(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3):
+  tscircuit@0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3):
     dependencies:
       '@flatten-js/core': 1.6.14
       '@lume/kiwi': 0.4.4
@@ -4340,44 +4408,44 @@ snapshots:
       '@rollup/plugin-node-resolve': 16.0.3(rollup@4.64.6)
       '@rollup/plugin-typescript': 12.3.0(rollup@4.64.6)(tslib@2.8.1)(typescript@5.9.3)
       '@tscircuit/alphabet': 0.0.25(typescript@5.9.3)
-      '@tscircuit/capacity-autorouter': 0.0.974(2118d75cfbf6fac4d8abbde1382b5a92)
-      '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
-      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
-      '@tscircuit/cli': 0.1.2237(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(tscircuit@file:.packages/tscircuit-experimental.tgz(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))
+      '@tscircuit/capacity-autorouter': 0.0.974(2e7abf2c0e4421d037f8430e5b9c4bf7)
+      '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      '@tscircuit/cli': 0.1.2237(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(tscircuit@0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))
       '@tscircuit/copper-pour-solver': 0.0.67(typescript@5.9.3)
-      '@tscircuit/core': file:.packages/tscircuit-core-ibis-experimental.tgz(b3e96a51d535049684146d799f1dc89c)
+      '@tscircuit/core': 0.0.2171(39bfa024cb71406f3cf8f16784f2cc77)
       '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
-      '@tscircuit/eval': 0.0.1538(@tscircuit/core@file:.packages/tscircuit-core-ibis-experimental.tgz(c7c67592cfd35ee4702a2bbc0b48cab7))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)
-      '@tscircuit/fanout-solver': file:.packages/fanout-solver-experimental.tgz(2118d75cfbf6fac4d8abbde1382b5a92)
-      '@tscircuit/footprinter': 0.0.437(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      '@tscircuit/eval': 0.0.1538(@tscircuit/core@0.0.2171(d7ca3144df51af6e38f950f61100264b))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)
+      '@tscircuit/fanout-solver': 0.0.81(2e7abf2c0e4421d037f8430e5b9c4bf7)
+      '@tscircuit/footprinter': 0.0.437(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       '@tscircuit/image-utils': 0.0.8
       '@tscircuit/infer-cable-insertion-point': 0.0.4(typescript@5.9.3)
       '@tscircuit/infgrid-ijump-astar': 0.0.35
       '@tscircuit/internal-dynamic-import': 0.0.11
-      '@tscircuit/krt-wasm': 0.1.9(tscircuit@file:.packages/tscircuit-experimental.tgz(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))
+      '@tscircuit/krt-wasm': 0.1.9(tscircuit@0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))
       '@tscircuit/matchpack': 0.0.100(typescript@5.9.3)
       '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
       '@tscircuit/miniflex': 0.0.4(typescript@5.9.3)
       '@tscircuit/modelprinter': 0.0.34(typescript@5.9.3)(zod@3.25.76)
-      '@tscircuit/ngspice-spice-engine': 0.0.20(@tscircuit/props@file:.packages/tscircuit-props-ibis-experimental.tgz(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
-      '@tscircuit/props': file:.packages/tscircuit-props-ibis-experimental.tgz(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
-      '@tscircuit/runframe': 0.0.2897(a4befa4d8b01c917b7b118db15a6380c)
+      '@tscircuit/ngspice-spice-engine': 0.0.20(@tscircuit/props@0.0.704(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
+      '@tscircuit/props': 0.0.704(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      '@tscircuit/runframe': 0.0.3012(b2d1bbfc7d846d501d9b745094bc1761)
       '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
       '@tscircuit/simple-3d-svg': 0.0.41
       '@tscircuit/solver-utils': 0.0.16(graphics-debug@0.0.95(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
-      '@tscircuit/soup-util': 0.0.41(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      '@tscircuit/soup-util': 0.0.41(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
       bpc-graph: 0.0.67(typescript@5.9.3)
       calculate-cell-boundaries: 0.0.25(@types/react@19.3.0)(graphics-debug@0.0.95(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
       calculate-elbow: 0.0.12(typescript@5.9.3)
-      calculate-packing: 0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(typescript@5.9.3)
-      circuit-json: file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3))
-      circuit-json-to-bpc: 0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      calculate-packing: 0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(typescript@5.9.3)
+      circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json-to-bpc: 0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       circuit-json-to-connectivity-map: 0.0.33(typescript@5.9.3)
-      circuit-json-to-gltf: 0.0.143(56b6a507004306aec55964aad4b6f1ec)
-      circuit-json-to-pnp-csv: 0.0.16(@tscircuit/soup-util@0.0.41(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(typescript@5.9.3)(zod@3.25.76)
+      circuit-json-to-gltf: 0.0.151(@resvg/resvg-js@2.6.2)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/footprinter@0.0.437(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(circuit-to-svg@0.0.450(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3))(jscad-fiber@0.0.88(@jscad/modeling@2.13.0)(react-dom@19.3.0(react@19.2.4))(react-reconciler@0.32.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3))(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(three@0.179.1)(typescript@5.9.3)(zod@3.25.76)
+      circuit-json-to-pnp-csv: 0.0.20(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/soup-util@0.0.41(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       circuit-json-to-simple-3d: 0.0.9(typescript@5.9.3)
-      circuit-json-to-spice: 0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
-      circuit-to-svg: 0.0.438(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@file:.packages/circuit-json-general-experimental.tgz(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3)
+      circuit-json-to-spice: 0.0.46(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
+      circuit-to-svg: 0.0.450(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3)
       comlink: 4.4.2
       connectivity-map: 1.0.1(typescript@5.9.3)
       css-select: 5.1.0
@@ -4393,7 +4461,7 @@ snapshots:
       kicadts: 0.0.53(typescript@5.9.3)
       minicssgrid: 0.0.9(typescript@5.9.3)
       performance-now: 2.1.0
-      poppygl: 0.0.30(typescript@5.9.3)
+      poppygl: 0.0.34(typescript@5.9.3)
       react: 19.2.4
       react-dom: 19.3.0(react@19.2.4)
       rollup: 4.64.6
@@ -4488,5 +4556,7 @@ snapshots:
     dependencies:
       eventemitter3: 2.0.3
       xml-lexer: 0.2.2
+
+  yallist@5.0.0: {}
 
   zod@3.25.76: {}
