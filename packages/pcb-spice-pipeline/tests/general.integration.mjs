@@ -5,6 +5,7 @@ import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
 import {resolve,join} from 'node:path'
 import {fileURLToPath} from 'node:url'
+import {createHash} from 'node:crypto'
 import {parseRecord} from '../src/schema.js'
 import {loadEntry,runPipeline} from '../src/pipeline.mjs'
 import {runtimePaths} from '../src/runtime.mjs'
@@ -61,6 +62,10 @@ test('actual vendor DDR DQ, non-DDR and single-ended TSX generate waveforms and 
     const receipt=await runPipeline({...input,...runtime,outputDir:dir})
     assert.equal(receipt.schemaVersion,3);assert.equal(receipt.execution.solverResultCache,false)
     assert.equal(receipt.experiments.length,name==='ddr-dq'?2:1)
+    for(const file of ['trace-map','probe-map','test-plan','results-summary','eye-summary']) {
+      const path=`csv/${file}.csv`,bytes=await readFile(join(dir,path))
+      assert.equal(createHash('sha256').update(bytes).digest('hex'),receipt.files[path],'report CSVs are included in the completed native receipt')
+    }
     const solverCommands=Object.keys(receipt.files).filter(file=>file.endsWith('/ngspice.command.json'))
     assert.equal(solverCommands.length,receipt.experiments.length,'each experiment shares one actual native process across its probes and eyes')
     for(const file of solverCommands) {

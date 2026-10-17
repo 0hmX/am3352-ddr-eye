@@ -24,7 +24,11 @@ pnpm exec pcb-spice-pipeline --check-tools
 pnpm exec pcb-spice-pipeline examples/single-ended/index.circuit.tsx --out .tscircuit/cmos --open
 ```
 
-`--open` opens the generated `results.html` in your default browser. The page also works offline when opened directly. Select a probe or experiment, switch between waveforms and eyes, overlay experiments, scroll to zoom, drag to pan, or enter an exact time range. The cursor reports an actual adaptive solver sample. Display envelopes retain sample extrema; analysis always uses the full recorded samples. Raw CSV remains available beside the page.
+`--open` opens the generated `results.html` in your default browser. The offline viewer has Board, Tests, Results, Plots, CSV files and Model tabs. The full-board view draws unused routing and component bounds in gray and highlights simulated components and selected traces, with physical endpoints and dimensions in a side inspector. All layers are projected into a top view. Probe labels show the physical signal minus reference. Results show observed voltage ranges and declared eye gates/windows without inventing pass/fail thresholds.
+
+Select a probe or experiment, switch between waveforms and eyes, overlay experiments, scroll to zoom, drag to pan, or enter an exact time range. The cursor reports an actual adaptive solver sample. Display envelopes retain sample extrema; analysis always uses the full recorded samples.
+
+Every report automatically writes a `csv/` folder: `trace-map.csv`, `probe-map.csv`, `test-plan.csv`, `results-summary.csv`, `eye-summary.csv`, plus numbered waveform and eye files for each experiment. Comparison adds `comparison.csv`. Waveform exports retain every adaptive timestamp and measured value with readable probe headers. Eye files preserve the original folded/interpolated samples. CSV units are seconds and volts unless a column explicitly states otherwise. Keep the HTML and CSV folder together for downloads; plots and the in-page waveform export also work with the HTML alone. Original solver CSVs and their provenance remain in the experiment folders.
 
 The default installation is under `node_modules/.cache/pcb-spice-pipeline/tools`. Set `PCB_SPICE_CACHE` to keep a shared cache elsewhere. For an explicit installation directory:
 

@@ -1,9 +1,9 @@
 // Serialized as a standalone function so results.html works offline, including file://.
 export function viewerClient() {
   type Eye = { name: string; simulationVoltageProbeId: string; unitIntervalSeconds: number; windowOriginsSeconds: number[]; metrics?: unknown }
-  type Probe = { name: string; simulationVoltageProbeId: string; column: number; signalSourceId?: string; referenceSourceId?: string | null }
+  type Probe = { name: string; simulationVoltageProbeId: string; column: number; signalSourceId?: string; referenceSourceId?: string | null; signalLabel?: string; referenceLabel?: string }
   type Run = { name: string; rows: number[][]; probes: Probe[]; eyes: Eye[] }
-  const data = JSON.parse(document.getElementById('simulation-data')!.textContent!) as { runs: Run[]; limitations: string[];
+  const data = JSON.parse(document.getElementById('simulation-data')!.textContent!) as { runs: Run[]; limitations: string[]; comparisonProbeName?: string;
     changes?: Array<{quiet:string;active:string;peakAbsoluteV:number;timeRmsV:number;startSeconds:number;endSeconds:number}> }
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T
   const runSelect = $<HTMLSelectElement>('run'), probeSelect = $<HTMLSelectElement>('probe'), eyeSelect = $<HTMLSelectElement>('eye')
@@ -32,7 +32,7 @@ export function viewerClient() {
   overlay.disabled = data.runs.length < 2
   overlay.checked = Boolean(data.changes?.length) && data.runs.length > 1
   const updateProbes = () => {
-    const previous = probeSelect.selectedOptions[0]?.textContent
+    const previous = probeSelect.selectedOptions[0]?.textContent ?? data.comparisonProbeName
     probeSelect.replaceChildren(); selectedRun().probes.forEach((probe, i) => option(probeSelect, probe.name, i))
     const match = selectedRun().probes.findIndex(probe => probe.name === previous)
     if (match >= 0) probeSelect.value = String(match)
@@ -108,13 +108,28 @@ export function viewerClient() {
     $('legend').replaceChildren()
     curves.forEach(({ run, probe }, i) => { const item = document.createElement('span'); item.textContent = `${run.name} · ${probe.name}`; item.style.color = colors[i % colors.length]; $('legend').append(item) })
     $('selection').textContent = `${selectedRun().name} / ${selectedProbe().name}`
-    $('binding').textContent = `Signal ${selectedProbe().signalSourceId ?? 'recorded'} · Reference ${selectedProbe().referenceSourceId ?? 'channel ground'}`
+    $('binding').textContent = `Measured voltage = ${selectedProbe().signalLabel ?? selectedProbe().signalSourceId ?? 'recorded signal'} − ${selectedProbe().referenceLabel ?? selectedProbe().referenceSourceId ?? 'channel ground'}`
     $('sample-count').textContent = curves.map(({ run }) => run.rows.length.toLocaleString()).join(' + ') + ' actual samples'
     $('waveform-button').setAttribute('aria-pressed', String(mode === 'waveform')); $('eye-button').setAttribute('aria-pressed', String(mode === 'eye'))
     $('eye-field').hidden = mode !== 'eye'
     $<HTMLInputElement>('start').value = format(xMin * 1e9); $<HTMLInputElement>('end').value = format(xMax * 1e9)
   }
   const limit = () => { const span = Math.min(xMax - xMin, fullMax - fullMin); xMin = Math.max(fullMin, Math.min(xMin, fullMax - span)); xMax = xMin + span }
+  const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-tab]'))
+  const activateTab = (id: string) => {
+    for (const tab of tabs) {
+      const active = tab.dataset.tab === id
+      $(tab.dataset.tab!).hidden = !active; tab.setAttribute('aria-selected', String(active)); tab.tabIndex = active ? 0 : -1
+    }
+    if (id === 'explore') draw()
+  }
+  tabs.forEach((tab, i) => {
+    tab.onclick = () => activateTab(tab.dataset.tab!)
+    tab.onkeydown = event => {
+      const next = event.key === 'ArrowRight' ? (i + 1) % tabs.length : event.key === 'ArrowLeft' ? (i + tabs.length - 1) % tabs.length : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : -1
+      if (next >= 0) { event.preventDefault(); tabs[next].focus(); activateTab(tabs[next].dataset.tab!) }
+    }
+  })
   runSelect.onchange = updateProbes; probeSelect.onchange = updateEyes; eyeSelect.onchange = reset; overlay.onchange = reset
   $('waveform-button').onclick = () => { mode = 'waveform'; reset() }
   $('eye-button').onclick = () => { if (eyeSelect.options.length) { mode = 'eye'; reset() } }
@@ -145,17 +160,11 @@ export function viewerClient() {
       $('cursor').textContent = `${format(point[0] * 1e9)} ns · ${format(point[probe.column])} V · actual sample ${index + 1}`
     }
   }
-  $('limitations').textContent = data.limitations.join('\n')
-  $('summary').textContent = `${data.runs.length} experiment${data.runs.length===1?'':'s'} · ${data.runs[0].probes.length} probes · native local simulation`
-  if (data.changes?.length) {
-    $('comparison').hidden = false
-    for (const change of data.changes) {
-      const card=document.createElement('div'), title=document.createElement('p'), values=document.createElement('p'), gate=document.createElement('p')
-      title.textContent=`${change.active} − ${change.quiet}`; title.style.fontWeight='600'
-      values.textContent=`Peak absolute difference: ${format(change.peakAbsoluteV*1000)} mV · Time RMS: ${format(change.timeRmsV*1000)} mV`
-      gate.textContent=`Measurement gate: ${format(change.startSeconds*1e9)}–${format(change.endSeconds*1e9)} ns`
-      card.append(title,values,gate); $('comparison-data').append(card)
-    }
-  }
+  $('summary').textContent = `${data.runs.length} runs · ${new Set(data.runs.flatMap(run=>run.probes.map(probe=>probe.name))).size} probes · ${data.runs.reduce((sum,run)=>sum+run.eyes.length,0)} eyes`
+  document.querySelectorAll<HTMLButtonElement>('[data-run]').forEach(button => { button.onclick = () => {
+    runSelect.value = button.dataset.run!; overlay.checked = false; updateProbes()
+    probeSelect.value = button.dataset.probe!; mode = button.dataset.mode!; updateEyes()
+    activateTab('explore')
+  } })
   updateProbes(); new ResizeObserver(draw).observe(canvas)
 }
