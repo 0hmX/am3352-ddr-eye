@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { declaredDcSupplies } from './independent-helpers.mjs'
 
 // Numerical/characterization checks for these delivered fixtures, not absolute
 // maximum ratings, an eye mask, or a device/protocol compliance test.
@@ -20,19 +21,18 @@ function modelTables(text, name) {
   return { ranges, vinl: threshold('Vinl'), vinh: threshold('Vinh') }
 }
 
-function dcPotentials(circuit, nodeMap) {
+function dcPotentials(sources) {
   const known = new Map([['0', 0]])
-  const sources = circuit.filter(record => record.type === 'simulation_voltage_source' && !record.wave_shape)
   for (let pass = 0; pass <= sources.length; pass++) for (const source of sources) {
-    const p = nodeMap.nodes[source.terminal1_source_port_id], n = nodeMap.nodes[source.terminal2_source_port_id]
-    if (known.has(n)) known.set(p, known.get(n) + source.voltage)
-    else if (known.has(p)) known.set(n, known.get(p) - source.voltage)
+    const p = source.positiveNode, n = source.negativeNode
+    if (known.has(n)) known.set(p, known.get(n) + source.voltageV)
+    else if (known.has(p)) known.set(n, known.get(p) - source.voltageV)
   }
   return known
 }
 
 export async function auditStartup({ out, circuit, run, vendorIbis, nodeMap, csv }) {
-  const potentials = dcPotentials(circuit, nodeMap)
+  const potentials = dcPotentials(await declaredDcSupplies(out,circuit,nodeMap,await readFile(join(out,run.directory,'simulation.cir'),'utf8')))
   const pins = vendorIbis.flatMap(model => model.pins.map(pin => ({ ...pin, modelId: model.modelId, component: model.component })))
   const spans = pins.map(pin => Math.abs(potentials.get(nodeMap.nodes[pin.references.pullup]) - potentials.get(nodeMap.nodes[pin.references.pulldown]))).filter(value => Number.isFinite(value) && value > 0)
   assert.ok(spans.length, 'Delivered fixture has declared physical DC rail potentials')
