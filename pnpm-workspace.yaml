@@ -7,12 +7,12 @@ allowBuilds:
   '@resvg/resvg-js': true
   sharp: false
 overrides:
-  '@tscircuit/core': file:.packages/tscircuit-core-ibis-experimental.tgz
-  '@tscircuit/props': file:.packages/tscircuit-props-ibis-experimental.tgz
+  '@tscircuit/core': 0.0.2171
+  '@tscircuit/props': 0.0.704
   '@tscircuit/ibis-to-spice': workspace:*
   '@tscircuit/cli': 0.1.2237
   '@tscircuit/eval': 0.0.1538
-  tscircuit: file:.packages/tscircuit-experimental.tgz
+  tscircuit: 0.0.2940
   "@tscircuit/cableprinter": "0.0.6"
   "@tscircuit/capacity-autorouter": "0.0.974"
   "@tscircuit/checks": "0.0.248"
@@ -25,10 +25,10 @@ overrides:
   "@tscircuit/modelprinter": "0.0.34"
   "@tscircuit/schematic-match-adapt": "0.0.22"
   "bpc-graph": "0.0.67"
-  "circuit-json": file:.packages/circuit-json-general-experimental.tgz
+  "circuit-json": 0.0.528
   "circuit-json-to-bpc": "0.0.14"
   "circuit-json-to-connectivity-map": "0.0.33"
   "circuit-json-to-spice": "0.0.46"
   "schematic-symbols": "0.0.248"
   "spicets": "0.0.5"
-  '@tscircuit/fanout-solver': file:.packages/fanout-solver-experimental.tgz
+  '@tscircuit/fanout-solver': 0.0.81

@@ -1,9 +1,9 @@
 import { mkdir, readFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import type { IbisConversionMetadata, IbisModelDefinition } from '@tscircuit/ibis-to-spice'
-import { command, json, sha256 } from './io.mjs'
+import { json, sha256 } from './io.mjs'
 import { fail } from './matrices.mjs'
-import { packageRoot } from './runtime.mjs'
+import { writeViewerData } from './viewer.js'
 import { simulationSpiceOptions } from './general-spice.js'
 
 interface Stimulus {
@@ -30,6 +30,7 @@ interface Eye {
   endTimeSeconds: number
   directory: string
   sourceSha256: string
+  windowOriginsSeconds?: number[]
 }
 interface Plan {
   durationSeconds: number
@@ -176,8 +177,8 @@ interface Series {
   probe: Probe; eye: Eye; identity: ReturnType<typeof comparisonIdentity>; neighbors: ReturnType<typeof neighborsFor>
 }
 
-export async function compareRuns({ directories, outputDir, probeName, python }: {
-  directories: string[]; outputDir: string; probeName: string; python: string
+export async function compareRuns({ directories, outputDir, probeName }: {
+  directories: string[]; outputDir: string; probeName: string
 }) {
   if (!directories.length || !probeName) fail('comparison_input', 'Provide a completed run directory and --probe NAME')
   const series: Series[] = [], waveforms: number[][][] = []
@@ -212,13 +213,17 @@ export async function compareRuns({ directories, outputDir, probeName, python }:
       if (eye.sourceSha256 !== sha256(waveform)) fail('comparison_provenance', 'Eye is not bound to the recorded waveform')
       const eyeRelative = join(experiment.directory, eye.directory, 'eye-data.csv')
       await artifact(eyeRelative)
+      const metadata = JSON.parse((await artifact(join(experiment.directory, eye.directory, 'eye-data.json'))).toString()) as Eye
+      if (metadata.simulationVoltageProbeId !== probe.simulationVoltageProbeId || metadata.sourceSha256 !== sha256(waveform) ||
+          !Array.isArray(metadata.windowOriginsSeconds) || metadata.windowOriginsSeconds.some(value => !Number.isFinite(value)))
+        fail('comparison_provenance', 'Eye metadata must bind finite window origins to the recorded probe and waveform')
       const plan = JSON.parse((await artifact(join(experiment.directory, 'experiment.json'))).toString()) as Plan
       const assembly = JSON.parse((await artifact(experiment.assembly)).toString()) as Assembly[]
       const input = { network, geometry, plan, assembly, probe, eye }
       const identity = comparisonIdentity(input)
       waveforms.push(waveform.toString().trim().split(/\r?\n/).slice(1).map(line => line.split(',').map(Number)))
       series.push({ label: experiment.name, root, receiptSha256: sha256(receiptBytes), waveformPath: join(root, experiment.directory, 'waveform.csv'),
-        waveformSha256: sha256(waveform), eyeCsv: join(root, eyeRelative), probe, eye, identity, neighbors: neighborsFor(input) })
+        waveformSha256: sha256(waveform), eyeCsv: join(root, eyeRelative), probe, eye: {...eye,windowOriginsSeconds:metadata.windowOriginsSeconds}, identity, neighbors: neighborsFor(input) })
     }
   }
   assertComparable(series.map(run => run.identity))
@@ -235,6 +240,6 @@ export async function compareRuns({ directories, outputDir, probeName, python }:
     differenceDefinition: 'Switching minus quiet piecewise-linear reconstructions on the union of recorded adaptive timestamps and exact gate endpoints. RMS is integrated over time.',
     limitations: ['Finite deterministic simulation; no BER, protocol compliance or hardware accuracy claim',
       'Differences include all coupling and shared return paths represented by the selected network; peaks do not bound unrecorded analog behavior'] })
-  await command(python, [join(packageRoot, 'scripts/plot-comparison.py'), manifest], out, 'plot-comparison')
+  await writeViewerData(join(out,'results.html'), { runs: series.map((run,i) => ({name:run.label,rows:waveforms[i],probes:[run.probe],eyes:[{...run.eye,name:probeName}]})), limitations:['Finite deterministic comparison; see comparison.json for verified identity and model limitations.'],changes }, 'Quiet versus switching comparison')
   return { directory: out, manifest, changes }
 }

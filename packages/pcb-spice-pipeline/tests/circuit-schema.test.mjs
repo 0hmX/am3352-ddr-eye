@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {access,mkdtemp,rm} from 'node:fs/promises'
+import {access,mkdtemp,readFile,rm} from 'node:fs/promises'
 import {join} from 'node:path'
 import {tmpdir} from 'node:os'
 import {validateCircuitRecords} from '../src/circuit-schema.mjs'
@@ -20,4 +20,14 @@ test('registered valid records are checked without rewriting source values',()=>
   validateCircuitRecords(records)
   assert.deepEqual(records,before)
   assert.throws(()=>validateCircuitRecords([{type:'unknown_record',unknown_record_id:'bad'}]),/unknown_record bad: no registered record schema/)
+})
+
+test('saved board schema aliases validate without rewriting geometry or accepting malformed holes',async()=>{
+  const records=JSON.parse(await readFile(new URL('../../../am3352.circuit.json',import.meta.url),'utf8'))
+  const original=JSON.stringify(records)
+  validateCircuitRecords(records)
+  assert.equal(JSON.stringify(records),original)
+  const hole=structuredClone(records.find(record=>record.type==='pcb_plated_hole'&&record.shape==='circular_hole_with_rect_pad'))
+  hole.hole_diameter='invalid'
+  assert.throws(()=>validateCircuitRecords([hole]),/circuit_schema.*pcb_plated_hole/)
 })

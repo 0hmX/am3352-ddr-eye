@@ -8,16 +8,20 @@
     "node": ">=22"
   },
   "packageManager": "pnpm@11.25.0",
-  "exports": "./dist/pipeline.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./tsx": {
+      "types": "./dist/tsx.d.ts",
+      "import": "./dist/tsx.js"
+    }
+  },
   "files": [
     "dist",
-    "src",
-    "scripts/setup-tools.py",
-    "scripts/plot.py",
     "scripts/audit-eye.mjs",
-    "requirements.lock.txt",
-    "toolchain-lock.json",
-    "scripts/plot-comparison.py"
+    "toolchain-lock.json"
   ],
   "bin": {
     "pcb-spice-pipeline": "dist/cli.mjs"
@@ -25,26 +29,28 @@
   "scripts": {
     "test": "node --import tsx --test tests/*.test.mjs tests/*.test.ts",
     "test:native": "node --import tsx --test tests/general.integration.mjs",
-    "typecheck": "tsc --noEmit",
-    "build": "tsc"
+    "typecheck": "tsc --noEmit && tsc -p tests/tsconfig.json",
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc"
   },
   "dependencies": {
     "fflate": "0.8.2",
     "react": "19.2.4",
     "tsx": "4.23.15",
-    "circuit-json": "0.0.528"
+    "circuit-json": "0.0.528",
+    "tar": "7.5.22",
+    "zod": "3.25.76"
   },
   "devDependencies": {
-    "@tscircuit/core": "0.0.2148",
+    "@tscircuit/core": "0.0.2171",
     "@tscircuit/ibis-to-spice": "workspace:*",
-    "@tscircuit/props": "0.0.702",
+    "@tscircuit/props": "0.0.704",
     "@types/node": "22.20.5",
     "@types/react": "19.3.0",
     "typescript": "5.9.3"
   },
   "peerDependencies": {
-    "@tscircuit/core": "0.0.2148",
-    "@tscircuit/props": "0.0.702",
+    "@tscircuit/core": ">=0.0.2171",
+    "@tscircuit/props": ">=0.0.704",
     "@tscircuit/ibis-to-spice": "0.0.2"
   }
 }

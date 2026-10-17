@@ -29,25 +29,16 @@ export async function auditProject(projectRoot) {
     'index.circuit.tsx', 'tsconfig.json', 'tscircuit.config.json', 'pnpm-workspace.yaml', 'pnpm-lock.yaml',
     'packages/ibis-to-spice/package.json', 'packages/ibis-to-spice/lib/convert.ts', 'packages/ibis-to-spice/lib/parse-ibis.ts', 'packages/ibis-to-spice/lib/load.ts',
     'packages/pcb-spice-pipeline/package.json', 'packages/pcb-spice-pipeline/src/pipeline.mjs', 'packages/pcb-spice-pipeline/src/geometry.ts', 'packages/pcb-spice-pipeline/src/spice.ts', 'packages/pcb-spice-pipeline/src/cli.mjs',
-    '.packages/native-patches/core.patch', '.packages/native-patches/props.patch', '.packages/native-patches/manifest.json',
+    'packages/pcb-spice-pipeline/src/tsx.ts', 'packages/pcb-spice-pipeline/src/setup.ts', 'packages/pcb-spice-pipeline/src/viewer.ts',
   ]
   const sourceHashes = {}
   for (const path of required) {
     assert.ok(files.includes(path), `Reusable source/configuration included in the one delivered repository: ${path}`)
     sourceHashes[path] = sha256(await readFile(join(root, path)))
   }
-  const patchManifest = await json(join(root, '.packages/native-patches/manifest.json'))
-  const patches = []
-  for (const [name, entry] of Object.entries(patchManifest)) {
-    if (!entry?.patch) continue
-    const path = join('.packages', entry.patch)
-    const digest = sha256(await readFile(join(root, path)))
-    assert.equal(digest, entry.patchSha256, `Reproducible native ${name} patch hash`)
-    assert.ok(entry.commit && entry.url, `Pinned native ${name} source revision`)
-    patches.push({ name, commit: entry.commit, url: entry.url, path, sha256: digest })
-  }
-  assert.ok(patches.length >= 2, 'Native implementation patches have locked source provenance')
-  return { status: 'passed', projectRoot: root, sourceFileCount: files.length, ordinaryCommands: { dev: pkg.scripts.dev, build: pkg.scripts.build, typecheck: pkg.scripts.typecheck }, ciFiles: ci, reusableSources: sourceHashes, nativePatches: patches, scope: 'Static packaging and command audit; actual build/dev/typecheck logs are separate execution evidence.' }
+  for (const [name, version] of Object.entries(pkg.dependencies)) assert.ok(!String(version).includes('.packages/'), `Published/workspace dependency ${name}`)
+  assert.deepEqual(files.filter(path => path.endsWith('.py')), [], 'No Python source or runtime dependency')
+  return { status: 'passed', projectRoot: root, sourceFileCount: files.length, ordinaryCommands: { dev: pkg.scripts.dev, build: pkg.scripts.build, typecheck: pkg.scripts.typecheck }, ciFiles: ci, reusableSources: sourceHashes, externalSolverPolicy: 'download and install locally before simulation; no bundled solvers', scope: 'Static packaging and command audit; actual build/dev/typecheck logs are separate execution evidence.' }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

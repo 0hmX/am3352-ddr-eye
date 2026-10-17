@@ -1,7 +1,0 @@
-packages:
-  - .
-blockExoticSubdeps: false
-allowBuilds:
-  esbuild: true
-  sharp: false
-overrides:

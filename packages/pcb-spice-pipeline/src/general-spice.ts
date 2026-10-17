@@ -1,4 +1,4 @@
-import type { CircuitJson } from 'circuit-json'
+import type { CircuitJson } from './schema.js'
 import type { IbisConversionMetadata } from '@tscircuit/ibis-to-spice'
 import type { CircuitNodes, SimulationPlan } from './declarations.js'
 import { selectPort, type Geometry, type Modeling } from './geometry.js'

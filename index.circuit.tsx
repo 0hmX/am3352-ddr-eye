@@ -1,5 +1,4 @@
-import type { BoardProps } from "@tscircuit/props"
-import { analog } from "@tscircuit/core"
+import { si } from "pcb-spice-pipeline/tsx"
 import routedBoard from "./am3352.circuit.json"
 import { driver, receiver } from "./simulation.config"
 
@@ -7,16 +6,11 @@ export { modeling } from "./simulation.config"
 
 export default function Board() {
   return (
-    <board
-      circuitJson={routedBoard as NonNullable<BoardProps["circuitJson"]>}
-      routingDisabled
-      schematicDisabled
-    >
-      <ibismodel componentRef=".U1" {...driver} />
-      <ibismodel componentRef=".U3" {...receiver} />
-      <voltagesource name="V1" doNotPlace voltage="1.5V"
-        connections={{ pos: ".U1 > .E5", neg: ".U1 > .A1" }} />
-      <analog.transientsimulation
+    <>
+    <si.ImportedBoard circuitJson={routedBoard} />
+      <si.Model componentRef=".U1" {...driver} />
+      <si.Model componentRef=".U3" {...receiver} />
+      <si.Transient
         name="DDR_SI"
         duration="100ns"
         timePerStep="10ps"
@@ -28,15 +22,15 @@ export default function Board() {
           ".U3 > .G3": { mode: "input" },
         }}
       />
-      <analog.digitalstimulus name="DQS_P" simulationRef=".DDR_SI"
+      <si.Stimulus name="DQS_P" simulationRef=".DDR_SI"
         drives=".U1 > .P1" unitInterval="2.5ns" startTime="0ns"
         initialState={0} pattern={{ type: "bits", bits: "01", repeat: true }} />
-      <analog.digitalstimulus name="DQS_N" simulationRef=".DDR_SI"
+      <si.Stimulus name="DQS_N" simulationRef=".DDR_SI"
         drives=".U1 > .P2" unitInterval="2.5ns" startTime="0ns"
         initialState={0} inverted pattern={{ type: "bits", bits: "01", repeat: true }} />
-      <voltageprobe name="DDR_RX" connectsTo=".U3 > .F3" referenceTo=".U3 > .G3" />
-      <voltageprobe name="DDR_TX" connectsTo=".U1 > .P1" referenceTo=".U1 > .P2" />
-      <analog.eyediagram
+      <si.Probe name="DDR_RX" connectsTo=".U3 > .F3" referenceTo=".U3 > .G3" />
+      <si.Probe name="DDR_TX" connectsTo=".U1 > .P1" referenceTo=".U1 > .P2" />
+      <si.Eye
         name="DDR_receive_eye"
         simulationRef=".DDR_SI"
         probeRef=".DDR_RX"
@@ -44,7 +38,7 @@ export default function Board() {
         timeOrigin="0ns"
         startTime="20ns"
       />
-      <analog.eyediagram
+      <si.Eye
         name="DDR_transmit_eye"
         simulationRef=".DDR_SI"
         probeRef=".DDR_TX"
@@ -52,6 +46,6 @@ export default function Board() {
         timeOrigin="0ns"
         startTime="20ns"
       />
-    </board>
+    </>
   )
 }

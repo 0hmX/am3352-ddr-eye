@@ -1,4 +1,4 @@
-import type { IbisModelDefinition } from "@tscircuit/props"
+import type { IbisModelDefinition } from "@tscircuit/ibis-to-spice"
 import lock from "../vendor-models.lock.json"
 
 const vendor = lock.models.cmos

@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "jsx": "react-jsx",
-    "target": "ES2022",
+    "target": "ES2023",
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
@@ -10,7 +10,15 @@
     "skipLibCheck": true,
     "types": [
       "@tscircuit/core"
-    ]
+    ],
+    "paths": {
+      "@tscircuit/fanout-solver": [
+        "./node_modules/.cache/tscircuit-declarations/fanout/index.d.ts"
+      ],
+      "pcb-spice-pipeline/tsx": [
+        "./packages/pcb-spice-pipeline/src/tsx.ts"
+      ]
+    }
   },
   "include": [
     "index.circuit.tsx",
