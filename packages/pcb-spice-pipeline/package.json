@@ -11,9 +11,7 @@
   "exports": "./src/pipeline.mjs",
   "files": [
     "src",
-    "scripts/setup-tools.py",
-    "scripts/plot.py",
-    "scripts/audit-eye.mjs",
+    "scripts",
     "requirements.lock.txt",
     "toolchain-lock.json"
   ],
@@ -22,14 +20,15 @@
   },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "test:native": "node --test tests/general.integration.mjs",
+    "test:native": "node --test tests/*.integration.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "fflate": "0.8.2",
     "react": "19.2.4",
     "tsx": "4.23.15",
-    "circuit-json": "0.0.528"
+    "circuit-json": "0.0.528",
+    "circuit-json-to-gmsh": "github:tscircuit/circuit-json-to-gmsh#9c7f34b7e502b8339a6659cb268b1540867a672d"
   },
   "devDependencies": {
     "@tscircuit/core": "0.0.2148",

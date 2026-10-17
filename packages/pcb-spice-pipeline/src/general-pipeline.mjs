@@ -12,11 +12,13 @@ import {generalDeclarations,modelRunDefinition} from './declarations.mjs'
 import {electricalSources,generalSimulationSpice,validateProbeScope} from './general-spice.mjs'
 import {channelSpice} from './spice.mjs'
 import {extractChannel} from './extraction.mjs'
+import {extractRoutedChannel} from './routed-extraction.mjs'
 import {probeWaveformRows,foldProbeEye} from './metrics.mjs'
 import {command,json,sha256,hashes} from './io.mjs'
 import {fail} from './matrices.mjs'
 import {packageRoot} from './runtime.mjs'
 import {validateCircuitRecords} from './circuit-schema.mjs'
+import {runCapacitanceSensitivity} from './capacitance-sensitivity.mjs'
 
 const exec=promisify(execFile)
 const safeId=id=>{
@@ -52,6 +54,9 @@ export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,b
   const out=resolve(outputDir)
   try {await stat(out);fail('output_exists',`Use a fresh output directory: ${out}`)} catch(error) {if(error.code!=='ENOENT') throw error}
   validateCircuitRecords(circuitJson)
+  const sourceRoots=['LICENSE','package.json','requirements.lock.txt','scripts','src','tests','toolchain-lock.json','tsconfig.json']
+  const sourceExclusions=(await readdir(packageRoot)).filter(name=>!sourceRoots.includes(name))
+  const sourceFiles=await hashes(packageRoot,'',sourceExclusions)
   if(typeof converter.convertIbisModelToSpice!=='function'||typeof converter.loadIbisDefinitionSource!=='function') fail('converter_version','Install/build the same-repository general IBIS converter')
   const geometry=geometryFromCircuitJson(circuitJson,modeling),declarations=generalDeclarations(circuitJson,geometry,modeling)
   const electrical=electricalSources(circuitJson,modeling,declarations.nodes)
@@ -95,7 +100,9 @@ export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,b
   }
   try {toolEvidence.setup=JSON.parse(await readFile(join(dirname(tools.configPath??join(packageRoot,'.cache/tools/tools.json')),'build-receipt.json')));await json(join(out,'tool-build-receipt.json'),toolEvidence.setup)} catch(error) {if(error.code!=='ENOENT') throw error}
   await json(join(out,'tool-evidence.json'),toolEvidence)
-  const extracted=await extractChannel(geometry,modeling,out,tools,onProgress)
+  const extracted=geometry.kind==='routed-shapes'
+    ?await extractRoutedChannel({circuitJson,geometry,modeling,out,tools,python,onProgress})
+    :await extractChannel(geometry,modeling,out,tools,onProgress)
   await writeFile(join(out,'channel.cir'),channelSpice(extracted,modeling.sections))
   const results=[...circuitJson],experiments=[]
   for(const [index,plan] of declarations.plans.entries()) {
@@ -120,6 +127,7 @@ export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,b
     if(Math.abs(rows.at(-1)[0]-plan.durationSeconds)>plan.durationSeconds*1e-8) fail('simulation_duration',`${plan.name}: native solver did not complete the declared duration`)
     await writeFile(join(dir,'waveform.csv'),'time_s,'+plan.probes.map(probe=>probe.simulationVoltageProbeId+'_v').join(',')+'\n'+rows.map(row=>row.join(',')).join('\n')+'\n')
     await json(join(dir,'waveform.json'),{simulationExperimentId:plan.simulationExperimentId,probes:plan.probes,samples:rows.length,timestamps:'actual adaptive solver times in seconds',source:'waveform.dat',sourceSha256:sha256(await readFile(join(dir,'waveform.dat')))})
+    const numericalCapacitanceSensitivity=await runCapacitanceSensitivity({plan,geometry,modeling,extracted,models,nodes:declarations.nodes,electrical,tools,dir,referenceRows:rows,onProgress})
     const eyes=[]
     for(const eye of plan.eyes) {
       const relativeEye=join('eyes',eye.simulationEyeDiagramId),eyeDir=join(dir,relativeEye),folded=foldProbeEye(rows,eye)
@@ -133,7 +141,7 @@ export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,b
     for(const probe of plan.probes) results.push(any_circuit_element.parse({type:'simulation_transient_voltage_graph',simulation_transient_voltage_graph_id:`simulation_transient_voltage_graph_${plan.simulationExperimentId}_${probe.column}`,simulation_experiment_id:plan.simulationExperimentId,simulation_voltage_probe_id:probe.simulationVoltageProbeId,timestamps_ms:rows.map(row=>row[0]*1000),voltage_levels:rows.map(row=>row[probe.column]),time_per_step:plan.maxStepSeconds*1000,start_time_ms:rows[0][0]*1000,end_time_ms:rows.at(-1)[0]*1000,name:probe.name}))
     const resultIndex=results.findIndex(record=>record.type==='simulation_experiment'&&record.simulation_experiment_id===plan.simulationExperimentId)
     results[resultIndex]={...results[resultIndex],execution_status:'complete',execution_mode:'external'}
-    experiments.push({simulationExperimentId:plan.simulationExperimentId,name:plan.name,directory:relative,durationSeconds:plan.durationSeconds,startTimeSeconds:plan.startTimeSeconds,maxStepSeconds:plan.maxStepSeconds,probes:plan.probes,eyes,solverInvocations:1,waveformSamples:rows.length,assembly:join(relative,'native-ibis-assembly.json')})
+    experiments.push({simulationExperimentId:plan.simulationExperimentId,name:plan.name,directory:relative,durationSeconds:plan.durationSeconds,startTimeSeconds:plan.startTimeSeconds,maxStepSeconds:plan.maxStepSeconds,probes:plan.probes,eyes,solverInvocations:1,numericalSolverInvocations:numericalCapacitanceSensitivity?1:0,numericalCapacitanceSensitivity,waveformSamples:rows.length,assembly:join(relative,'native-ibis-assembly.json')})
   }
   // Registered validation prevents result probe associations from disappearing.
   const canonical=results.map(record=>any_circuit_element.parse(record))
@@ -141,7 +149,8 @@ export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,b
   await json(join(out,'circuit-results.json'),canonical)
   let gitCommit=null,sourceTreeDirty=null
   try {gitCommit=(await exec('git',['rev-parse','HEAD'],{cwd:packageRoot})).stdout.trim();sourceTreeDirty=Boolean((await exec('git',['status','--porcelain'],{cwd:packageRoot})).stdout.trim())} catch {}
-  const roots=['LICENSE','package.json','requirements.lock.txt','scripts','src','tests','toolchain-lock.json','tsconfig.json'],sourceFiles=await hashes(packageRoot,'',(await readdir(packageRoot)).filter(name=>!roots.includes(name)))
+  if(JSON.stringify(await hashes(packageRoot,'',sourceExclusions))!==JSON.stringify(sourceFiles)) fail('source_changed','Pipeline source changed during this solve; rerun into a fresh directory after editing is complete')
+  for(const name of ['fasthenry','fastercap','ngspice']) if(sha256(await readFile(toolEvidence[name].executable))!==toolEvidence[name].sha256) fail('tool_changed',`${name} executable changed during this solve`)
   const renderedBoard={sourceComponents:circuitJson.filter(e=>e.type==='source_component').length,pcbTraces:circuitJson.filter(e=>e.type==='pcb_trace').length,smtPads:circuitJson.filter(e=>e.type==='pcb_smtpad').length,vias:circuitJson.filter(e=>e.type==='pcb_via').length,platedHoles:circuitJson.filter(e=>e.type==='pcb_plated_hole').length,boards:circuitJson.filter(e=>e.type==='pcb_board').map(({width,height,num_layers,center})=>({widthMm:width,heightMm:height,layers:num_layers,centerMm:center})),errorTypeCounts:{}}
   for(const record of circuitJson.filter(e=>e.type.endsWith('_error'))) renderedBoard.errorTypeCounts[record.type]=(renderedBoard.errorTypeCounts[record.type]??0)+1
   const receipt={schemaVersion:3,status:'executed',description:modeling.description,execution:{host:hostname(),platform:platform(),architecture:arch(),nativeLocalMac:platform()==='darwin',timestampUtc:new Date().toISOString(),node:process.version,gitCommit,sourceTreeDirty,solverResultCache:false},sourceRoot:packageRoot,sourceFiles,project:project??null,entryPath:entryPath??null,sourceCircuitJsonSha256:sha256(inputCircuitBytes),originalSourceCircuitJsonSha256:originalSourceCircuitJsonSha256??(originalCircuitBytes?sha256(circuitPath.endsWith('.gz')?gunzipSync(originalCircuitBytes):originalCircuitBytes):null),originalSourceArchiveSha256:originalCircuitBytes?sha256(originalCircuitBytes):null,fixtureProvenance:modeling.fixtureProvenance??null,sourceProvenance:modeling.sourceProvenance??null,preSolvedAssessment:modeling.sourceProvenance?.preSolvedAssessment??null,renderedBoard,converter:converterEvidence,toolEvidence,vendorSources:loaded.map(source=>source.evidence),matrices:extracted.map(e=>({stage:e.stage,R:e.R,L:e.L,C:e.C,units:e.units})),experiments,limitations:[...geometry.approximations,...compiled.flatMap(models=>models.flatMap(model=>model.warnings??[])),'Only explicitly selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded','Finite observed transient eyes; no implicit traffic, random jitter, BER extrapolation or protocol compliance','Maximum solver integration step and plotting interpolation resolution are separate settings'],files:await hashes(out)}

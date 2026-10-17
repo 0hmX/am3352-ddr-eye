@@ -3,6 +3,8 @@ import {join} from 'node:path'
 import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
 import {createHash} from 'node:crypto'
+import {createWriteStream} from 'node:fs'
+import {finished} from 'node:stream/promises'
 import {unzipSync} from 'fflate'
 import {fail} from './matrices.mjs'
 const exec=promisify(execFile)
@@ -11,11 +13,20 @@ export const json=(path,value)=>writeFile(path,JSON.stringify(value,null,2)+'\n'
 export async function command(executable,args,cwd,label) {
   const timeoutMs=Number(process.env.PCB_SPICE_TIMEOUT_MS??900000)
   if(!Number.isSafeInteger(timeoutMs)||timeoutMs<=0) fail('native_timeout','PCB_SPICE_TIMEOUT_MS must be a positive integer in milliseconds')
+  const threads=Number(process.env.PCB_SPICE_THREADS??1)
+  if(!Number.isSafeInteger(threads)||threads<1||threads>32) fail('native_threads','PCB_SPICE_THREADS must be an integer 1..32')
   const start=Date.now();let result
-  try {const r=await exec(executable,args,{cwd,timeout:timeoutMs,maxBuffer:64*1024*1024,env:{...process.env,OMP_NUM_THREADS:'1'}});result={exitCode:0,stdout:r.stdout,stderr:r.stderr}}
+  const pending=exec(executable,args,{cwd,timeout:timeoutMs,maxBuffer:64*1024*1024,env:{...process.env,OMP_NUM_THREADS:String(threads)}})
+  const streams=['stdout','stderr'].map(kind=>{
+    const stream=createWriteStream(join(cwd,`${label}.${kind}.log`))
+    pending.child[kind].on('data',data=>stream.write(data))
+    return stream
+  })
+  try {const r=await pending;result={exitCode:0,stdout:r.stdout,stderr:r.stderr}}
   catch(e) {result={exitCode:e.code??null,signal:e.signal??null,killed:e.killed??false,stdout:e.stdout??'',stderr:e.stderr??e.message}}
-  await writeFile(join(cwd,`${label}.stdout.log`),result.stdout);await writeFile(join(cwd,`${label}.stderr.log`),result.stderr)
-  const record={executable,args,cwd,exitCode:result.exitCode,signal:result.signal??null,elapsedMs:Date.now()-start,timeoutMs,environment:{OMP_NUM_THREADS:'1'}}
+  for(const stream of streams) stream.end()
+  await Promise.all(streams.map(stream=>finished(stream)))
+  const record={executable,args,cwd,exitCode:result.exitCode,signal:result.signal??null,elapsedMs:Date.now()-start,timeoutMs,environment:{OMP_NUM_THREADS:String(threads)}}
   await json(join(cwd,`${label}.command.json`),record)
   if(result.exitCode!==0) fail('native_solver',`${label} ${result.signal??`exited ${result.exitCode}`} after ${record.elapsedMs}ms (limit ${timeoutMs}ms); see ${cwd}/${label}.stderr.log`)
   return {...result,record}

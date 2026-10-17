@@ -2,7 +2,7 @@ import { fail, scale, sum } from './matrices.mjs'
 const num=v=>Number(v.toPrecision(12)).toString()
 export function channelSpice(extracted,sections) {
   const n=extracted[0].R.length
-  const lines=['* Constant frequency passive matrix pi channel; local neutral finite return reference',`.subckt CHANNEL ${Array.from({length:n},(_,i)=>`IN${i}`).concat(Array.from({length:n},(_,i)=>`OUT${i}`),'REF').join(' ')}`]
+  const lines=['* Constant-frequency passive matrix pi channel; explicit reference terminal',`.subckt CHANNEL ${Array.from({length:n},(_,i)=>`IN${i}`).concat(Array.from({length:n},(_,i)=>`OUT${i}`),'REF').join(' ')}`]
   let global=0
   for(const [stage,e] of extracted.entries()) for(let section=0;section<sections;section++) {
     const g=global++,R=scale(e.R,1/sections),L=scale(e.L,1/sections),C=scale(e.C,1/sections)
@@ -17,7 +17,7 @@ export function channelSpice(extracted,sections) {
     for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) lines.push(`K${g}_${i}_${j} L${g}_${i} L${g}_${j} ${num(L[i][j]/Math.sqrt(L[i][i]*L[j][j]))}`)
     for(const [label,nodes] of [['a',before],['b',after]]) {
       for(let i=0;i<n;i++) lines.push(`CG${g}${label}${i} ${nodes[i]} REF ${num(sum(C[i])/2)}`)
-      for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) if(C[i][j]<0) lines.push(`CM${g}${label}${i}_${j} ${nodes[i]} ${nodes[j]} ${num(-C[i][j]/2)}`)
+      for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) if(C[i][j]!==0) lines.push(`CM${g}${label}${i}_${j} ${nodes[i]} ${nodes[j]} ${num(-C[i][j]/2)}`)
     }
   }
   lines.push('.ends CHANNEL')

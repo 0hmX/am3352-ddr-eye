@@ -12,7 +12,16 @@
     "sha256": "894e649651f1838a14095e5a5439e7d3aa63e87ede14d283173fda4fcdef675f"
   },
   "patches": [
+    "FasterCap: recompute and report the explicit relative equation residual after reconstructing each GMRES charge solution; fail if it exceeds the requested tolerance",
+    "FasterCap: discard a preconditioner-generated initial guess when its measured residual is worse than the zero initial guess",
+    "FasterCap: modified Gram-Schmidt orthogonalizes each Krylov vector against the evolving residual vector, avoiding classical Gram-Schmidt loss of orthogonality on large PCB systems",
+    "FastHenry: 8x8 Gauss-Legendre Neumann integral for distant short filaments avoids cancellation; projection length check includes coordinate-subtraction roundoff",
+    "FastHenry: breadth-first spanning forest retains the same independent cycle space while reducing long plane-mesh loops and sparse-preconditioner fill",
     "FasterCap: initialize wxBase in headless main before any wxFileName use",
+    "FasterCap: flush headless progress messages so long-running native jobs retain live diagnostics",
+    "FasterCap/Geometry: parse 3D coordinates and store 3D geometry/centroids in double precision to prevent thin PCB panels collapsing through float rounding",
+    "FasterCap: fail immediately with panel coordinates on zero conductor self-potential instead of continuing through NaN iterations",
+    "FasterCap: evaluate the exact edge logarithm as asinh(lplus/R0)-asinh(lminus/R0), retaining thin-panel contributions previously discarded by a relative log-argument cutoff",
     "FasterCap: propagate -bv and -b? to headless console main for working version/help probes",
     "FasterCap: collapsed 2D super-segment uses leftSubPanel->GetGeoNormal() instead of uninitialized lNormal",
     "FasterCap: CMake minimum 3.10, accept available wx-config version; AppleClang OpenMP compiler and linker flags"
