@@ -11,22 +11,22 @@
     "url": "https://downloads.sourceforge.net/project/ngspice/ng-spice-rework/47/ngspice-47.tar.gz",
     "sha256": "894e649651f1838a14095e5a5439e7d3aa63e87ede14d283173fda4fcdef675f"
   },
-  "patches": [
-    "FasterCap: initialize wxBase in headless main before any wxFileName use",
-    "FasterCap: propagate -bv and -b? to headless console main for working version/help probes",
-    "FasterCap: collapsed 2D super-segment uses leftSubPanel->GetGeoNormal() instead of uninitialized lNormal",
-    "FasterCap: CMake minimum 3.10, accept available wx-config version; AppleClang OpenMP compiler and linker flags"
-  ],
-  "systemDependencies": {
-    "macOS": ["Xcode command-line tools", "Homebrew cmake", "Homebrew wxwidgets", "Homebrew libomp"],
-    "Linux": ["build-essential", "git", "curl", "cmake", "libwxgtk3.2-dev", "bison", "flex"]
+  "wxWidgets": {
+    "version": "3.0.5.1",
+    "url": "https://github.com/wxWidgets/wxWidgets/releases/download/v3.0.5.1/wxWidgets-3.0.5.1.tar.bz2",
+    "sha256": "440f6e73cf5afb2cbf9af10cec8da6cdd3d3998d527598a53db87099524ac807"
   },
-  "dependencyPolicy": "Solver source commits/archive are pinned. Compiler and OS dependency versions are recorded in each local build receipt, not silently claimed to be reproducible across platforms.",
+  "systemDependencies": {
+    "macOS": ["Xcode command-line tools", "Homebrew cmake", "Homebrew llvm", "Homebrew libomp"],
+    "Linux": ["build-essential", "git", "curl", "cmake", "bison", "flex"]
+  },
+  "dependencyPolicy": "Solver source commits/archives and wxWidgets 3.0 are pinned and must remain unmodified. Local build receipts verify source trees, executables and installed runtime artifacts. Compiler and OS dependency versions are recorded, not claimed to be reproducible across platforms.",
   "licenses": {
     "FastHenry2": "MIT 1994 restricted license in src/fasthenry/induct.h: internal noncommercial use only; redistribution requires prior written MIT consent. Download/build locally; do not package solver source or binaries. This is not the permissive MIT License, and the Windows branch has different terms.",
     "FasterCap": "LGPL-2.1-or-later; upstream LICENCE.txt preserved in source checkout",
     "Geometry": "Upstream LICENCE.txt preserved in source checkout",
     "LinAlgebra": "Upstream LICENCE.txt preserved in source checkout",
-    "ngspice": "Mixed BSD-like licenses and LGPL components; upstream COPYING and component notices preserved in source archive"
+    "ngspice": "Mixed BSD-like licenses and LGPL components; upstream COPYING and component notices preserved in source archive",
+    "wxWidgets": "wxWindows Library Licence; upstream docs/licence.txt preserved in source archive"
   }
 }

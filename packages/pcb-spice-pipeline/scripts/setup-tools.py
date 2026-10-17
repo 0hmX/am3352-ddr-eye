@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build pinned native solvers; retain source, patch, command and binary receipts."""
+"""Build pristine pinned native solvers and retain source, command and binary receipts."""
 import argparse
 import hashlib
 import json
@@ -16,6 +16,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def installed_artifacts(prefix):
+    if prefix.is_symlink() or not prefix.is_dir():
+        raise RuntimeError(f"Expected an install directory: {prefix}")
+    artifacts = {}
+    for path in sorted(prefix.rglob("*")):
+        relative = path.relative_to(prefix).as_posix()
+        if path.is_symlink():
+            artifacts[relative] = {"symlink": os.readlink(path)}
+        elif path.is_file():
+            artifacts[relative] = {"sha256": sha256(path)}
+        elif not path.is_dir():
+            raise RuntimeError(f"Unsupported installed artifact: {path}")
+    return artifacts
 
 
 def main():
@@ -47,110 +62,146 @@ def main():
         return result.stdout.decode(errors="replace").strip()
 
     mac = platform.system() == "Darwin"
+    if platform.system() not in ("Darwin", "Linux"):
+        raise RuntimeError("Native setup supports macOS and Linux")
     if args.install_deps:
         if mac:
-            run("dependencies", ["brew", "install", "cmake", "wxwidgets", "libomp"])
-        elif platform.system() == "Linux":
+            run("dependencies", ["brew", "install", "cmake", "llvm", "libomp"])
+        else:
             apt = ["apt-get"] if os.geteuid() == 0 else ["sudo", "apt-get"]
             run("apt-update", apt + ["update"])
-            run("dependencies", apt + ["install", "-y", "build-essential", "git", "curl", "cmake",
-                                        "libwxgtk3.2-dev", "bison", "flex"])
-        else:
-            raise RuntimeError("Native setup supports macOS and Linux")
-    for name in ["git", "curl", "make", "cmake", "wx-config", "cc", "c++"]:
+            run("dependencies", apt + ["install", "-y", "build-essential", "git", "curl", "cmake", "bison", "flex"])
+    for name in ["git", "curl", "make", "cmake", "cc", "c++"] + (["brew"] if mac else []):
         if not shutil.which(name, path=env["PATH"]):
             raise RuntimeError(f"Missing {name}; run setup-tools.py --install-deps")
 
     source_root = tools / "source"
     source_root.mkdir(exist_ok=True)
+    provenance = {}
+
+    def verify_git(name):
+        checkout = source_root / name
+        actual = run(f"{name}-commit", ["git", "rev-parse", "HEAD"], checkout)
+        dirty = run(f"{name}-status", ["git", "status", "--porcelain", "--untracked-files=all", "--ignored"], checkout)
+        if actual != lock["sources"][name]["commit"] or dirty:
+            raise RuntimeError(f"{checkout} is not pristine at its pinned commit; use a fresh --tools-dir")
+        provenance[name] = {"commit": actual, "tree": run(f"{name}-tree", ["git", "rev-parse", "HEAD^{tree}"], checkout),
+                            "trackedDiff": ""}
+
     for name, source in lock["sources"].items():
         checkout = source_root / name
         if not checkout.exists():
             run(f"{name}-clone", ["git", "clone", "--no-checkout", source["url"], str(checkout)])
             run(f"{name}-checkout", ["git", "checkout", "--detach", source["commit"]], checkout)
-        actual = run(f"{name}-commit", ["git", "rev-parse", "HEAD"], checkout)
-        if actual != source["commit"]:
-            raise RuntimeError(f"{checkout} is at {actual}, expected {source['commit']}; use a fresh --tools-dir")
+        verify_git(name)
 
-    def replace(path, old, new):
-        text = path.read_bytes().decode()
-        if new in text:
-            return
-        if old in text:
-            path.write_bytes(text.replace(old, new, 1).encode())
-        else:
-            raise RuntimeError(f"Patch no longer applies: {path}")
+    def archive_source(name):
+        source = lock[name]
+        archive = tools / source["url"].rsplit("/", 1)[1]
+        if not archive.exists():
+            run(f"{name}-download", ["curl", "-L", "--fail", "--retry", "2", source["url"], "-o", str(archive)])
+        if sha256(archive) != source["sha256"]:
+            raise RuntimeError(f"Checksum mismatch: {archive}")
+        directory = source_root / f"{name}-{source['version']}"
+        manifest = hashlib.sha256()
+        with tarfile.open(archive) as tar:
+            members = tar.getmembers()
+            for member in members:
+                path = source_root / member.name
+                target = path.parent / member.linkname if member.issym() else source_root / member.linkname
+                if (not path.resolve().is_relative_to(source_root) or
+                        (member.issym() or member.islnk()) and not target.resolve().is_relative_to(source_root)):
+                    raise RuntimeError("Unsafe source archive path")
+            if not directory.exists():
+                tar.extractall(source_root)
+            expected = set()
+            for member in members:
+                path = source_root / member.name
+                if member.isfile() or member.islnk():
+                    expected.add(path)
+                    digest = hashlib.sha256(tar.extractfile(member).read()).hexdigest()
+                    if not path.is_file() or path.is_symlink() or sha256(path) != digest:
+                        raise RuntimeError(f"Modified archive source: {path}; use a fresh --tools-dir")
+                    manifest.update(f"{member.name}\0{digest}\n".encode())
+                elif member.issym():
+                    expected.add(path)
+                    if not path.is_symlink() or os.readlink(path) != member.linkname:
+                        raise RuntimeError(f"Modified archive link: {path}; use a fresh --tools-dir")
+                elif not member.isdir():
+                    raise RuntimeError(f"Unsupported archive entry: {member.name}")
+            actual = {path for path in directory.rglob("*") if not path.is_dir() or path.is_symlink()}
+            if actual != expected:
+                raise RuntimeError(f"Unexpected files in {directory}; use a fresh --tools-dir")
+        provenance[name] = {"archiveSha256": source["sha256"], "sourceSha256": manifest.hexdigest()}
+        return directory
 
-    cap = source_root / "FasterCap"
-    cmake_file = cap / "CMakeLists.txt"
-    replace(cmake_file, "cmake_minimum_required (VERSION 2.8)", "cmake_minimum_required (VERSION 3.10)")
-    replace(cmake_file, "set(wxWidgets_CONFIG_OPTIONS --version=3.0 --static=no",
-            "set(wxWidgets_CONFIG_OPTIONS --static=no")
-    replace(cap / "Solver/AutoSegment.cpp", "normal = lNormal;", "normal = leftSubPanel->GetGeoNormal();")
-    replace(cap / "FasterCapConsole.cpp", '#include "FasterCapConsole.h"',
-            '#include "FasterCapConsole.h"\n#include <wx/init.h>')
-    console = cap / "FasterCapConsole.cpp"
-    if b"wxInitializer initializer;" not in console.read_bytes():
-        replace(console, "FasterCapConsole console;",
-                "wxInitializer initializer;\n    if (!initializer.IsOk()) return 1;\n    FasterCapConsole console;")
-    replace(console, "ret = console.main(argc, argv);",
-            "char bOption = 0;\n    for (int i = 1; i < argc; ++i)\n"
-            "        if (argv[i][0] == '-' && argv[i][1] == 'b') bOption = argv[i][2];\n"
-            "    ret = console.main(argc, argv, bOption);")
+    wx_source, ng_source = archive_source("wxWidgets"), archive_source("ngspice")
+    # Never reuse objects from an older, potentially patched solver build.
+    def fresh_build(name):
+        directory = tools / name
+        if directory.exists():
+            shutil.rmtree(directory)
+        directory.mkdir()
+        return directory
+
+    jobs = str(min(os.cpu_count() or 2, 4))
+    compiler, cxx = "cc", "c++"
+    cap_flags = ["-DCMAKE_POLICY_VERSION_MINIMUM=3.5", "-DCMAKE_CXX_STANDARD=11"]
     if mac:
-        omp_prefix = run("libomp-prefix", ["brew", "--prefix", "libomp"])
-        replace(cmake_file, "-Wextra -Wall -fopenmp)",
-                f"-Wextra -Wall -Xpreprocessor -fopenmp -I{omp_prefix}/include)")
-        replace(cmake_file, " -fopenmp -lm -lstdc++", f" -lm -L{omp_prefix}/lib -lomp")
-    patch = run("FasterCap-patch", ["git", "diff", "--no-ext-diff"], cap)
-    (tools / "FasterCap.patch").write_text(patch + "\n")
+        llvm = Path(run("llvm-prefix", ["brew", "--prefix", "llvm"]))
+        omp = Path(run("libomp-prefix", ["brew", "--prefix", "libomp"]))
+        compiler, cxx = str(llvm / "bin/clang"), str(llvm / "bin/clang++")
+        cap_flags += [f"-DCMAKE_CXX_FLAGS=-I{omp}/include", f"-DCMAKE_EXE_LINKER_FLAGS=-L{omp}/lib"]
+    wx_build, wx_prefix = fresh_build("wxwidgets-build"), fresh_build("wxwidgets-prefix")
+    run("wxwidgets-configure", [str(wx_source / "configure"), f"--prefix={wx_prefix}", "--disable-gui",
+                               "--disable-debug", "--enable-shared", "CXXFLAGS=-std=c++11"], wx_build)
+    run("wxwidgets-build", ["make", "-j", jobs], wx_build)
+    run("wxwidgets-install", ["make", "install"], wx_build)
 
-    compiler = "clang" if mac else "cc"
+    fh_build = fresh_build("fasthenry-build")
+    shutil.copytree(source_root / "FastHenry2", fh_build, dirs_exist_ok=True, ignore=shutil.ignore_patterns(".git"))
     cflags = "-O2 -DFOUR -std=gnu89 -fcommon -Wno-implicit-function-declaration -Wno-int-conversion -Wno-incompatible-pointer-types"
     if mac:
         cflags += " -Wno-return-mismatch"
-    run("fasthenry-build", ["make", "fasthenry", f"CC={compiler}", f"CFLAGS={cflags}"], source_root / "FastHenry2")
-    cap_build = tools / "fastercap-build"
-    run("fastercap-configure", ["cmake", "-S", str(cap), "-B", str(cap_build),
+    run("fasthenry-build", ["make", "fasthenry", f"CC={compiler}", f"CFLAGS={cflags}"], fh_build)
+    cap_build = fresh_build("fastercap-build")
+    run("fastercap-configure", ["cmake", "-S", str(source_root / "FasterCap"), "-B", str(cap_build),
                               "-DCMAKE_BUILD_TYPE=Release", "-DFASTFIELDSOLVERS_HEADLESS=ON",
-                              f"-DwxWidgets_CONFIG_EXECUTABLE={shutil.which('wx-config', path=env['PATH'])}"])
-    run("fastercap-build", ["cmake", "--build", str(cap_build), "-j", str(min(os.cpu_count() or 2, 4))])
-
-    ng = lock["ngspice"]
-    archive = tools / f"ngspice-{ng['version']}.tar.gz"
-    if not archive.exists():
-        run("ngspice-download", ["curl", "-L", "--fail", "--retry", "2", ng["url"], "-o", str(archive)])
-    if sha256(archive) != ng["sha256"]:
-        raise RuntimeError(f"Checksum mismatch: {archive}")
-    ng_source = source_root / f"ngspice-{ng['version']}"
-    if not ng_source.exists():
-        with tarfile.open(archive) as tar:
-            for member in tar.getmembers():
-                if not (source_root / member.name).resolve().is_relative_to(source_root.resolve()):
-                    raise RuntimeError("Unsafe source archive path")
-            tar.extractall(source_root)
-    ng_build, prefix = tools / "ngspice-build", tools / "ngspice-prefix"
-    ng_build.mkdir(exist_ok=True)
+                              f"-DCMAKE_C_COMPILER={compiler}", f"-DCMAKE_CXX_COMPILER={cxx}",
+                              f"-DwxWidgets_CONFIG_EXECUTABLE={wx_prefix / 'bin/wx-config'}", *cap_flags])
+    run("fastercap-build", ["cmake", "--build", str(cap_build), "-j", jobs])
+    ng_build, prefix = fresh_build("ngspice-build"), fresh_build("ngspice-prefix")
     run("ngspice-configure", [str(ng_source / "configure"), f"--prefix={prefix}", "--without-x",
                              "--with-readline=no", "--disable-openmp", "--disable-debug", "--enable-xspice"], ng_build)
-    run("ngspice-build", ["make", "-j", str(min(os.cpu_count() or 2, 4))], ng_build)
+    run("ngspice-build", ["make", "-j", jobs], ng_build)
     run("ngspice-install", ["make", "install"], ng_build)
 
-    paths = {"fasthenry": str(source_root / "FastHenry2/bin/fasthenry"),
-             "fastercap": str(cap_build / "FasterCap"), "ngspice": str(prefix / "bin/ngspice")}
+    for name in lock["sources"]:
+        verify_git(name)
+    for name in ("wxWidgets", "ngspice"):
+        archive_source(name)
+    for path in (source_root / "FastHenry2").rglob("*"):
+        relative = path.relative_to(source_root / "FastHenry2")
+        if ".git" not in relative.parts and path.is_file() and sha256(path) != sha256(fh_build / relative):
+            raise RuntimeError(f"Build changed FastHenry source: {relative}")
+    paths = {"fasthenry": str(fh_build / "bin/fasthenry"), "fastercap": str(cap_build / "FasterCap"),
+             "ngspice": str(prefix / "bin/ngspice")}
     versions = {"compiler": run("compiler-version", [compiler, "--version"]),
+                "systemCompiler": run("system-compiler-version", ["cc", "--version"]),
                 "cmake": run("cmake-version", ["cmake", "--version"]),
-                "wxWidgets": run("wx-version", ["wx-config", "--version"]),
+                "wxWidgets": run("wx-version", [str(wx_prefix / "bin/wx-config"), "--version"]),
                 "fasthenry": run("fasthenry-version", [paths["fasthenry"], "-h"], check=False),
-                "ngspice": run("ngspice-version", [paths["ngspice"], "--version"])}
-    versions["fastercap"] = run("fastercap-version", [paths["fastercap"], "-bv"])
+                "ngspice": run("ngspice-version", [paths["ngspice"], "--version"]),
+                # Upstream headless main does not forward -bv; no-argument usage includes its version.
+                "fastercap": run("fastercap-version", [paths["fastercap"]], check=False)}
     if not versions["fasthenry"]:
         versions["fasthenry"] = (logs / "fasthenry-version.stderr.log").read_text()
-    (tools / "tools.json").write_text(json.dumps(paths, indent=2) + "\n")
     receipt = {"host": platform.platform(), "architecture": platform.machine(), "lockSha256": sha256(lock_path),
-               "sources": lock["sources"], "versions": versions, "binarySha256": {k: sha256(Path(v)) for k, v in paths.items()},
-               "patchSha256": sha256(tools / "FasterCap.patch"), "commands": records}
+               "sources": lock["sources"], "unmodifiedSources": True, "sourceProvenance": provenance,
+               "versions": versions, "binarySha256": {k: sha256(Path(v)) for k, v in paths.items()},
+               "runtimeRoot": str(tools), "runtimeArtifacts": {p.name: installed_artifacts(p) for p in (wx_prefix, prefix)}, "commands": records}
     (tools / "build-receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
+    (tools / "tools.json").write_text(json.dumps(paths, indent=2) + "\n")
     print(json.dumps(paths, indent=2))
 
 

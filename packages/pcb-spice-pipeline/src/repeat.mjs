@@ -1,8 +1,9 @@
 import {spawn} from 'node:child_process'
 import {mkdir,readFile,writeFile} from 'node:fs/promises'
 import {dirname,join,resolve} from 'node:path'
-import {fileURLToPath} from 'node:url'
-import {compareFreshRuns} from '../scripts/audit-eye.mjs'
+import {fileURLToPath,pathToFileURL} from 'node:url'
+import {packageRoot} from './runtime.mjs'
+const {compareFreshRuns}=await import(pathToFileURL(join(packageRoot,'scripts/audit-eye.mjs')).href)
 
 async function freshRun(entry,out,proofRoot) {
   const executable=process.execPath,args=[fileURLToPath(new URL('./cli.mjs',import.meta.url)),entry,'--out',out]

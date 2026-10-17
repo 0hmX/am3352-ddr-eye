@@ -9,18 +9,19 @@
   },
   "scripts": {
     "dev": "tsci dev",
-    "build": "tsci build --disable-parts-engine",
-    "typecheck": "tsc --noEmit",
+    "build": "pnpm --filter pcb-spice-pipeline build && tsci build --disable-parts-engine",
+    "typecheck": "tsc --noEmit && pnpm --filter pcb-spice-pipeline typecheck",
     "simulate:setup": "pcb-spice-pipeline --setup",
     "simulate": "pcb-spice-pipeline index.circuit.tsx",
     "simulate:repeat": "pcb-spice-pipeline --repeat index.circuit.tsx",
-    "postinstall": "pnpm --filter @tscircuit/ibis-to-spice build",
+    "postinstall": "pnpm --filter @tscircuit/ibis-to-spice build && pnpm --filter pcb-spice-pipeline build",
     "test": "pnpm --filter @tscircuit/ibis-to-spice fixtures:fetch && pnpm --filter @tscircuit/ibis-to-spice test && pnpm --filter pcb-spice-pipeline test",
     "test:native": "pnpm --filter pcb-spice-pipeline test:native",
     "simulate:non-ddr": "pcb-spice-pipeline examples/differential-data/index.circuit.tsx",
     "simulate:single-ended": "pcb-spice-pipeline examples/single-ended/index.circuit.tsx",
     "simulate:prove": "node scripts/prove-all.mjs",
-    "simulate:ddr-dq": "pcb-spice-pipeline examples/ddr-dq/index.circuit.tsx"
+    "simulate:ddr-dq": "pcb-spice-pipeline examples/ddr-dq/index.circuit.tsx",
+    "simulate:compare": "pcb-spice-pipeline --compare"
   },
   "dependencies": {
     "tscircuit": "file:.packages/tscircuit-experimental.tgz",

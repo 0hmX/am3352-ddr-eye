@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url'
 import {any_circuit_element} from 'circuit-json'
 import {loadEntry,runPipeline} from '../src/pipeline.mjs'
 import {runtimePaths} from '../src/runtime.mjs'
-import {channelSpice} from '../src/spice.mjs'
+import {channelSpice} from '../src/spice.js'
 import {interpolate} from '../../../scripts/verification/independent-helpers.mjs'
 
 const root=fileURLToPath(new URL('../../../',import.meta.url)),output=join(root,'dist',`native-general-test-${Date.now()}`)
@@ -25,7 +25,8 @@ test('native three-signal channel obeys the complete R + j*w*L impedance matrix 
   for(let i=0;i<3;i++) deck.push(`IR${i} 0 in${i} AC ${currents[i]}`,`VC${i} c${i} 0 AC ${voltage[i]}`)
   deck.push('XR in0 in1 in2 0 0 0 0 CHANNEL','XC c0 c1 c2 open0 open1 open2 0 CHANNEL','.control','set wr_singlescale','set wr_vecnames',`ac lin 1 ${frequency} ${frequency}`,'wrdata result.dat v(in0) v(in1) v(in2) i(VC0) i(VC1) i(VC2)','quit','.endc','.end')
   await writeFile(join(dir,'matrix.cir'),deck.join('\n')+'\n')
-  await promisify(execFile)(runtime.tools.ngspice,['-b','matrix.cir'],{cwd:dir})
+  await writeFile(join(dir,'.spiceinit'),'quit\n')
+  await promisify(execFile)(runtime.tools.ngspice,['-n','-b','matrix.cir'],{cwd:dir})
   const values=(await readFile(join(dir,'result.dat'),'utf8')).trim().split(/\r?\n/)[1].trim().split(/\s+/).map(Number)
   const omega=2*Math.PI*frequency
   // Independently solve the complex pi-network: (Z^-1 + j*w*C/2)^-1 * I.
@@ -59,21 +60,25 @@ test('actual vendor DDR DQ, non-DDR and single-ended TSX generate waveforms and 
     assert.ok(input.circuitJson.some(e=>e.type==='simulation_digital_stimulus'&&/(00|11)/.test(e.pattern.bits)),'source contains repeated arbitrary data bits')
     const receipt=await runPipeline({...input,...runtime,outputDir:dir})
     assert.equal(receipt.schemaVersion,3);assert.equal(receipt.execution.solverResultCache,false)
-    assert.equal(receipt.experiments.length,1)
-    const experiment=receipt.experiments[0]
+    assert.equal(receipt.experiments.length,name==='ddr-dq'?2:1)
+    const solverCommands=Object.keys(receipt.files).filter(file=>file.endsWith('/ngspice.command.json'))
+    assert.equal(solverCommands.length,receipt.experiments.length,'each experiment shares one actual native process across its probes and eyes')
+    for(const file of solverCommands) {
+      const command=await readJson(join(dir,file))
+      assert.equal(command.exitCode,0)
+      assert.ok(command.args.includes('-n'),'native pipeline ignores local and user startup files')
+    }
+    const circuit=(await readJson(join(dir,'circuit-results.json'))).map(record=>any_circuit_element.parse(record))
+    for(const experiment of receipt.experiments) {
     assert.ok(experiment.eyes.length>=2)
     assert.equal(experiment.solverInvocations,1)
-    const solverCommands=Object.keys(receipt.files).filter(file=>file.endsWith('/ngspice.command.json'))
-    assert.equal(solverCommands.length,1,'multiple eyes share exactly one actual native process')
-    const command=await readJson(join(dir,solverCommands[0]));assert.equal(command.exitCode,0)
-    const circuit=(await readJson(join(dir,'circuit-results.json'))).map(record=>any_circuit_element.parse(record))
     const assembly=await readJson(join(dir,experiment.directory,'native-ibis-assembly.json'))
     for(const model of assembly) assert.equal(model.metadata.tableExtrapolation,'hold-endpoint-current','the numerical table boundary policy is recorded')
     const wave=(await readFile(join(dir,experiment.directory,'waveform.csv'),'utf8')).trim().split(/\r?\n/).slice(1).map(line=>line.split(',').map(Number))
-    if(name==='ddr-dq') {
-      const stimulus=input.circuitJson.find(record=>record.type==='simulation_digital_stimulus'&&record.name==='DQ0')
+    if(name==='ddr-dq'&&experiment.name==='DDR_SWITCHING') {
+      const stimulus=input.circuitJson.find(record=>record.type==='simulation_digital_stimulus'&&record.name==='DQ0_SWITCHING')
       const columns=Object.fromEntries(experiment.probes.map(probe=>[probe.name,probe.column]))
-      const eye=experiment.eyes.find(eye=>eye.name==='DQ0_receive_eye')
+      const eye=experiment.eyes.find(eye=>eye.name==='DQ0_receive_eye_SWITCHING')
       const times=wave.map(row=>row[0]),voltages=wave.map(row=>row[columns.DQ0_RX]),samples=new Map()
       const ui=stimulus.unit_interval_ms/1000,epoch=stimulus.start_time_ms/1000
       const threshold=input.circuitJson.find(record=>record.type==='simulation_voltage_source').voltage/2
@@ -119,7 +124,9 @@ test('actual vendor DDR DQ, non-DDR and single-ended TSX generate waveforms and 
       assert.deepEqual(graph.timestamps_ms,wave.map(row=>row[0]*1000))
       assert.deepEqual(graph.voltage_levels,wave.map(row=>row[probe.column]))
       const range=graph.voltage_levels.reduce(([low,high],v)=>[Math.min(low,v),Math.max(high,v)],[Infinity,-Infinity])
-      assert.ok(range[1]-range[0]>.5,'actual data waveform varies')
+      if(experiment.name!=='DDR_QUIET'||probe.name.startsWith('DQ0_'))
+        assert.ok(range[1]-range[0]>.5,'actual driven data waveform varies')
+      else assert.ok(range[1]-range[0]<.5,'quiet neighbors remain driven without rail-to-rail switching')
     }
     const plotReceipt=await readJson(join(dir,experiment.directory,'plot-receipt.json'))
     assert.deepEqual(plotReceipt.probeBindings,experiment.probes,'shared plotter consumes declared probe bindings')
@@ -132,6 +139,7 @@ test('actual vendor DDR DQ, non-DDR and single-ended TSX generate waveforms and 
       assert.equal(samples.shift(),'window,folded_time_s,time_s,voltage_v')
       assert.equal(samples.length,eye.windows*1200)
       assert.ok(await exists(join(dir,experiment.directory,eye.directory,'eye.png')),'shared pipeline generates each declared eye plot')
+    }
     }
     for(const [label,mutate] of [
       ['bad-probe',cj=>{cj.find(record=>record.type==='simulation_eye_diagram').simulation_voltage_probe_id='missing'}],

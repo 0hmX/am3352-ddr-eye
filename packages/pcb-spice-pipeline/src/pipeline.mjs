@@ -1,6 +1,6 @@
 import {command,vendorSource,hashes,json,sha256} from './io.mjs'
-import {extractChannel} from './extraction.mjs'
-import {runGeneralPipeline} from './general-pipeline.mjs'
+import {extractChannel} from './extraction.js'
+import {runGeneralPipeline,nativeToolEvidence} from './general-pipeline.js'
 import { readFile, writeFile, mkdir, readdir, stat } from 'node:fs/promises'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -10,15 +10,16 @@ import { hostname, platform, arch } from 'node:os'
 import { gunzipSync } from 'node:zlib'
 import { tsImport } from 'tsx/esm/api'
 import { convertIbisComponentToSpice,seconds } from '@tscircuit/ibis-to-spice'
-import { geometryFromCircuitJson } from './geometry.mjs'
+import { geometryFromCircuitJson } from './geometry.js'
 import { fail } from './matrices.mjs'
-import { simulationSpice, channelSpice } from './spice.mjs'
+import { simulationSpice, channelSpice } from './spice.js'
 import { waveformRows, measureWaveform, foldEye } from './metrics.mjs'
 import { useNativeIbis } from './native-ibis.mjs'
 import { eyeSimulation, resolveEyeDiagram } from './eyediagram.mjs'
 import { projectProvenance } from './project-provenance.mjs'
 const exec=promisify(execFile),repo=resolve(dirname(fileURLToPath(import.meta.url)),'..')
 export {sha256} from './io.mjs'
+export {compareRuns} from './comparison.js'
 const renderedBoardSummary=circuitJson=>{
   const count=type=>circuitJson.filter(element=>element.type===type).length,errorTypeCounts={}
   for(const element of circuitJson) if(element.type.endsWith('_error')) errorTypeCounts[element.type]=(errorTypeCounts[element.type]??0)+1
@@ -88,12 +89,8 @@ export async function runPipeline({circuitJson,modeling,eyeDiagrams=[],outputDir
   const renderedBoard=renderedBoardSummary(circuitJson)
   await json(join(out,'rendered-board.json'),renderedBoard)
   if(!tools) tools=JSON.parse(await readFile(process.env.PCB_SPICE_TOOLS??join(repo,'.cache/tools/tools.json')))
-  const toolEvidence={}
-  for(const name of ['fasthenry','fastercap','ngspice']) {
-    const executable=resolve(tools[name]);toolEvidence[name]={executable,sha256:sha256(await readFile(executable)),host:hostname(),platform:platform(),architecture:arch()}
-  }
-  const buildDir=dirname(tools.configPath??process.env.PCB_SPICE_TOOLS??join(repo,'.cache/tools/tools.json'))
-  try {toolEvidence.setup=JSON.parse(await readFile(join(buildDir,'build-receipt.json')));await json(join(out,'tool-build-receipt.json'),toolEvidence.setup)} catch(e) {if(e.code!=='ENOENT') throw e}
+  const toolEvidence=await nativeToolEvidence(tools)
+  await json(join(out,'tool-build-receipt.json'),toolEvidence.setup)
   await json(join(out,'tool-evidence.json'),toolEvidence)
   const extracted=await extractChannel(geometry,modeling,out,tools,onProgress)
   onProgress('Load hash-locked original vendor models and call reusable converter')
@@ -115,7 +112,7 @@ export async function runPipeline({circuitJson,modeling,eyeDiagrams=[],outputDir
   await json(join(out,'ibis-conversion.json'),{driver:{spicePinMapping:driver.spicePinMapping,warnings:driver.warnings},receiver:{spicePinMapping:receiver.spicePinMapping,warnings:receiver.warnings},vendors:modeling.vendors})
   await writeFile(join(out,'driver.lib'),driver.source);await writeFile(join(out,'receiver.lib'),receiver.source);await writeFile(join(out,'channel.cir'),channelSpice(extracted,modeling.sections));await writeFile(join(out,'simulation.cir'),simulationSpice(modeling,extracted,driver,receiver))
   onProgress('Run actual native ngspice transient and measure generated samples')
-  await command(tools.ngspice,['-b','simulation.cir'],out,'ngspice')
+  await command(tools.ngspice,['-n','-b','simulation.cir'],out,'ngspice')
   const rows=waveformRows(await readFile(join(out,'waveform.dat'),'utf8')),metrics=measureWaveform(rows,modeling.simulation,eye),folded=foldEye(rows,metrics,eye)
   await writeFile(join(out,'waveform.csv'),'time_s,driver_p_v,driver_n_v,receiver_p_v,receiver_n_v,receiver_diff_v,driver_diff_v\n'+rows.map(r=>r.join(',')).join('\n')+'\n')
   await json(join(out,'metrics.json'),metrics)

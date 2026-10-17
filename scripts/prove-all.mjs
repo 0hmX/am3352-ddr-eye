@@ -25,7 +25,7 @@ async function execute(args, executable = process.execPath) {
 }
 for (const [name, entry] of cases) {
   const directory = join(output, name)
-  const args = [join(project, "node_modules/pcb-spice-pipeline/src/cli.mjs"), "--repeat", entry, "--out", directory]
+  const args = [join(project, "node_modules/pcb-spice-pipeline/dist/cli.mjs"), "--repeat", entry, "--out", directory]
   await execute(args)
   const audit = join(directory, "independent-audit.json")
   await execute([join(project, "scripts/verification/audit-general.mjs"), project, join(directory, "run-a"), join(directory, "run-b"), audit])
