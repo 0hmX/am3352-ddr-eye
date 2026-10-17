@@ -37,7 +37,7 @@ pnpm simulate:non-ddr
 pnpm simulate:single-ended
 ```
 
-The shared CLI defaults to a 15-minute wall-clock limit per native job. The heavier `simulate:ddr-routed` script sets one hour per job; its full workflow runs several jobs in sequence. Set `PCB_SPICE_TIMEOUT_MS` when calling the CLI directly to choose another limit. Every command receipt records the applied limit. Keep the host awake during native runs; on macOS, `caffeinate -i pnpm simulate:ddr-routed` prevents idle sleep for that command. Forced sleep or closing the lid can still interrupt it.
+The shared CLI defaults to a 15-minute wall-clock limit per native job. The heavier `simulate:ddr-routed` script sets four hours per job; its full workflow runs several jobs in sequence. Set `PCB_SPICE_TIMEOUT_MS` when calling the CLI directly to choose another limit. Every command receipt records the applied limit. Keep the host awake during native runs; on macOS, `caffeinate -i pnpm simulate:ddr-routed` prevents idle sleep for that command. Forced sleep or closing the lid can still interrupt it.
 
 Run all four twice, in separate processes with fresh native solver output:
 
@@ -71,11 +71,11 @@ Run a controlled comparison with fresh output directories:
 ```sh
 pnpm simulate:setup
 pnpm simulate:ddr-dq --out dist/reduced
-PCB_SPICE_TIMEOUT_MS=3600000 pnpm simulate:ddr-routed --out dist/routed
+pnpm simulate:ddr-routed --out dist/routed
 pnpm exec pcb-spice-pipeline compare dist/reduced dist/routed \
   --probe DQ0_RX --sampling-probe DDR_RX --threshold 0.75 --out dist/comparison
 # Optional: execute the entire routed workflow twice, sequentially:
-PCB_SPICE_TIMEOUT_MS=3600000 pnpm simulate:ddr-routed --repeat --out dist/routed-proof
+pnpm simulate:ddr-routed --repeat --out dist/routed-proof
 ```
 
 `dist/comparison/` contains waveforms, fixed-clock eyes, receive-DQS-aligned eyes and a manifest bound to the input receipts and waveforms. Quiet and switching experiments use identical DQ0 traffic, DQS timing, vendor settings, probe and eye gate. The ten neighboring data/mask outputs are held low in `QUIET`; in `SWITCHING` they simultaneously drive the complement of DQ0, an explicit switching stress pattern. CKE stays high in both cases. Sampling uses actual received DQS crossings; 0.75 V is an explicit analysis threshold. This is a continuous write-direction pad/channel test. `PCB_SPICE_THREADS` controls OpenMP threads and is recorded in each solver command. Default is one thread.

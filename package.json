@@ -21,7 +21,7 @@
     "simulate:single-ended": "pcb-spice-pipeline examples/single-ended/index.circuit.tsx",
     "simulate:prove": "node scripts/prove-all.mjs",
     "simulate:ddr-dq": "pcb-spice-pipeline examples/ddr-dq/index.circuit.tsx",
-    "simulate:ddr-routed": "PCB_SPICE_TIMEOUT_MS=3600000 pcb-spice-pipeline examples/ddr-routed/index.circuit.tsx"
+    "simulate:ddr-routed": "PCB_SPICE_TIMEOUT_MS=14400000 pcb-spice-pipeline examples/ddr-routed/index.circuit.tsx"
   },
   "dependencies": {
     "tscircuit": "file:.packages/tscircuit-experimental.tgz",
