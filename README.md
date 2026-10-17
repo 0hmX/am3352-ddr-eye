@@ -24,7 +24,7 @@ pnpm exec pcb-spice-pipeline --check-tools
 pnpm exec pcb-spice-pipeline examples/single-ended/index.circuit.tsx --out .tscircuit/cmos --open
 ```
 
-`--open` opens the generated `results.html` in your default browser. The offline report reads in order: selected trace paths and physical endpoints, experiment traffic/timing, measured results, interactive plots, then downloadable CSV files. The board overview draws unused routing and component bounds in gray and highlights simulated components and selected traces. Switch between the full board and a focus on selected signals; all layers are projected into a top view. Probe labels show the physical signal minus reference. Results show observed voltage ranges and declared eye gates/windows without inventing pass/fail thresholds.
+`--open` opens the generated `results.html` in your default browser. The offline viewer has Board, Tests, Results, Plots, CSV files and Model tabs. The full-board view draws unused routing and component bounds in gray and highlights simulated components and selected traces, with physical endpoints and dimensions in a side inspector. All layers are projected into a top view. Probe labels show the physical signal minus reference. Results show observed voltage ranges and declared eye gates/windows without inventing pass/fail thresholds.
 
 Select a probe or experiment, switch between waveforms and eyes, overlay experiments, scroll to zoom, drag to pan, or enter an exact time range. The cursor reports an actual adaptive solver sample. Display envelopes retain sample extrema; analysis always uses the full recorded samples.
 

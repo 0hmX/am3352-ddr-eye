@@ -115,6 +115,21 @@ export function viewerClient() {
     $<HTMLInputElement>('start').value = format(xMin * 1e9); $<HTMLInputElement>('end').value = format(xMax * 1e9)
   }
   const limit = () => { const span = Math.min(xMax - xMin, fullMax - fullMin); xMin = Math.max(fullMin, Math.min(xMin, fullMax - span)); xMax = xMin + span }
+  const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-tab]'))
+  const activateTab = (id: string) => {
+    for (const tab of tabs) {
+      const active = tab.dataset.tab === id
+      $(tab.dataset.tab!).hidden = !active; tab.setAttribute('aria-selected', String(active)); tab.tabIndex = active ? 0 : -1
+    }
+    if (id === 'explore') draw()
+  }
+  tabs.forEach((tab, i) => {
+    tab.onclick = () => activateTab(tab.dataset.tab!)
+    tab.onkeydown = event => {
+      const next = event.key === 'ArrowRight' ? (i + 1) % tabs.length : event.key === 'ArrowLeft' ? (i + tabs.length - 1) % tabs.length : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : -1
+      if (next >= 0) { event.preventDefault(); tabs[next].focus(); activateTab(tabs[next].dataset.tab!) }
+    }
+  })
   runSelect.onchange = updateProbes; probeSelect.onchange = updateEyes; eyeSelect.onchange = reset; overlay.onchange = reset
   $('waveform-button').onclick = () => { mode = 'waveform'; reset() }
   $('eye-button').onclick = () => { if (eyeSelect.options.length) { mode = 'eye'; reset() } }
@@ -145,16 +160,11 @@ export function viewerClient() {
       $('cursor').textContent = `${format(point[0] * 1e9)} ns · ${format(point[probe.column])} V · actual sample ${index + 1}`
     }
   }
-  $('summary').textContent = `${data.runs.length} experiment${data.runs.length===1?'':'s'} · ${new Set(data.runs.flatMap(run=>run.probes.map(probe=>probe.name))).size} named probes · ${data.runs.reduce((sum,run)=>sum+run.eyes.length,0)} eye measurements · native local simulation`
+  $('summary').textContent = `${data.runs.length} runs · ${new Set(data.runs.flatMap(run=>run.probes.map(probe=>probe.name))).size} probes · ${data.runs.reduce((sum,run)=>sum+run.eyes.length,0)} eyes`
   document.querySelectorAll<HTMLButtonElement>('[data-run]').forEach(button => { button.onclick = () => {
     runSelect.value = button.dataset.run!; overlay.checked = false; updateProbes()
     probeSelect.value = button.dataset.probe!; mode = button.dataset.mode!; updateEyes()
-    $('explore').scrollIntoView({ behavior: 'smooth' })
-  } })
-  document.querySelectorAll<HTMLButtonElement>('[data-board-view]').forEach(button => { button.onclick = () => {
-    const board = document.getElementById('board-diagram')!
-    board.setAttribute('viewBox', board.getAttribute(`data-${button.dataset.boardView}-view`)!)
-    document.querySelectorAll<HTMLButtonElement>('[data-board-view]').forEach(item => item.setAttribute('aria-pressed', String(item === button)))
+    activateTab('explore')
   } })
   updateProbes(); new ResizeObserver(draw).observe(canvas)
 }

@@ -43,7 +43,7 @@ test('report maps physical traces and probes, exports every recorded sample and 
   assert.match(html,/U3.E3 − U3.B1/)
   assert.match(html,/45.25 mm/)
   assert.match(html,/Trace &lt;DQ&gt; test/)
-  assert.match(html,/without pass\/fail thresholds/)
+  assert.match(html,/no pass\/fail thresholds/)
   assert.equal(await readFile(join(directory,'csv/01-a-b-waveforms.csv'),'utf8'),
     '"time_s","RX,""voltage""_v"\n0,0.2\n0.17,5\n1,-0.1\n','noncontiguous source columns are mapped without loss or rounding')
   assert.equal(await readFile(join(directory,'csv/02-a-b-waveforms.csv'),'utf8'),'"time_s","RX_v"\n0,1\n1,2\n','colliding display names keep separate files')
