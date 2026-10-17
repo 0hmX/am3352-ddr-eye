@@ -198,6 +198,14 @@ def main():
     return fh_far_mutual(a, da, b, db);
   }
   scaleEPS = minR/maxlength*10;""")
+    # Stable closest-line geometry and conditioned near-parallel integration.
+    # The native regression also fails against the original executable.
+    shutil.copyfile(ROOT / "scripts/fh-near-parallel.h", henry / "fh-near-parallel.h")
+    if "mutual.o: fh-near-parallel.h" not in makefile.read_text():
+        makefile.write_text(makefile.read_text() + "\nmutual.o: fh-near-parallel.h\n")
+    if "Endpoint-vector geometry avoids cancellation" not in (henry / "mutual.c").read_text():
+        run("FastHenry-stable-lines-patch", ["git", "apply", "--directory=src/fasthenry",
+            str(ROOT / "scripts/fh-stable-lines.patch")], source_root / "FastHenry2")
     replace(henry / "joelself.c", "fabs(fabs(l3 - l3_1) - l2)/l2 > EPS",
             "fabs(fabs(l3 - l3_1) - l2) > EPS*l2 + 64*2.220446049250313e-16*(l2 + fabs(fil_m->x[0]) + fabs(fil_m->y[0]) + fabs(fil_m->z[0]) + fabs(fil_j->x[0]) + fabs(fil_j->y[0]) + fabs(fil_j->z[0]))")
     paths = henry / "findpaths.c"
@@ -298,7 +306,9 @@ TREE *tree;
                "sources": lock["sources"], "versions": versions, "binarySha256": {k: sha256(Path(v)) for k, v in paths.items()},
                "patchSha256": sha256(tools / "FasterCap.patch"),
                "fastHenryPatchSha256": sha256(tools / "FastHenry.patch"),
-               "fastHenryQuadratureSha256": sha256(henry / "fh-far-mutual.h"), "commands": records}
+               "fastHenryQuadratureSha256": sha256(henry / "fh-far-mutual.h"),
+               "fastHenryNearParallelSha256": sha256(henry / "fh-near-parallel.h"),
+               "fastHenryStableLinesPatchSha256": sha256(ROOT / "scripts/fh-stable-lines.patch"), "commands": records}
     receipt["geometryPatchSha256"] = sha256(tools / "Geometry.patch")
     (tools / "build-receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(json.dumps(paths, indent=2))

@@ -32,6 +32,34 @@ const receiver: IbisModelDefinition = {
   references: { ...dqReceiver.references, ...Object.fromEntries(selectedPins.map(pin => [pin.rx, { pullup: "A1", pulldown: "B1", powerClamp: "A1", groundClamp: "B1" }])) },
 }
 
+// Every saved-board contact in the selected digital-ground/DDR-supply domains,
+// checked against vendor [Pin] tables. packagePolicy="omit" assumes ideal common
+// digital ground and supply nodes at each package; no package/PDN impedance.
+// U1 excludes RTC/ADC/oscillator/USB grounds, VPP, and non-ground pins tied to GND.
+const referenceContacts = [
+  {
+    name: "GND",
+    sourceBalls: [
+      "A1", "V1", "H6", "J6", "M6", "H7", "J7", "K7", "M7", "N7",
+      "F8", "G8", "H8", "J8", "M8", "G9", "H9", "J9", "K9", "M9",
+      "H10", "J10", "K10", "L10", "M10", "N10", "G11", "J11", "K11", "L11",
+      "N11", "G12", "H12", "L12", "M12", "L13", "A18", "V18",
+    ],
+    receiverBalls: [
+      "B1", "D1", "E1", "G1", "M1", "P1", "T1", "E2", "J2", "B3", "D8",
+      "E8", "G8", "J8", "A9", "B9", "F9", "G9", "M9", "P9", "T9",
+    ],
+  },
+  {
+    name: "DDR_1V5",
+    sourceBalls: ["E5", "F5", "G5", "H5", "J5", "K5", "L5"], // VDDS_DDR; excludes VDDS_PLL_DDR.
+    receiverBalls: [
+      "A1", "C1", "F1", "N1", "R1", "B2", "D2", "H2", "K2",
+      "G7", "A8", "K8", "C9", "D9", "E9", "H9", "N9", "R9",
+    ],
+  },
+]
+
 export const modeling = {
   ...dqModeling,
   circuit: "../../am3352.circuit.json",
@@ -45,7 +73,7 @@ export const modeling = {
       conductivitySm: dqModeling.conductivitySm,
       viaPlatingMm: 0.025,
       omitThroughViaStubs: false,
-      returnConductor: "Saved GND and DDR_1V5 copper polygons, with ideal AC joins at source and receiver",
+      returnConductor: "Saved GND and DDR_1V5 polygons, contacted at every declared digital-ground/DDR-supply ball; ideal package nodes and ideal AC rail joins at each chip",
       separationStatus: "Actual routed coordinates; no imposed uniform signal spacing",
       permittivity: "Explicit homogeneous er=4.1 for thin-sheet capacitance; layer heights follow the declared construction",
       frequencyHz: 100000000,
@@ -59,7 +87,7 @@ export const modeling = {
   ],
   routedExtraction: {
     marginMm: 2,
-    referenceMeshMm: 1,
+    referenceMeshMm: 0.5,
     referenceBoundaryToleranceMm: 0.025,
     impedanceSurfaceToleranceMm: 0.001,
     surfaceToleranceMm: 0.003,
@@ -77,10 +105,13 @@ export const modeling = {
       maximumEnergyFraction: 0.001,
       maximumWaveformDifferenceV: 0.001,
     },
-    referencePorts: [
-      { name: "GND", from: { component: "U1", port: "A1" }, to: { component: "U3", port: "B1" } },
-      { name: "DDR_1V5", from: { component: "U1", port: "E5" }, to: { component: "U3", port: "A1" } },
-    ],
+    // Cycling the shorter list only fills the pair schema; every ball participates.
+    referencePorts: referenceContacts.flatMap(({ name, sourceBalls, receiverBalls }) =>
+      Array.from({ length: Math.max(sourceBalls.length, receiverBalls.length) }, (_, index) => ({
+        name,
+        from: { component: "U1", port: sourceBalls[index % sourceBalls.length] },
+        to: { component: "U3", port: receiverBalls[index % receiverBalls.length] },
+      }))),
   },
 }
 

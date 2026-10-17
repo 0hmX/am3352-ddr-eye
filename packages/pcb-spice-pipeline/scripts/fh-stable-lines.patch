@@ -1,0 +1,107 @@
+--- original/mutual.c
++++ candidate/mutual.c
+@@ -3,6 +3,7 @@
+ 
+ #include "induct.h"
+ #include "fh-far-mutual.h"
++#include "fh-near-parallel.h"
+ 
+ /* these are missing in some math.h files */
+ extern double asinh();
+@@ -280,6 +281,18 @@
+     da[0]=fil1->x[1]-a[0]; da[1]=fil1->y[1]-a[1]; da[2]=fil1->z[1]-a[2];
+     db[0]=fil2->x[1]-b[0]; db[1]=fil2->y[1]-b[1]; db[2]=fil2->z[1]-b[2];
+     return fh_far_mutual(a, da, b, db);
++  }
++  /* Resolve near-parallel crossings before the endpoint/cosine EPS shortcuts. */
++  if(fabs(dotprod(fil1,fil2))>(1.0-1e-8)*l*m){
++    double a[3],da[3],b[3],db[3],answer;
++    int status,used;
++    a[0]=fil1->x[0];a[1]=fil1->y[0];a[2]=fil1->z[0];
++    b[0]=fil2->x[0];b[1]=fil2->y[0];b[2]=fil2->z[0];
++    da[0]=fil1->x[1];da[1]=fil1->y[1];da[2]=fil1->z[1];
++    db[0]=fil2->x[1];db[1]=fil2->y[1];db[2]=fil2->z[1];
++    status=fh_near_parallel_mutual(a,da,b,db,&answer,&used);
++    if(status){fprintf(stderr,"FastHenry near-parallel integration failed: status%d\n",status);exit(1);}
++    if(used)return answer;
+   }
+   scaleEPS = minR/maxlength*10;
+   if (scaleEPS < 1) scaleEPS = 1;
+@@ -495,35 +508,48 @@
+ 
+  /* the rest if for arbitrary filaments */
+ 
+-  l2 = l*l;
+-  m2 = m*m;
+-  alpha2 = alpha*alpha;
+-
+-  u = l*(2*m2*(R2sq -R3sq - l2) + alpha*(R4sq - R3sq - m2))
+-        / (4*l2*m2 - alpha2);
+-  v = m* (2*l2*(R4sq - R3sq - m2) + alpha*(R2sq - R3sq - l2))
+-        / (4*l2*m2 - alpha2);
+-
+-  u2 = u*u;
+-  v2 = v*v;
+-
+-  d = (R3sq - u2 - v2 + 2*u*v*cose);
+-  if (fabs(d/(R3sq + u2 + v2 + 1)*(maxlength*maxlength/(maxR*maxR))) < EPS)
+-    d = 0.0;
+-
+-   if (d < 0.0) {  /* Enrico, Matt patch bug fix*/
+-	  if( fabs(d)/R3sq > 1e-06  ) { /* verify that d is small compared to R3sq */
+-		  fprintf(stderr,"Internal warning: distance d between filaments is negative and large\n");
+-		  fprintf(stderr,"compared to R3sq (d=%f, R3sq=%f)\n", d, R3sq);
+-	  }
+-	  d = 0.0;
+-  }
+-
+-  d = sqrt(d);
+-
+-  sinsq = 1.0 - cose*cose;
+-  if (fabs(sinsq) < EPS) sinsq = 0.0;
+-  sine = sqrt(sinsq);
++  /* Endpoint-vector geometry avoids cancellation of nearly parallel
++     endpoint-distance squares. Rayleigh subfil lengths must be coherent
++     with their actually represented endpoints. No negative gap is clipped. */
++  {
++    double a[3], b[3], r[3], n[3], ra[3], rb[3];
++    double aa=0.0, bb=0.0, ab=0.0, nn, gap=0.0, up=0.0, vp=0.0;
++    int i;
++    a[0]=fil1->x[1]-fil1->x[0];
++    a[1]=fil1->y[1]-fil1->y[0];
++    a[2]=fil1->z[1]-fil1->z[0];
++    b[0]=fil2->x[1]-fil2->x[0];
++    b[1]=fil2->y[1]-fil2->y[0];
++    b[2]=fil2->z[1]-fil2->z[0];
++    r[0]=fil2->x[0]-fil1->x[0];
++    r[1]=fil2->y[0]-fil1->y[0];
++    r[2]=fil2->z[0]-fil1->z[0];
++    for(i=0;i<3;i++){aa+=a[i]*a[i];bb+=b[i]*b[i];ab+=a[i]*b[i];}
++    n[0]=a[1]*b[2]-a[2]*b[1];
++    n[1]=a[2]*b[0]-a[0]*b[2];
++    n[2]=a[0]*b[1]-a[1]*b[0];
++    nn=n[0]*n[0]+n[1]*n[1]+n[2]*n[2];
++    if(!(aa>0.0 && bb>0.0 && nn>0.0) || !finite(nn)){
++      fprintf(stderr,"FastHenry stable filament geometry: invalid nonparallel vectors\n");
++      exit(1);
++    }
++    ra[0]=r[1]*a[2]-r[2]*a[1];
++    ra[1]=r[2]*a[0]-r[0]*a[2];
++    ra[2]=r[0]*a[1]-r[1]*a[0];
++    rb[0]=r[1]*b[2]-r[2]*b[1];
++    rb[1]=r[2]*b[0]-r[0]*b[2];
++    rb[2]=r[0]*b[1]-r[1]*b[0];
++    for(i=0;i<3;i++){up+=rb[i]*n[i];vp+=ra[i]*n[i];gap+=r[i]*n[i];}
++    l=sqrt(aa);m=sqrt(bb);
++    u=-l*up/nn;v=-m*vp/nn;
++    d=fabs(gap)/sqrt(nn);
++    sine=sqrt(nn)/(l*m);
++    cose=ab/(l*m);
++    if(!finite(u) || !finite(v) || !finite(d) || !finite(sine) || !finite(cose)){
++      fprintf(stderr,"FastHenry stable filament geometry: nonfinite result\n");
++      exit(1);
++    }
++  }
+   tmp1 = d*d*cose;
+   tmp2 = d*sine;
+   tmp3 = sine*sine;

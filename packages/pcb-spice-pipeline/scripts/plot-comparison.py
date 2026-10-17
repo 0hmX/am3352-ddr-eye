@@ -33,15 +33,17 @@ def plot_comparison(manifest_path):
     if manifest.get("samplingProbeName"):
         axes[0].axhline(manifest["thresholdV"], color="#555", linestyle=":", linewidth=.8, label="Explicit sampling threshold")
     axes[0].legend();axes[0].grid(alpha=.2)
-    # The two experiments within a routed run share one physical extraction.
-    pairs = [(i - 1, i) for i in range(1, len(series)) if series[i]["root"] == series[i - 1]["root"]]
-    for quiet, active in pairs:
+    # The manifest pairs cases using declared neighbor activity, independent of order.
+    pairs = manifest["changes"]
+    for pair in pairs:
+        quiet, active = pair["quietIndex"], pair["activeIndex"]
         a, b = waves[quiet], waves[active]
-        times = b[:, 0]
+        times = np.unique(np.concatenate(([pair["startSeconds"], pair["endSeconds"]], a[:, 0], b[:, 0])))
+        times = times[(times >= pair["startSeconds"]) & (times <= pair["endSeconds"])]
         baseline = np.interp(times, a[:, 0], a[:, series[quiet]["probe"]["column"]])
-        gate = (times >= series[active]["eye"]["startTimeSeconds"]) & (times <= series[active]["eye"]["endTimeSeconds"])
-        axes[1].plot(times[gate] * 1e9, (b[gate, series[active]["probe"]["column"]] - baseline[gate]) * 1000, color=colors[active % len(colors)], label=f"{series[active]['label']} minus {series[quiet]['label']}")
-    axes[1].set(xlabel="Actual solver time (ns)", ylabel="Change in receive voltage (mV)")
+        switching = np.interp(times, b[:, 0], b[:, series[active]["probe"]["column"]])
+        axes[1].plot(times * 1e9, (switching - baseline) * 1000, color=colors[active % len(colors)], label=f"{series[active]['label']} minus {series[quiet]['label']}")
+    axes[1].set(xlabel="Union of recorded timestamps (ns), piecewise-linear reconstruction", ylabel="Change in receive voltage (mV)")
     axes[1].grid(alpha=.2)
     if pairs:
         axes[1].legend()

@@ -52,6 +52,23 @@ export function capacitanceRefinementResidual(previous,current) {
   return Math.max(...current.flatMap((row,i)=>row.map((value,j)=>Math.abs(value-previous[i][j])/Math.sqrt(current[i][i]*current[j][j]))))
 }
 
+export function extractionConsistencyDiagnostics({R,L,C,geometry,relativePermittivity}) {
+  const signalOrder=geometry.mappings.map(lane=>lane.port)
+  if([R,L,C].some(matrix=>matrix.length!==signalOrder.length||matrix.some(row=>row.length!==signalOrder.length))) fail('routed_diagnostics','Matrix dimensions must match saved routed lane order')
+  const normalized=(matrix,i,j)=>matrix[i][j]/Math.sqrt(matrix[i][i]*matrix[j][j])
+  const pairs=signalOrder.flatMap((signal,i)=>signalOrder.slice(i+1).map((other,offset)=>{
+    const j=i+offset+1
+    return {i,j,signals:[signal,other],inductiveCoupling:normalized(L,i,j),electrostaticCoupling:-normalized(C,i,j),resistiveCoupling:normalized(R,i,j)}
+  }))
+  const lanes=geometry.mappings.map((lane,i)=>{
+    const routeLengthMm=lane.stages.reduce((sum,stage)=>sum+stage.lengthMm,0)
+    const homogeneousIdealLineDelaySeconds=routeLengthMm/1000*Math.sqrt(relativePermittivity)/299792458
+    const diagonalLcDelayProxySeconds=Math.sqrt(L[i][i]*C[i][i])
+    return {i,signal:lane.port,pcbTraceId:lane.pcbTraceId,routeLengthMm,activeViaLengthMm:lane.stages.filter(stage=>stage.kind==='via').reduce((sum,stage)=>sum+stage.lengthMm,0),homogeneousIdealLineDelaySeconds,diagonalLcDelayProxySeconds,diagonalToIdealDelayRatio:diagonalLcDelayProxySeconds/homogeneousIdealLineDelaySeconds}
+  })
+  return {interpretation:'Consistency clues, not pass/fail physical accuracy bounds; finite resistance, internal inductance, finite return access, vias, nonuniform routes and coupled modes affect these comparisons',signalOrder,relativePermittivity,definitions:{inductiveCoupling:'Lij/sqrt(Lii*Ljj)',electrostaticCoupling:'-Cij/sqrt(Cii*Cjj), using the grounded capacitance stamped into the channel',resistiveCoupling:'Rij/sqrt(Rii*Rjj)',routeLengthMm:'Saved route wire centreline lengths plus active via layer-transition lengths; unconnected via stubs excluded from this length proxy',homogeneousIdealLineDelaySeconds:'routeLengthMetres*sqrt(explicit relativePermittivity)/299792458',diagonalLcDelayProxySeconds:'sqrt(Lii*Cii); a scalar diagonal ladder delay proxy, not a coupled-mode propagation delay'},pairs,lanes}
+}
+
 function validateCorrectionPolicy(policy) {
   if(policy===undefined) return
   if(!policy||!Number.isFinite(policy.maximumEnergyFraction)||policy.maximumEnergyFraction<=0||policy.maximumEnergyFraction>=1||!Number.isFinite(policy.maximumWaveformDifferenceV)||policy.maximumWaveformDifferenceV<=0) fail('routed_settings','capacitanceCorrection requires maximumEnergyFraction between zero and one and positive maximumWaveformDifferenceV')
@@ -108,18 +125,23 @@ export async function extractCapacitance({tools,context,modeling,dir}) {
     try {checked=validateMaxwellCapacitance(cap.matrix,modeling.extraction.capTolerance,settings.capacitanceCorrection)}
     catch(error) {
       if(!['reciprocity','passivity','routed_capacitance'].includes(error.code)) throw error
-      history.push({mesh,label,status:'physical-check-failed',diagnostic:error.message,matrix:cap.matrix,capacitanceCorrection:error.capacitanceCorrection});await json(join(dir,'capacitance-refinement.json'),history);continue
+      const correction=error.capacitanceCorrection
+      // A correction-budget overrun excludes the electrical model, but the
+      // converged raw matrix can still measure numerical refinement.
+      const referenceOnly=Number.isFinite(correction?.conservativeMaximumEnergyFraction)&&correction.conservativeMaximumEnergyFraction>settings.capacitanceCorrection?.maximumEnergyFraction
+      if(referenceOnly) previous={...cap,label}
+      history.push({mesh,label,status:referenceOnly?'refinement-reference-only':'physical-check-failed',diagnostic:error.message,matrix:cap.matrix,capacitanceCorrection:correction});await json(join(dir,'capacitance-refinement.json'),history);continue
     }
     const residual=previous?capacitanceRefinementResidual(previous.matrix,cap.matrix):null
-    history.push({mesh,label,status:'solved',matrix:cap.matrix,reciprocityResidual:checked.reciprocityResidual,pairReciprocityResidual:checked.pairReciprocityResidual,refinementResidual:residual,capacitanceCorrection:checked.capacitanceCorrection})
+    history.push({mesh,label,status:'solved',matrix:cap.matrix,reciprocityResidual:checked.reciprocityResidual,pairReciprocityResidual:checked.pairReciprocityResidual,refinementResidual:residual,refinementReferenceLabel:previous?.label??null,capacitanceCorrection:checked.capacitanceCorrection})
     await json(join(dir,'capacitance-refinement.json'),history)
     if(residual!==null&&residual<=modeling.extraction.capTolerance) {
       if(checked.capacitanceCorrection) await json(join(dir,'capacitance-correction.json'),checked.capacitanceCorrection)
       return {...cap,projectedMatrix:checked.matrix,capacitanceCorrection:checked.capacitanceCorrection,refinement:history}
     }
-    previous=cap
+    previous={...cap,label}
   }
-  fail('cap_convergence','Routed capacitance did not pass two successful native solves within the declared refinement tolerance')
+  fail('cap_convergence','Routed capacitance needs a policy-valid final matrix within the declared raw refinement tolerance of a converged native reference')
 }
 
 export async function extractRoutedChannel({circuitJson,geometry,modeling,out,tools,python,onProgress=()=>{}}) {
@@ -142,7 +164,9 @@ export async function extractRoutedChannel({circuitJson,geometry,modeling,out,to
   const rawC=validateMatrix(cap.matrix.slice(0,-1).map(row=>row.slice(0,-1)),'C routed raw signed')
   const C=validateMatrix(cap.projectedMatrix.slice(0,-1).map(row=>row.slice(0,-1)),'C routed')
   if(C.matrix.some((row,i)=>row.some((entry,j)=>i!==j&&entry>0)||row.reduce((a,b)=>a+b,0)<=0)) fail('routed_capacitance','Invalid grounded Maxwell capacitance signs')
-  const result={stage:0,profile:'actual-routed-shapes',R:R.matrix,L:L.matrix,C:C.matrix,rawGroundedCapacitance:rawC.matrix,capacitanceCorrection:cap.capacitanceCorrection,units:{R:'ohm',L:'H',C:'F'},frequencyHz:selected.frequencyHz,signalOrder:context.signals.map(signal=>signal.name),checks:{R,L,C,rawC,capacitanceRefinement:cap.refinement},primitiveImpedance:impedance,primitiveCapacitance:cap.matrix,geometry:geometrySummary,conversions:{capacitance:`Selected reference planes fixed at incremental AC zero; signal Maxwell submatrix retained${cap.capacitanceCorrection?'; explicit bounded row-sum-preserving sign correction reported separately':''}`,channel:'Whole-route quasistatic matrices homogenized over the declared pi sections'}}
+  const consistencyDiagnostics=extractionConsistencyDiagnostics({R:R.matrix,L:L.matrix,C:C.matrix,geometry,relativePermittivity:context.settings.homogeneousRelativePermittivity})
+  const result={stage:0,profile:'actual-routed-shapes',R:R.matrix,L:L.matrix,C:C.matrix,rawGroundedCapacitance:rawC.matrix,capacitanceCorrection:cap.capacitanceCorrection,consistencyDiagnostics,units:{R:'ohm',L:'H',C:'F'},frequencyHz:selected.frequencyHz,signalOrder:context.signals.map(signal=>signal.name),checks:{R,L,C,rawC,capacitanceRefinement:cap.refinement},primitiveImpedance:impedance,primitiveCapacitance:cap.matrix,geometry:geometrySummary,conversions:{capacitance:`Selected reference planes fixed at incremental AC zero; signal Maxwell submatrix retained${cap.capacitanceCorrection?'; explicit bounded row-sum-preserving sign correction reported separately':''}`,channel:'Whole-route quasistatic matrices homogenized over the declared pi sections'}}
+  await json(join(dir,'consistency-diagnostics.json'),consistencyDiagnostics)
   await json(join(dir,'extraction.json'),result)
   return [result]
 }

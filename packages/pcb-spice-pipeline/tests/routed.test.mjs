@@ -100,8 +100,11 @@ test('routed experiment preserves real meanders, physical near neighbors and ref
   try {
     const physical=await prepareRoutedExtraction({circuitJson:entry.circuitJson,geometry,modeling:entry.modeling,out:folder})
     assert.equal(physical.signals.length,14)
-    assert.deepEqual(physical.returns.map(reference=>reference.name),['GND','DDR_1V5'])
-    for(const reference of physical.returns) {
+    assert.deepEqual([...new Set(physical.returns.map(reference=>reference.name))],['GND','DDR_1V5'])
+    const contacts=(name,end)=>new Set(physical.returns.filter(reference=>reference.name===name).map(reference=>reference[end].name))
+    assert.deepEqual(['GND','DDR_1V5'].flatMap(name=>['from','to'].map(end=>contacts(name,end).size)),[38,21,7,18],'all selected digital-ground and DDR-supply contacts participate')
+    assert.equal(physical.returns.length,56,'cycling unequal ball lists retains every contact')
+    for(const reference of new Map(physical.returns.map(reference=>[reference.from.netId,reference])).values()) {
       const regions=physical.model.multilayer.copper.filter(group=>group.netId===reference.from.netId).flatMap(group=>group.regions)
       assert.ok(regions.some(region=>region.isPlane&&region.holes.length>0),'saved plane voids remain present')
     }
@@ -117,7 +120,8 @@ test('comparison samples actual irregular waveforms and reports wrong bits witho
   assert.equal(good.decodedBits,3);assert.equal(good.errors,0);assert.deepEqual(good.histories,['010'])
   const bad=sampleAtCrossings({...settings,rows:rows.map(row=>row[0]>=2.1?[row[0],1.2,row[2]]:row)})
   assert.equal(bad.errors,1);assert.deepEqual(bad.histories,['011'])
-  const delta=waveformDifference({quiet:[[0,0],[2,2]],active:[[.5,.6],[1,1.2],[1.5,1.4]],quietColumn:1,activeColumn:1,startSeconds:0,endSeconds:2})
+  const delta=waveformDifference({quiet:[[0,0],[2,2]],active:[[.5,.6],[1,1.2],[1.5,1.4]],quietColumn:1,activeColumn:1,startSeconds:.5,endSeconds:1.5})
   assert.ok(Math.abs(delta.peakAbsoluteV-.2)<1e-12);assert.ok(Math.abs(delta.minimumV+.1)<1e-12)
+  assert.throws(()=>waveformDifference({quiet:[[0,0],[2,2]],active:[[.5,.6],[1,1.2],[1.5,1.4]],quietColumn:1,activeColumn:1,startSeconds:0,endSeconds:2}),/comparison_gate/)
   assert.equal(capacitanceRefinementResidual([[9,-2],[-2,4]],[[10,-2],[-2,4]]),.1)
 })

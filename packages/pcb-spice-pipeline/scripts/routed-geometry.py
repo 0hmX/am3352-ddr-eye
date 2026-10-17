@@ -248,7 +248,9 @@ def write_inductance(options):
         for angle in np.linspace(0, 2 * math.pi, 4, endpoint=False):
             location = xy + radius * np.array([math.cos(angle), math.sin(angle)])
             for low, high in zip(levels, levels[1:]):
-                segment(node([*location, low]), node([*location, high]), 2 * math.pi * radius / 4, barrel["platingThickness"], (math.cos(angle), math.sin(angle), 0))
+                # FastHenry's width vector follows the shell circumference;
+                # its perpendicular height direction is the radial plating.
+                segment(node([*location, low]), node([*location, high]), 2 * math.pi * radius / 4, barrel["platingThickness"], (-math.sin(angle), math.cos(angle), 0))
             if signal:
                 for z in levels:
                     if any(abs(z - center_z(f)) < 1e-8 for f in foils):
