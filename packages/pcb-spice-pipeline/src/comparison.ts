@@ -1,5 +1,5 @@
 import { mkdir, readFile } from 'node:fs/promises'
-import { isAbsolute, join, resolve } from 'node:path'
+import { dirname, isAbsolute, join, resolve } from 'node:path'
 import type { IbisConversionMetadata, IbisModelDefinition } from '@tscircuit/ibis-to-spice'
 import { command, json, sha256 } from './io.mjs'
 import { fail } from './matrices.mjs'
@@ -228,6 +228,7 @@ export async function compareRuns({ directories, outputDir, probeName, python }:
       quietColumn: series[pair.quietIndex].probe.column, activeColumn: series[pair.activeIndex].probe.column, startSeconds, endSeconds }) }
   })
   const out = resolve(outputDir)
+  await mkdir(dirname(out), { recursive: true })
   await mkdir(out, { recursive: false })
   const manifest = join(out, 'comparison.json')
   await json(manifest, { probeName, series, changes,

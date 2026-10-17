@@ -25,7 +25,8 @@ test('native three-signal channel obeys the complete R + j*w*L impedance matrix 
   for(let i=0;i<3;i++) deck.push(`IR${i} 0 in${i} AC ${currents[i]}`,`VC${i} c${i} 0 AC ${voltage[i]}`)
   deck.push('XR in0 in1 in2 0 0 0 0 CHANNEL','XC c0 c1 c2 open0 open1 open2 0 CHANNEL','.control','set wr_singlescale','set wr_vecnames',`ac lin 1 ${frequency} ${frequency}`,'wrdata result.dat v(in0) v(in1) v(in2) i(VC0) i(VC1) i(VC2)','quit','.endc','.end')
   await writeFile(join(dir,'matrix.cir'),deck.join('\n')+'\n')
-  await promisify(execFile)(runtime.tools.ngspice,['-b','matrix.cir'],{cwd:dir})
+  await writeFile(join(dir,'.spiceinit'),'quit\n')
+  await promisify(execFile)(runtime.tools.ngspice,['-n','-b','matrix.cir'],{cwd:dir})
   const values=(await readFile(join(dir,'result.dat'),'utf8')).trim().split(/\r?\n/)[1].trim().split(/\s+/).map(Number)
   const omega=2*Math.PI*frequency
   // Independently solve the complex pi-network: (Z^-1 + j*w*C/2)^-1 * I.
@@ -62,7 +63,11 @@ test('actual vendor DDR DQ, non-DDR and single-ended TSX generate waveforms and 
     assert.equal(receipt.experiments.length,name==='ddr-dq'?2:1)
     const solverCommands=Object.keys(receipt.files).filter(file=>file.endsWith('/ngspice.command.json'))
     assert.equal(solverCommands.length,receipt.experiments.length,'each experiment shares one actual native process across its probes and eyes')
-    for(const file of solverCommands) assert.equal((await readJson(join(dir,file))).exitCode,0)
+    for(const file of solverCommands) {
+      const command=await readJson(join(dir,file))
+      assert.equal(command.exitCode,0)
+      assert.ok(command.args.includes('-n'),'native pipeline ignores local and user startup files')
+    }
     const circuit=(await readJson(join(dir,'circuit-results.json'))).map(record=>any_circuit_element.parse(record))
     for(const experiment of receipt.experiments) {
     assert.ok(experiment.eyes.length>=2)

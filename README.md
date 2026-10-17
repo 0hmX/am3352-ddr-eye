@@ -26,7 +26,7 @@ pnpm dev --port 3091
 
 Open the ordinary file selector to preview any example TSX. Generated `dist/**` files are ignored by the dev server so saved simulation output does not enter its source watcher. Supplier metadata lookup is disabled in `tscircuit.config.json`; the build uses the standard `--disable-parts-engine` flag.
 
-For simulation, also install Python **3.11**, Git and a C/C++ compiler. macOS needs Homebrew and Xcode command-line tools. Setup builds unmodified pinned FastHenry, FasterCap and ngspice sources and installs the pinned plotting environment. It builds pinned wxWidgets 3.0 for upstream FasterCap; macOS uses Homebrew LLVM and libomp. Source trees and binary hashes are checked in the build receipt. Earlier runtimes built with solver patches are rejected; rerun setup in a fresh cache if it reports modified sources. Setup installs native dependencies through Homebrew on macOS or apt on Linux; this delivery was executed on macOS arm64.
+For simulation, also install Python **3.11**, Git and a C/C++ compiler. macOS needs Homebrew and Xcode command-line tools. Setup builds unmodified pinned FastHenry, FasterCap and ngspice sources and installs the pinned plotting environment. It builds pinned wxWidgets 3.0 for upstream FasterCap; macOS uses Homebrew LLVM and libomp. Source trees, executables, installed libraries and startup configuration are checked against the build receipt. ngspice ignores local/user startup files; runtime path overrides must be unset. Earlier runtimes built with solver patches are rejected; rerun setup in a fresh cache if it reports modified sources. Setup installs native dependencies through Homebrew on macOS or apt on Linux; this delivery was executed on macOS arm64.
 
 ```sh
 pnpm simulate:setup

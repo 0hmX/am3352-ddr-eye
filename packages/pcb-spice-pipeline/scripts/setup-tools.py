@@ -18,6 +18,21 @@ def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def installed_artifacts(prefix):
+    if prefix.is_symlink() or not prefix.is_dir():
+        raise RuntimeError(f"Expected an install directory: {prefix}")
+    artifacts = {}
+    for path in sorted(prefix.rglob("*")):
+        relative = path.relative_to(prefix).as_posix()
+        if path.is_symlink():
+            artifacts[relative] = {"symlink": os.readlink(path)}
+        elif path.is_file():
+            artifacts[relative] = {"sha256": sha256(path)}
+        elif not path.is_dir():
+            raise RuntimeError(f"Unsupported installed artifact: {path}")
+    return artifacts
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tools-dir", type=Path, default=ROOT / ".cache/tools")
@@ -137,7 +152,7 @@ def main():
         omp = Path(run("libomp-prefix", ["brew", "--prefix", "libomp"]))
         compiler, cxx = str(llvm / "bin/clang"), str(llvm / "bin/clang++")
         cap_flags += [f"-DCMAKE_CXX_FLAGS=-I{omp}/include", f"-DCMAKE_EXE_LINKER_FLAGS=-L{omp}/lib"]
-    wx_build, wx_prefix = fresh_build("wxwidgets-build"), tools / "wxwidgets-prefix"
+    wx_build, wx_prefix = fresh_build("wxwidgets-build"), fresh_build("wxwidgets-prefix")
     run("wxwidgets-configure", [str(wx_source / "configure"), f"--prefix={wx_prefix}", "--disable-gui",
                                "--disable-debug", "--enable-shared", "CXXFLAGS=-std=c++11"], wx_build)
     run("wxwidgets-build", ["make", "-j", jobs], wx_build)
@@ -155,7 +170,7 @@ def main():
                               f"-DCMAKE_C_COMPILER={compiler}", f"-DCMAKE_CXX_COMPILER={cxx}",
                               f"-DwxWidgets_CONFIG_EXECUTABLE={wx_prefix / 'bin/wx-config'}", *cap_flags])
     run("fastercap-build", ["cmake", "--build", str(cap_build), "-j", jobs])
-    ng_build, prefix = fresh_build("ngspice-build"), tools / "ngspice-prefix"
+    ng_build, prefix = fresh_build("ngspice-build"), fresh_build("ngspice-prefix")
     run("ngspice-configure", [str(ng_source / "configure"), f"--prefix={prefix}", "--without-x",
                              "--with-readline=no", "--disable-openmp", "--disable-debug", "--enable-xspice"], ng_build)
     run("ngspice-build", ["make", "-j", jobs], ng_build)
@@ -183,7 +198,8 @@ def main():
         versions["fasthenry"] = (logs / "fasthenry-version.stderr.log").read_text()
     receipt = {"host": platform.platform(), "architecture": platform.machine(), "lockSha256": sha256(lock_path),
                "sources": lock["sources"], "unmodifiedSources": True, "sourceProvenance": provenance,
-               "versions": versions, "binarySha256": {k: sha256(Path(v)) for k, v in paths.items()}, "commands": records}
+               "versions": versions, "binarySha256": {k: sha256(Path(v)) for k, v in paths.items()},
+               "runtimeRoot": str(tools), "runtimeArtifacts": {p.name: installed_artifacts(p) for p in (wx_prefix, prefix)}, "commands": records}
     (tools / "build-receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     (tools / "tools.json").write_text(json.dumps(paths, indent=2) + "\n")
     print(json.dumps(paths, indent=2))

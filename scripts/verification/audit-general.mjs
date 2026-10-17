@@ -189,10 +189,14 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
       assert.equal(graph.voltage_levels.length, times.length)
       const values = csv.rows.map(row => row[index])
       const [minimumV, maximumV] = values.reduce(([minimum, maximum], value) => [Math.min(minimum, value), Math.max(maximum, value)], [Infinity, -Infinity])
-      assert.ok(maximumV - minimumV > 0.5, 'These real-vendor examples produce an active data/clock voltage swing, not a flat placeholder')
+      const observedLanes = geometry.mappings.filter(lane => [lane.from, lane.to].some(port => port === probe.signalSourceId || port === probe.referenceSourceId))
+      const switching = circuit.filter(element => element.type === 'simulation_digital_stimulus' && element.simulation_experiment_id === run.simulationExperimentId)
+        .some(stimulus => observedLanes.some(lane => [lane.from, lane.to].includes(stimulus.source_port_id)) &&
+          new Set([stimulus.initial_state, ...stimulus.pattern.bits.slice(0, Math.ceil((run.durationSeconds * 1000 - stimulus.start_time_ms) / stimulus.unit_interval_ms)).split('').map(Number)]).size > 1)
+      if (switching) assert.ok(maximumV - minimumV > 0.5, 'Declared active data/clock produces a voltage swing, not a flat placeholder')
       const signalEndpoints = new Set(geometry.mappings.flatMap(mapping => [mapping.from, mapping.to]))
       const differential = signalEndpoints.has(probe.signalSourceId) && signalEndpoints.has(probe.referenceSourceId)
-      if (differential) assert.ok(minimumV < -0.2 && maximumV > 0.2, 'Complementary differential signals execute both voltage polarities')
+      if (differential && switching) assert.ok(minimumV < -0.2 && maximumV > 0.2, 'Complementary differential signals execute both voltage polarities')
       // A single-ended RS-485 bus leg has a nonzero common-mode voltage;
       // recording a leg relative to GND does not make it a CMOS logic pad.
       const isCmosFixture = geometry.mappings.length === 1 && circuit.some(element => element.type === 'simulation_ibis_model' && element.component === 'LVC1G04_DCK')

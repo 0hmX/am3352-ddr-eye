@@ -20,7 +20,7 @@
     "macOS": ["Xcode command-line tools", "Homebrew cmake", "Homebrew llvm", "Homebrew libomp"],
     "Linux": ["build-essential", "git", "curl", "cmake", "bison", "flex"]
   },
-  "dependencyPolicy": "Solver source commits/archives and wxWidgets 3.0 are pinned and must remain unmodified. Local build receipts verify source trees and executable hashes. Compiler and OS dependency versions are recorded, not claimed to be reproducible across platforms.",
+  "dependencyPolicy": "Solver source commits/archives and wxWidgets 3.0 are pinned and must remain unmodified. Local build receipts verify source trees, executables and installed runtime artifacts. Compiler and OS dependency versions are recorded, not claimed to be reproducible across platforms.",
   "licenses": {
     "FastHenry2": "MIT 1994 restricted license in src/fasthenry/induct.h: internal noncommercial use only; redistribution requires prior written MIT consent. Download/build locally; do not package solver source or binaries. This is not the permissive MIT License, and the Windows branch has different terms.",
     "FasterCap": "LGPL-2.1-or-later; upstream LICENCE.txt preserved in source checkout",

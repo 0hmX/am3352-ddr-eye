@@ -1,5 +1,5 @@
-import {readFile,writeFile,mkdir,readdir,stat} from 'node:fs/promises'
-import {resolve,dirname,join,extname} from 'node:path'
+import {readFile,writeFile,mkdir,readdir,stat,lstat,readlink} from 'node:fs/promises'
+import {resolve,dirname,join,extname,isAbsolute} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {hostname,platform,arch} from 'node:os'
 import {gunzipSync} from 'node:zlib'
@@ -85,8 +85,27 @@ export async function loadModelSource(model: {source: IbisSource; pipelineId: st
   return {text,bytes,archive:source.archive?downloaded:null,evidence:{simulationIbisModelId:id,source:original,rawSourceFile:archiveFile??ibsFile,rawSourceSha256:sha256(downloaded??bytes),ibsFile,sourceSha256:sha256(bytes),archiveFile,archiveSha256:source.archive&&downloaded?sha256(downloaded):null}}
 }
 
-/** Reject cached runtimes built by the earlier solver-patching setup. */
+type RuntimeArtifact = {sha256: string} | {symlink: string}
+
+async function installedArtifacts(root: string): Promise<Record<string, RuntimeArtifact>> {
+  if(!(await lstat(root)).isDirectory()) fail('solver_provenance',`${root}: native install prefix must be a real directory`)
+  const artifacts: Record<string, RuntimeArtifact>={}
+  const visit=async (relative: string)=>{
+    for(const name of (await readdir(join(root,relative))).sort()) {
+      const path=relative?`${relative}/${name}`:name,absolute=join(root,path),entry=await lstat(absolute)
+      if(entry.isSymbolicLink()) artifacts[path]={symlink:await readlink(absolute)}
+      else if(entry.isDirectory()) await visit(path)
+      else if(entry.isFile()) artifacts[path]={sha256:sha256(await readFile(absolute))}
+      else fail('solver_provenance',`${absolute}: unsupported native runtime artifact`)
+    }
+  }
+  await visit('')
+  return artifacts
+}
+
+/** Verify binaries and installed dependencies from the pristine pinned build. */
 export async function nativeToolEvidence(tools: NativeTools) {
+  for(const name of ['SPICE_LIB_DIR','SPICE_SCRIPTS','DYLD_LIBRARY_PATH','DYLD_INSERT_LIBRARIES','LD_LIBRARY_PATH','LD_PRELOAD']) if(process.env[name]) fail('solver_provenance',`Unset ${name} so native solvers use their verified installed runtime`)
   const executableEvidence=async (path: string)=>{
     const executable=resolve(path)
     return {executable,sha256:sha256(await readFile(executable)),host:hostname(),platform:platform(),architecture:arch()}
@@ -103,6 +122,19 @@ export async function nativeToolEvidence(tools: NativeTools) {
   if(setup.lockSha256!==sha256(await readFile(join(packageRoot,'toolchain-lock.json')))) fail('solver_provenance','Native build receipt does not match the pinned toolchain; run pcb-spice-pipeline --setup')
   const evidence={fasthenry,fastercap,ngspice}
   for(const name of ['fasthenry','fastercap','ngspice'] as const) if(evidence[name].sha256!==setup.binarySha256[name]) fail('solver_provenance',`${name} executable does not match the unmodified build receipt; run pcb-spice-pipeline --setup`)
+  if(typeof setup.runtimeRoot!=='string'||!isAbsolute(setup.runtimeRoot)||!record(setup.runtimeArtifacts)) fail('solver_provenance','Native build receipt must record installed runtime artifacts; run pcb-spice-pipeline --setup')
+  const prefixes=['wxwidgets-prefix','ngspice-prefix']
+  if(Object.keys(setup.runtimeArtifacts).length!==prefixes.length) fail('solver_provenance','Native build receipt has unexpected runtime prefixes; run pcb-spice-pipeline --setup')
+  for(const prefix of prefixes) {
+    const expected=setup.runtimeArtifacts[prefix]
+    if(!record(expected)||!Object.keys(expected).length) fail('solver_provenance',`${prefix}: missing runtime artifact manifest; run pcb-spice-pipeline --setup`)
+    let actual: Record<string, RuntimeArtifact>
+    try {actual=await installedArtifacts(join(setup.runtimeRoot,prefix))} catch(error) {
+      if(!missingFile(error)) throw error
+      fail('solver_provenance',`${prefix}: missing installed runtime artifact; run pcb-spice-pipeline --setup`)
+    }
+    if(Object.keys(actual).length!==Object.keys(expected).length||Object.entries(actual).some(([path,value])=>JSON.stringify(value)!==JSON.stringify(expected[path]))) fail('solver_provenance',`${prefix}: installed runtime artifacts differ from the build receipt; run pcb-spice-pipeline --setup`)
+  }
   return {...evidence,setup}
 }
 
@@ -168,7 +200,7 @@ export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,b
     await json(join(dir,'experiment.json'),plan)
     await writeFile(join(dir,'simulation.cir'),generalSimulationSpice(plan,geometry,modeling,extracted,models,declarations.nodes,electrical))
     onProgress(`Execute ONE native ngspice transient for ${plan.name} (${plan.probes.length} probes, ${plan.eyes.length} eyes)`)
-    await command(tools.ngspice,['-b','simulation.cir'],dir,'ngspice')
+    await command(tools.ngspice,['-n','-b','simulation.cir'],dir,'ngspice')
     let waveformText
     try {waveformText=await readFile(join(dir,'waveform.dat'),'utf8')} catch(error) {
       if(!missingFile(error)) throw error
@@ -200,7 +232,7 @@ export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,b
   let gitCommit: string | null=null,sourceTreeDirty: boolean | null=null
   try {gitCommit=(await exec('git',['rev-parse','HEAD'],{cwd:packageRoot})).stdout.trim();sourceTreeDirty=Boolean((await exec('git',['status','--porcelain'],{cwd:packageRoot})).stdout.trim())} catch {}
   if(JSON.stringify(await hashes(packageRoot,'',sourceExclusions))!==JSON.stringify(sourceFiles)) fail('source_changed','Pipeline source changed during this solve; rerun into a fresh directory after editing is complete')
-  for(const name of ['fasthenry','fastercap','ngspice'] as const) if(sha256(await readFile(toolEvidence[name].executable))!==toolEvidence[name].sha256) fail('tool_changed',`${name} executable changed during this solve`)
+  if(JSON.stringify(await nativeToolEvidence(tools))!==JSON.stringify(toolEvidence)) fail('tool_changed','Native toolchain evidence changed during this solve')
   const renderedBoard={sourceComponents:circuitJson.filter(e=>e.type==='source_component').length,pcbTraces:circuitJson.filter(e=>e.type==='pcb_trace').length,smtPads:circuitJson.filter(e=>e.type==='pcb_smtpad').length,vias:circuitJson.filter(e=>e.type==='pcb_via').length,platedHoles:circuitJson.filter(e=>e.type==='pcb_plated_hole').length,boards:circuitJson.filter(e=>e.type==='pcb_board').map(({width,height,num_layers,center})=>({widthMm:width,heightMm:height,layers:num_layers,centerMm:center})),errorTypeCounts:{} as Record<string, number>}
   for(const record of circuitJson.filter(e=>e.type.endsWith('_error'))) renderedBoard.errorTypeCounts[record.type]=(renderedBoard.errorTypeCounts[record.type]??0)+1
   const receipt={schemaVersion:3,status:'executed',description:modeling.description,execution:{host:hostname(),platform:platform(),architecture:arch(),nativeLocalMac:platform()==='darwin',timestampUtc:new Date().toISOString(),node:process.version,gitCommit,sourceTreeDirty,solverResultCache:false},sourceRoot:packageRoot,sourceFiles,project:project??null,entryPath:entryPath??null,sourceCircuitJsonSha256:sha256(inputCircuitBytes),originalSourceCircuitJsonSha256:originalSourceCircuitJsonSha256??(originalCircuitBytes?sha256(circuitPath?.endsWith('.gz')?gunzipSync(originalCircuitBytes):originalCircuitBytes):null),originalSourceArchiveSha256:originalCircuitBytes?sha256(originalCircuitBytes):null,fixtureProvenance:modeling.fixtureProvenance??null,sourceProvenance:modeling.sourceProvenance??null,preSolvedAssessment:modeling.sourceProvenance?.preSolvedAssessment??null,renderedBoard,converter:converterEvidence,toolEvidence,vendorSources:loaded.map(source=>source.evidence),matrices:extracted.map(e=>({stage:e.stage,R:e.R,L:e.L,C:e.C,units:e.units})),experiments,limitations:[...geometry.approximations,...compiled.flatMap(models=>models.flatMap(model=>model.warnings??[])),'Only explicitly selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded','Finite observed transient eyes; no implicit traffic, random jitter, BER extrapolation or protocol compliance','Maximum solver integration step and plotting interpolation resolution are separate settings'],files:await hashes(out)}

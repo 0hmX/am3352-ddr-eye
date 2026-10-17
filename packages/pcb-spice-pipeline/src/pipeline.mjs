@@ -112,7 +112,7 @@ export async function runPipeline({circuitJson,modeling,eyeDiagrams=[],outputDir
   await json(join(out,'ibis-conversion.json'),{driver:{spicePinMapping:driver.spicePinMapping,warnings:driver.warnings},receiver:{spicePinMapping:receiver.spicePinMapping,warnings:receiver.warnings},vendors:modeling.vendors})
   await writeFile(join(out,'driver.lib'),driver.source);await writeFile(join(out,'receiver.lib'),receiver.source);await writeFile(join(out,'channel.cir'),channelSpice(extracted,modeling.sections));await writeFile(join(out,'simulation.cir'),simulationSpice(modeling,extracted,driver,receiver))
   onProgress('Run actual native ngspice transient and measure generated samples')
-  await command(tools.ngspice,['-b','simulation.cir'],out,'ngspice')
+  await command(tools.ngspice,['-n','-b','simulation.cir'],out,'ngspice')
   const rows=waveformRows(await readFile(join(out,'waveform.dat'),'utf8')),metrics=measureWaveform(rows,modeling.simulation,eye),folded=foldEye(rows,metrics,eye)
   await writeFile(join(out,'waveform.csv'),'time_s,driver_p_v,driver_n_v,receiver_p_v,receiver_n_v,receiver_diff_v,driver_diff_v\n'+rows.map(r=>r.join(',')).join('\n')+'\n')
   await json(join(out,'metrics.json'),metrics)
