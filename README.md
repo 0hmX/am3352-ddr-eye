@@ -88,6 +88,29 @@ This backend is experimental: it extracts **whole-route quasistatic matrices**, 
 
 DQ0 uses the routed U1.M3 → U3.E3 connection, TI `Model_343` and Winbond `ODT_60`; DQS retains U1.P1/P2 → U3.F3/G3 with TI `Model_655/847`. The shared hash-locked model sources remain active. DQ0 repeats `00010111` at a 2.5 ns UI; DQS alternates with a 1.25 ns offset. The native integration tests sample received DQ at both polarities of the received DQS crossing and require all eight three-bit histories in both the sampled data and eye windows.
 
+### Executed model comparison
+
+Two fresh complete routed workflows and a fresh reduced baseline were executed on macOS arm64 on 2026-10-17 using runtime source `0dcab2d` and the same installed native binaries. The comparison uses the 40–160 ns gate and actual received DQS crossings:
+
+| Deterministic model measurement | Reduced baseline | Routed QUIET | Routed SWITCHING |
+| --- | --- | --- | --- |
+| Correct received-DQS samples | 48/48 | 48/48 | 48/48 |
+| Expected / decoded three-bit histories | 8 / 8 | 8 / 8 | 8 / 8 |
+| Minimum signed margin to 0.75 V analysis threshold | 473.088 mV | 466.255 mV | 462.990 mV |
+| Minimum signed margin to Winbond 0.6/0.9 V input limits | 323.088 mV | 316.255 mV | 312.990 mV |
+
+Every case validates all 63 recorded DQS transitions and generates 46 complete DQ0 eye windows. The routed QUIET/SWITCHING recordings contain 179,296/226,239 adaptive samples. Their piecewise-linear difference is 231.101 mV peak at 70.7583 ns and 56.517 mV time RMS; the worst sampled margin falls by 3.265 mV.
+
+**The switching disturbance is an experimental model result with unconverged magnitude.** It is driven by the mismatch between inductive and capacitive coupling (`kL−kC`, far-end crosstalk), combining represented return access with modeling and discretization effects. The 231 mV/56.5 mV values do not establish physical-board crosstalk, noise or timing shifts. The positive sampled margins apply to this deterministic model; they do not qualify the board.
+
+DQ0's extracted matrix diagonals are R=0.681298 Ω, L=21.893354 nH and C=4.26854 pF. Reference-current mesh refinement from 1 to 0.5 mm changes self-L by up to 6.626% (DQS 5.562%, DQS# 4.612%, DQ0 2.862%), normalized to fine values. Maximum self-R change is 1.613%; DQ0 changes 0.118%. This does not demonstrate 2% inductance mesh convergence or provide a remaining-error bound.
+
+The separate C geometry check compares a 0.5 mm target at FasterCap `-m1` (4.30102 pF) with 0.35 mm at `-m1` (4.36036 pF): +1.3797%. The latter is +2.1511% against the actually stamped 0.5 mm/`-m0.5` value (4.26854 pF); that comparison changes both settings. Production raw interaction refinement is separately 1.1895%, and the final matrix requires zero positive-mutual correction. None of these sensitivities bounds physical error. The geometry diagnostics retain 12 point-meeting approximation warnings and a harmless duplicate self-equivalence warning.
+
+Independent audits verified both complete receipts, native matrices, original geometry, vendor pins, every eye sample and DQS assignment. The shared `compareFreshRuns` check found 60 unique model, geometry, waveform and plot artifacts byte-identical (61 comparisons, including one repeated file). These two runs started separately; B's native R/L job was temporarily paused for resource scheduling under memory pressure. The public `--repeat` command above performs fresh runs sequentially and uses the same comparison; that wrapper itself was not used for this routed proof.
+
+Validation passed 27 converter tests, 62 pipeline unit tests, type checking and the normal routed TSX build. All 12 native checks passed across the initial invocation and an unchanged isolated calibration retry after a resource timeout. Receipts retain source/model/tool hashes. Their `sourceTreeDirty: true` flag includes the preserved, untracked user `TODO.md`; executed file hashes establish provenance rather than the commit identifier alone. Generated plots, waveforms and evidence remain under ignored `dist/`.
+
 ## General TSX API
 
 A chip's `ibisModel` is reusable electrical data. It does not contain traffic or eye settings:
