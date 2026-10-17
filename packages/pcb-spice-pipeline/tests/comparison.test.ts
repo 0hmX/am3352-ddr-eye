@@ -111,10 +111,14 @@ test('saved-run comparison binds artifacts and computes pairs before shared rend
     await mkdir(dirname(join(directory, relative)), { recursive: true })
     await writeFile(join(directory, relative), text); files[relative] = hash(text)
   }
-  for (const path of ['inputs/circuit.json', 'inputs/modeling.json', 'electrical-node-map.json', 'converter-runtime.json']) await save(path, {})
+  await save('inputs/circuit.json', [])
+  await save('inputs/modeling.json', JSON.parse(await readFile(new URL('./fixtures/straight.modeling.json', import.meta.url), 'utf8')))
+  for (const path of ['electrical-node-map.json', 'converter-runtime.json']) await save(path, {})
   await save('channel.cir', '* synthetic test network\n')
   const input = fixture()
-  await save('geometry.json', input.geometry)
+  await save('geometry.json', { ...input.geometry, approximations: ['Synthetic report fixture'],
+    mappings: input.geometry.mappings.map((lane, i) => ({ ...lane, port: `lane${i}`, sourceTraceId: `trace${i}`, pcbTraceId: `pcb${i}`,
+      stages: [{ kind: 'wire', profile: 'top', lengthMm: 1, widthMm: .1 }], originalRoute: [{ x: 0, y: i }, { x: 1, y: i }] })) })
   const binarySha256 = { fasthenry: 'henry', fastercap: 'cap', ngspice: 'spice' }
   await save('tool-build-receipt.json', { unmodifiedSources: true, binarySha256 })
   await save('tool-evidence.json', Object.fromEntries(Object.entries(binarySha256).map(([name, sha256]) => [name, { sha256 }])))
@@ -139,6 +143,11 @@ test('saved-run comparison binds artifacts and computes pairs before shared rend
   assert.ok(Math.abs(result.changes[0].timeRmsV - .2) < 1e-12)
   const manifest = JSON.parse(await readFile(result.manifest, 'utf8'))
   assert.equal(manifest.series[0].waveformSha256, files['experiments/quiet/waveform.csv'])
+  assert.equal(await readFile(join(outputDir, 'csv/01-quiet-eye-1.csv'), 'utf8'),
+    await readFile(join(directory, 'experiments/quiet/eyes/eye/eye-data.csv'), 'utf8'), 'eye export retains verified source bytes')
+  const csv = await readFile(join(outputDir, 'csv/02-switching-waveforms.csv'), 'utf8')
+  assert.match(csv, /"time_s","DQ_RX_v"\n0,0.2\n5,0.2\n10,0.2\n/)
+  assert.match(await readFile(join(outputDir, 'csv/comparison.csv'), 'utf8'), /"quiet","switching",2,10,0.2,/)
   await assert.rejects(compareRuns({ directories: [directory], outputDir, probeName: 'DQ_RX' }), /EEXIST/)
   await writeFile(join(directory, 'experiments/quiet/waveform.csv'), 'changed after receipt')
   await assert.rejects(compareRuns({ directories: [directory], outputDir: join(directory, 'rejected'), probeName: 'DQ_RX' }), /comparison_provenance/)

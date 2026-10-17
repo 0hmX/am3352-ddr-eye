@@ -5,6 +5,9 @@ import { json, sha256 } from './io.mjs'
 import { fail } from './matrices.mjs'
 import { writeViewerData } from './viewer.js'
 import { simulationSpiceOptions } from './general-spice.js'
+import { reportContext, type ReportContext, type ReportRun, type ReportEye, type ReportTest } from './report.js'
+import type { CircuitJson } from './schema.js'
+import type { Geometry as ChannelGeometry, Modeling } from './geometry.js'
 
 interface Stimulus {
   source_port_id: string
@@ -181,7 +184,9 @@ export async function compareRuns({ directories, outputDir, probeName }: {
   directories: string[]; outputDir: string; probeName: string
 }) {
   if (!directories.length || !probeName) fail('comparison_input', 'Provide a completed run directory and --probe NAME')
-  const series: Series[] = [], waveforms: number[][][] = []
+  const series: Series[] = [], waveforms: number[][][] = [], viewerRuns: ReportRun[] = []
+  const limitations = new Set<string>()
+  let context: ReportContext | undefined
   for (const directory of directories) {
     const root = resolve(directory), receiptBytes = await readFile(join(root, 'receipt.json'))
     const receipt = JSON.parse(receiptBytes.toString()) as Receipt
@@ -192,10 +197,10 @@ export async function compareRuns({ directories, outputDir, probeName }: {
       if (sha256(bytes) !== receipt.files[relative]) fail('comparison_provenance', `${relative} differs from the completed run receipt`)
       return bytes
     }
-    const network: Record<string, string> = {}
+    const network: Record<string, string> = {}, recorded: Record<string, Buffer> = {}
     for (const path of ['inputs/circuit.json', 'inputs/modeling.json', 'geometry.json', 'electrical-node-map.json',
       'channel.cir', 'converter-runtime.json', 'tool-evidence.json', 'tool-build-receipt.json'])
-      network[path] = sha256(await artifact(path))
+      network[path] = sha256(recorded[path] = await artifact(path))
     const build = JSON.parse((await artifact('tool-build-receipt.json')).toString()) as {
       unmodifiedSources?: boolean; binarySha256?: Record<string, string>
     }
@@ -203,7 +208,10 @@ export async function compareRuns({ directories, outputDir, probeName }: {
     if (build.unmodifiedSources !== true || ['fasthenry', 'fastercap', 'ngspice'].some(name =>
       !build.binarySha256?.[name] || build.binarySha256[name] !== tools[name]?.sha256))
       fail('comparison_provenance', 'Runs require unmodified solver sources and matching recorded executable hashes')
-    const geometry = JSON.parse((await artifact('geometry.json')).toString()) as Geometry
+    const geometry = JSON.parse(recorded['geometry.json'].toString()) as ChannelGeometry
+    for (const text of geometry.approximations) limitations.add(text)
+    context ??= reportContext(JSON.parse(recorded['inputs/circuit.json'].toString()) as CircuitJson,
+      geometry, JSON.parse(recorded['inputs/modeling.json'].toString()) as Modeling)
     for (const experiment of receipt.experiments) {
       const matches = experiment.probes.filter(probe => probe.name === probeName), probe = matches[0]
       if (matches.length !== 1) fail('comparison_probe', `${experiment.name}: exactly one probe named ${probeName} required`)
@@ -212,16 +220,18 @@ export async function compareRuns({ directories, outputDir, probeName }: {
       const waveform = await artifact(join(experiment.directory, 'waveform.csv'))
       if (eye.sourceSha256 !== sha256(waveform)) fail('comparison_provenance', 'Eye is not bound to the recorded waveform')
       const eyeRelative = join(experiment.directory, eye.directory, 'eye-data.csv')
-      await artifact(eyeRelative)
-      const metadata = JSON.parse((await artifact(join(experiment.directory, eye.directory, 'eye-data.json'))).toString()) as Eye
+      const eyeCsv = await artifact(eyeRelative)
+      const metadata = JSON.parse((await artifact(join(experiment.directory, eye.directory, 'eye-data.json'))).toString()) as Eye & ReportEye
       if (metadata.simulationVoltageProbeId !== probe.simulationVoltageProbeId || metadata.sourceSha256 !== sha256(waveform) ||
           !Array.isArray(metadata.windowOriginsSeconds) || metadata.windowOriginsSeconds.some(value => !Number.isFinite(value)))
         fail('comparison_provenance', 'Eye metadata must bind finite window origins to the recorded probe and waveform')
-      const plan = JSON.parse((await artifact(join(experiment.directory, 'experiment.json'))).toString()) as Plan
+      const plan = JSON.parse((await artifact(join(experiment.directory, 'experiment.json'))).toString()) as Plan & ReportTest
       const assembly = JSON.parse((await artifact(experiment.assembly)).toString()) as Assembly[]
       const input = { network, geometry, plan, assembly, probe, eye }
       const identity = comparisonIdentity(input)
       waveforms.push(waveform.toString().trim().split(/\r?\n/).slice(1).map(line => line.split(',').map(Number)))
+      viewerRuns.push({ name: experiment.name, rows: waveforms.at(-1)!, probes: [probe], test: plan,
+        eyes: [{ ...metadata, name: metadata.name ?? probeName, csv: eyeCsv.toString() }] })
       series.push({ label: experiment.name, root, receiptSha256: sha256(receiptBytes), waveformPath: join(root, experiment.directory, 'waveform.csv'),
         waveformSha256: sha256(waveform), eyeCsv: join(root, eyeRelative), probe, eye: {...eye,windowOriginsSeconds:metadata.windowOriginsSeconds}, identity, neighbors: neighborsFor(input) })
     }
@@ -240,6 +250,9 @@ export async function compareRuns({ directories, outputDir, probeName }: {
     differenceDefinition: 'Switching minus quiet piecewise-linear reconstructions on the union of recorded adaptive timestamps and exact gate endpoints. RMS is integrated over time.',
     limitations: ['Finite deterministic simulation; no BER, protocol compliance or hardware accuracy claim',
       'Differences include all coupling and shared return paths represented by the selected network; peaks do not bound unrecorded analog behavior'] })
-  await writeViewerData(join(out,'results.html'), { runs: series.map((run,i) => ({name:run.label,rows:waveforms[i],probes:[run.probe],eyes:[{...run.eye,name:probeName}]})), limitations:['Finite deterministic comparison; see comparison.json for verified identity and model limitations.'],changes }, 'Quiet versus switching comparison')
+  await writeViewerData(join(out,'results.html'), { runs: viewerRuns, context, comparisonProbeName: probeName, limitations:[
+    'Finite deterministic comparison; no BER, protocol compliance or hardware accuracy claim.',
+    ...limitations,
+  ], changes }, 'Quiet versus switching comparison')
   return { directory: out, manifest, changes }
 }
