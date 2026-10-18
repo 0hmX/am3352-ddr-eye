@@ -80,7 +80,7 @@ export function circuitNodes(circuit: CircuitJson,geometry: Geometry,modeling: M
 }
 
 export function generalDeclarations(circuit: CircuitJson,geometry: Geometry,modeling: Modeling) {
-  for(const type of ['simulation_ibis_model','simulation_voltage_probe','simulation_eye_diagram','source_port','source_net','source_component']) {
+  for(const type of ['simulation_experiment','simulation_ibis_model','simulation_voltage_probe','simulation_eye_diagram','source_port','source_net','source_component']) {
     const seen=new Set<string>()
     for(const record of circuit.filter(e=>e.type===type)) {
       const id: unknown=Reflect.get(record,`${type}_id`)
@@ -114,17 +114,19 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Geometry,mode
   }
   for(const model of models) {
     const sourceComponent=exactly(components.filter(e=>e.source_component_id===model.source_component_id),`${model.pipelineId} component`)
-    for(const id of Object.values(model.pin_to_source_port_map??{})) if(!ports.has(id)||ports.get(id)?.source_component_id!==sourceComponent.source_component_id) fail('ibis_mapping',`${sourceComponent.name}: physical pin mapping points outside its chip`)
+    for(const id of Object.values(model.ibis_pin_name_to_source_port_id??{})) if(!ports.has(id)||ports.get(id)?.source_component_id!==sourceComponent.source_component_id) fail('ibis_mapping',`${sourceComponent.name}: physical pin mapping points outside its chip`)
   }
-  if(circuit.some(e=>e.type==='simulation_experiment'&&e.experiment_type!=='spice_transient_analysis')||circuit.some(e=>e.type==='simulation_parameter_sweep')) fail('simulation_capability','This PCB backend supports unswept transient experiments only')
-  const experiments=circuit.filter(e=>e.type==='simulation_experiment')
-  if(!experiments.length) fail('simulation_experiment','Native transient experiment required')
+  const declaredExperiments=circuit.filter(e=>e.type==='simulation_experiment')
+  const declaredExperimentIds=new Set(declaredExperiments.map(experiment=>experiment.simulation_experiment_id))
+  const experiments=declaredExperiments.filter(experiment=>experiment.spice_engine==='pcb_spice')
+  if(!experiments.length) fail('simulation_experiment','A transient experiment with spiceEngine=pcb_spice is required')
+  const pcbExperimentIds=new Set(experiments.map(experiment=>experiment.simulation_experiment_id))
+  if(experiments.some(experiment=>experiment.experiment_type!=='spice_transient_analysis')||circuit.some(e=>e.type==='simulation_parameter_sweep'&&pcbExperimentIds.has(e.simulation_experiment_id))) fail('simulation_capability','This PCB backend supports unswept transient experiments only')
   const ids=new Set<string>()
   const plans: SimulationPlan[]=experiments.map(experiment=>{
     const id=experiment.simulation_experiment_id
     if(!id||ids.has(id)) fail('simulation_experiment','Experiment IDs must be unique')
     ids.add(id)
-    if(experiment.spice_engine&&experiment.spice_engine!=='ngspice') fail('simulation_capability',`${experiment.name}: this native PCB backend requires ngspice`)
     const scopes=new Set(models.map(model=>componentScope(model.source_component_id)))
     const scope=experiment.subcircuit_id??(scopes.size===1?[...scopes][0]:undefined)
     if(scope===undefined) fail('simulation_scope',`${experiment.name}: multiple modeled subcircuits require an explicit experiment scope`)
@@ -143,26 +145,26 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Geometry,mode
     for(const state of states) {
       if(stateIds.has(state.source_port_id)) fail('ibis_state',`${experiment.name}: duplicate run state for ${state.source_port_id}`)
       stateIds.add(state.source_port_id)
-      if(!['input','output'].includes(state.mode)||(state.mode==='output'&&typeof state.enabled!=='boolean')) fail('ibis_state',`${experiment.name}: explicit compatible input/output enable state required`)
-      const attachments=scopedModels.filter(model=>Object.values(model.pin_to_source_port_map).includes(state.source_port_id))
+      if(typeof state.is_output!=='boolean'||(state.is_output&&typeof state.is_output_enabled!=='boolean')||(!state.is_output&&state.is_output_enabled!==undefined)) fail('ibis_state',`${experiment.name}: explicit compatible input/output enable state required`)
+      const attachments=scopedModels.filter(model=>Object.values(model.ibis_pin_name_to_source_port_id).includes(state.source_port_id))
       if(attachments.length!==1) fail('ibis_state',`${experiment.name}: run state must select exactly one modeled pin`)
     }
     for(const mapping of geometry.mappings) for(const endpoint of [mapping.from,mapping.to]) {
-      const bindings=scopedModels.flatMap(model=>Object.values(model.pin_to_source_port_map)).filter(port=>port===endpoint)
+      const bindings=scopedModels.flatMap(model=>Object.values(model.ibis_pin_name_to_source_port_id)).filter(port=>port===endpoint)
       if(bindings.length!==1||!stateIds.has(endpoint)) fail('channel_model',`${experiment.name} ${mapping.port}: endpoint ${endpoint} requires exactly one modeled physical pin and an explicit run state`)
     }
     for(const stimulus of stimuli) {
       if(stimulusIds.has(stimulus.source_port_id)) fail('stimulus_duplicate',`${experiment.name}: multiple stimuli drive the same physical output`)
       stimulusIds.add(stimulus.source_port_id)
       const state=states.find(s=>s.source_port_id===stimulus.source_port_id)
-      if(state?.mode!=='output'||state.enabled!==true) fail('stimulus_state',`${stimulus.name}: stimulus requires an enabled IBIS output in this experiment`)
+      if(state?.is_output!==true||state.is_output_enabled!==true) fail('stimulus_state',`${stimulus.name}: stimulus requires an enabled IBIS output in this experiment`)
       milliseconds(stimulus.unit_interval_ms,`${stimulus.name} unit_interval_ms`,{positive:true})
       milliseconds(stimulus.start_time_ms,`${stimulus.name} start_time_ms`)
       if(![0,1].includes(stimulus.initial_state)||(stimulus.inverted!==undefined&&typeof stimulus.inverted!=='boolean')||stimulus.pattern?.type!=='bits'||!/^[01]+$/.test(stimulus.pattern.bits)||typeof stimulus.pattern.repeat!=='boolean') fail('stimulus_pattern',`${stimulus.name}: explicit binary bits, inversion/repeat booleans and initial state required`)
       if(stimulus.start_time_ms/1000>=durationSeconds) fail('stimulus_coverage',`${stimulus.name}: stimulus starts after the experiment ends`)
       if(!stimulus.pattern.repeat&&(stimulus.start_time_ms+stimulus.pattern.bits.length*stimulus.unit_interval_ms)/1000<durationSeconds-1e-12*durationSeconds) fail('stimulus_coverage',`${stimulus.name}: nonrepeating bits do not cover the complete run`)
     }
-    for(const state of states) if(state.mode==='output'&&state.enabled&&!stimulusIds.has(state.source_port_id)) fail('stimulus_missing',`${experiment.name}: enabled output requires one explicit digital stimulus`)
+    for(const state of states) if(state.is_output&&state.is_output_enabled&&!stimulusIds.has(state.source_port_id)) fail('stimulus_missing',`${experiment.name}: enabled output requires one explicit digital stimulus`)
     const eyeRecords=circuit.filter(e=>e.type==='simulation_eye_diagram').filter(e=>e.simulation_experiment_id===id)
     const probes=circuit.filter(e=>e.type==='simulation_voltage_probe').filter(e=>(e.subcircuit_id??null)===scope).map((probe,i)=>{
       const signal=probe.signal_input_source_port_id??probe.signal_input_source_net_id
@@ -184,22 +186,25 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Geometry,mode
     })
     return {simulationExperimentId:id,name:experiment.name,subcircuitId:scope,durationSeconds,startTimeSeconds,maxStepSeconds,experiment,states,stimuli,probes,eyes,models:scopedModels}
   })
-  for(const eye of circuit.filter(e=>e.type==='simulation_eye_diagram')) if(!ids.has(eye.simulation_experiment_id)) fail('eye_reference',`${eye.name}: unknown or unsupported transient experiment`)
-  for(const record of circuit.filter(e=>e.type==='simulation_digital_stimulus'||e.type==='simulation_ibis_pin_state')) if(!ids.has(record.simulation_experiment_id)) fail('simulation_reference',`${'name' in record?record.name:record.type}: unknown transient experiment`)
-  return {models,nodes,plans,ports}
+  for(const eye of circuit.filter(e=>e.type==='simulation_eye_diagram')) if(!declaredExperimentIds.has(eye.simulation_experiment_id)) fail('eye_reference',`${eye.name}: unknown or unsupported transient experiment`)
+  for(const record of circuit.filter(e=>e.type==='simulation_digital_stimulus'||e.type==='simulation_ibis_pin_state')) if(!declaredExperimentIds.has(record.simulation_experiment_id)) fail('simulation_reference',`${'name' in record?record.name:record.type}: unknown transient experiment`)
+  const usedModelIds=new Set(plans.flatMap(plan=>plan.models.map(model=>model.pipelineId)))
+  return {models:models.filter(model=>usedModelIds.has(model.pipelineId)),nodes,plans,ports}
 }
 
 export function modelRunDefinition(model: PipelineIbisModel,plan: SimulationPlan): ModelRunDefinition {
-  const pinMap=model.pin_to_source_port_map,selected=new Set(Object.values(pinMap))
+  const pinMap=model.ibis_pin_name_to_source_port_id,selected=new Set(Object.values(pinMap))
   const pinStates: IbisRunConfig['pinStates']={},stimuli: IbisRunConfig['stimuli']={}
   for(const state of plan.states) if(selected.has(state.source_port_id)) {
-    if(state.mode==='input') pinStates[state.source_port_id]={mode:'input'}
+    if(!state.is_output) pinStates[state.source_port_id]={mode:'input'}
     else {
-      if(typeof state.enabled!=='boolean') fail('ibis_state',`${state.source_port_id}: explicit output enable state required`)
-      pinStates[state.source_port_id]={mode:'output',enabled:state.enabled}
+      if(typeof state.is_output_enabled!=='boolean') fail('ibis_state',`${state.source_port_id}: explicit output enable state required`)
+      pinStates[state.source_port_id]={mode:'output',enabled:state.is_output_enabled}
     }
   }
   for(const stimulus of plan.stimuli) if(selected.has(stimulus.source_port_id)) stimuli[stimulus.source_port_id]={unitInterval:stimulus.unit_interval_ms,startTime:stimulus.start_time_ms,initialState:stimulus.initial_state,inverted:stimulus.inverted??false,pattern:stimulus.pattern}
-  const references: Record<string,IbisReferencePorts>=Object.fromEntries(Object.entries(model.references??{}).map(([pin,refs])=>[pin,{pullup:refs.pullup,pulldown:refs.pulldown,powerClamp:refs.power_clamp,groundClamp:refs.ground_clamp,external:refs.external}]))
-  return {definition:{source:model.source,component:model.component,pinMap,modelSelections:model.model_selections,references,corner:model.corner,packagePolicy:model.package_policy},run:{duration:plan.durationSeconds*1000,pinStates,stimuli}}
+  const references: Record<string,IbisReferencePorts>=Object.fromEntries(Object.entries(model.ibis_pin_name_to_reference_source_port_ids??{}).map(([pin,refs])=>[pin,{pullup:refs.pullup_reference_source_port_id,pulldown:refs.pulldown_reference_source_port_id,powerClamp:refs.power_clamp_reference_source_port_id,groundClamp:refs.ground_clamp_reference_source_port_id,external:refs.external_reference_source_port_id}]))
+  let packagePolicy: IbisModelDefinition['packagePolicy']='omit'
+  if(model.include_package_parasitics) packagePolicy='vendor'
+  return {definition:{source:{file:model.ibis_model_asset.project_relative_path},component:model.ibis_component_name,pinMap,modelSelections:model.ibis_pin_name_to_model_name,references,corner:model.model_value_corner,packagePolicy},run:{duration:plan.durationSeconds*1000,pinStates,stimuli}}
 }

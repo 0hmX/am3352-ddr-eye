@@ -12,6 +12,7 @@
       "archiveSha256": "935ce893dc388969a3e1319153daaa81e1486d786b87eed6a7d543b5f5dbfcba",
       "archiveBytes": 44224,
       "sha256": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e",
+      "file": "sn65hvd72.ibs",
       "fileBytes": 201681,
       "component": "SN65HVD72D",
       "signalPins": {
@@ -54,6 +55,7 @@
       "archiveSha256": "8092b150c132800895d01cf1e416bd3dd510bb29dd68d93c01ed41e226d8acb8",
       "archiveBytes": 46471,
       "sha256": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+      "file": "sn74lvc1g04.ibs",
       "fileBytes": 254207,
       "component": "LVC1G04_DCK",
       "signalPins": {

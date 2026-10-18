@@ -1,4 +1,4 @@
-import { si } from "pcb-spice-pipeline/tsx"
+import { analog } from "@tscircuit/core"
 import { rs485Pads } from "./models"
 import { BenchSupply, RoutedTrace, Soic8Pads } from "./pcb"
 import construction from "./board-construction.json"
@@ -15,8 +15,8 @@ export default function Board() {
       pinLabels={pins} footprint={<Soic8Pads />}  />
     <chip name="RX" manufacturerPartNumber="SN65HVD72D" pcbX={15} pcbY={0}
       pinLabels={pins} footprint={<Soic8Pads />}  />
-    <si.Model componentRef=".TX" {...rs485Pads} />
-    <si.Model componentRef=".RX" {...rs485Pads} />
+    <ibismodel componentRef=".TX" {...rs485Pads} />
+    <ibismodel componentRef=".RX" {...rs485Pads} />
     <BenchSupply />
     <resistor name="RTERM" resistance="120" pcbX={22} pcbY={0} pcbRotation={90} footprint="0603" />
     <RoutedTrace name="BUS_A" from=".TX > .A" to=".RX > .A" origin={[-15, 0]}
@@ -33,19 +33,19 @@ export default function Board() {
       points={[{ x: -21, y: 5, via: true, fromLayer: "top", toLayer: "bottom" }, { x: -13, y: 5 }, { x: -13, y: -1.905, via: true, fromLayer: "bottom", toLayer: "top" }]} />
     <RoutedTrace name="GROUND_RETURN" from=".TX > .GND" to=".RX > .GND" origin={[-15, 0]} width={0.35}
       points={[{ x: -13, y: -1.905, via: true, fromLayer: "top", toLayer: "bottom" }, { x: -13, y: -6 }, { x: 19, y: -6 }, { x: 19, y: -1.905, via: true, fromLayer: "bottom", toLayer: "top" }]} />
-    <si.Transient name="SI" duration="128us" timePerStep="5ns" ibisPinStates={{
-      ".TX > .A": { mode: "output", enabled: true }, ".TX > .B": { mode: "output", enabled: true },
-      ".RX > .A": { mode: "input" }, ".RX > .B": { mode: "input" },
+    <analog.transientsimulation spiceEngine="pcb_spice" name="SI" duration="128us" timePerStep="5ns" ibisPinStates={{
+      ".TX > .A": { isOutput: true, isOutputEnabled: true }, ".TX > .B": { isOutput: true, isOutputEnabled: true },
+      ".RX > .A": { isOutput: false }, ".RX > .B": { isOutput: false },
     }} />
-    <si.Stimulus name="DATA_A" simulationRef=".SI" drives=".TX > .A"
+    <analog.digitalstimulus name="DATA_A" simulationRef=".SI" drives=".TX > .A"
       unitInterval="4us" startTime="0us" initialState={0} pattern={{ type: "bits", bits, repeat: true }} />
-    <si.Stimulus name="DATA_B" simulationRef=".SI" drives=".TX > .B"
+    <analog.digitalstimulus name="DATA_B" simulationRef=".SI" drives=".TX > .B"
       unitInterval="4us" startTime="0us" initialState={0} inverted pattern={{ type: "bits", bits, repeat: true }} />
-    <si.Probe name="BUS_RX" connectsTo=".RX > .A" referenceTo=".RX > .B" />
-    <si.Eye name="RS485_DATA" simulationRef=".SI" probeRef=".BUS_RX"
+    <voltageprobe name="BUS_RX" connectsTo=".RX > .A" referenceTo=".RX > .B" />
+    <analog.eyediagram name="RS485_DATA" simulationRef=".SI" probeRef=".BUS_RX"
       unitInterval="4us" timeOrigin="0us" startTime="16us" endTime="128us" />
-    <si.Probe name="BUS_A_GROUND" connectsTo=".RX > .A" referenceTo=".RX > .GND" />
-    <si.Eye name="RS485_A_TO_GROUND" simulationRef=".SI" probeRef=".BUS_A_GROUND"
+    <voltageprobe name="BUS_A_GROUND" connectsTo=".RX > .A" referenceTo=".RX > .GND" />
+    <analog.eyediagram name="RS485_A_TO_GROUND" simulationRef=".SI" probeRef=".BUS_A_GROUND"
       unitInterval="4us" timeOrigin="0us" startTime="16us" endTime="128us" />
     <pcbnotetext pcbY={9} text="DESIGNED RS-485 PAD/CHANNEL TEST" fontSize={0.8} />
   </board>

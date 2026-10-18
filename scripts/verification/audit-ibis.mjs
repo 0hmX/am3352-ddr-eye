@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { sha256, json, zipMember, vendorPinEvidence, bitSchedule, close, declaredDcSupplies } from './independent-helpers.mjs'
+import { sha256, json, vendorPinEvidence, bitSchedule, close, declaredDcSupplies } from './independent-helpers.mjs'
 
 function one(elements, predicate, label) {
   const matches = elements.filter(predicate)
@@ -9,32 +9,35 @@ function one(elements, predicate, label) {
   return matches[0]
 }
 
-export async function auditIbisSource(out, definition, source, ibsBytes) {
+export async function auditIbisSource(out, asset, source, ibsBytes) {
   const ibsSha256 = sha256(ibsBytes)
   assert.ok(typeof source.rawSourceFile === 'string' && source.rawSourceFile, 'Exact raw source file is captured')
   const rawBytes = await readFile(join(out, source.rawSourceFile))
   const rawSourceSha256 = sha256(rawBytes)
-  assert.equal(rawSourceSha256, source.rawSourceSha256, 'Recorded raw download/read/inline bytes')
-  if (definition.url) assert.ok(definition.sha256, 'Remote raw vendor bytes have a declared content lock')
-  if (definition.sha256) assert.equal(rawSourceSha256, definition.sha256.toLowerCase(), 'source.sha256 verifies raw resource bytes')
-  if (definition.archive) {
-    assert.ok(!Object.hasOwn(definition.archive, 'sha256'), 'Legacy archive.sha256 is rejected; use source.sha256 for the raw resource')
-    const archive = await readFile(join(out, source.archiveFile))
-    assert.deepEqual(archive, rawBytes, 'Archived input is the exact raw downloaded/read resource')
-    assert.equal(sha256(archive), source.archiveSha256, 'Original ZIP container fingerprint')
-    assert.equal(sha256(zipMember(archive, definition.archive.member)), ibsSha256, 'Original archive independently decodes the exact executed IBIS bytes')
-    if (definition.archive.memberSha256) assert.equal(ibsSha256, definition.archive.memberSha256.toLowerCase(), 'archive.memberSha256 verifies the extracted member bytes')
-  } else {
-    assert.deepEqual(rawBytes, ibsBytes, 'Plain IBIS input retains exact raw bytes')
-    if (definition.content !== undefined) assert.deepEqual(rawBytes, Buffer.from(definition.content, 'utf8'), 'Inline checksum refers to UTF-8 content bytes')
+  assert.equal(rawSourceSha256, source.rawSourceSha256, 'Recorded raw asset bytes')
+  assert.deepEqual(source.ibisModelAsset, asset, 'Exact native asset descriptor')
+  assert.ok(['project', 'url'].includes(source.resolvedFrom), 'Model was read from the project or its declared URL')
+  assert.deepEqual(rawBytes, ibsBytes, 'Plain IBIS asset retains exact raw bytes')
+  assert.equal(source.rawSourceFile, source.ibsFile, 'Executed model is the captured asset without archive extraction')
+  const modeling = await json(join(out, 'inputs/modeling.json'))
+  const expectedHashes = modeling.ibisModelAssetSha256
+  let expectedSha256 = null
+  if (expectedHashes !== undefined) {
+    assert.ok(expectedHashes !== null && typeof expectedHashes === 'object' && !Array.isArray(expectedHashes), 'ibisModelAssetSha256 must be an asset-path to SHA-256 mapping')
+    const path = asset.project_relative_path
+    assert.ok(Object.hasOwn(expectedHashes, path) && typeof expectedHashes[path] === 'string' && /^[a-f0-9]{64}$/i.test(expectedHashes[path]), `ibisModelAssetSha256 requires a valid expected hash for ${path}`)
+    expectedSha256 = expectedHashes[path].toLowerCase()
+    assert.equal(rawSourceSha256, expectedSha256, `Captured asset bytes match the declared expected SHA-256 for ${path}`)
+    assert.equal(ibsSha256, expectedSha256, `Executed asset bytes match the declared expected SHA-256 for ${path}`)
+    assert.equal(source.sourceSha256, expectedSha256, `Recorded source hash matches the declared expected SHA-256 for ${path}`)
   }
-  return { ibsSha256, rawSourceSha256, archiveSha256: definition.archive ? rawSourceSha256 : null }
+  return { ibsSha256, rawSourceSha256, archiveSha256: null, expectedSha256, expectedHashVerified: expectedSha256 !== null }
 }
 
 export async function auditIbis(out, experimentDir, circuit, run) {
   const assemblies = await json(join(experimentDir, 'native-ibis-assembly.json'))
   const declaredModels = circuit.filter(element => element.type === 'simulation_ibis_model')
-  assert.equal(assemblies.length, declaredModels.length, 'Each native model attachment is assembled')
+  assert.deepEqual(assemblies.map(model => model.simulationIbisModelId).sort(), declaredModels.map(model => model.simulation_ibis_model_id).sort(), 'Each native model attachment is assembled exactly once')
   const states = circuit.filter(element => element.type === 'simulation_ibis_pin_state' && element.simulation_experiment_id === run.simulationExperimentId)
   const stimuli = circuit.filter(element => element.type === 'simulation_digital_stimulus' && element.simulation_experiment_id === run.simulationExperimentId)
   const nodeMap = await json(join(out, 'electrical-node-map.json'))
@@ -47,19 +50,29 @@ export async function auditIbis(out, experimentDir, circuit, run) {
   for (const [modelIndex, assembly] of assemblies.entries()) {
     const declared = one(declaredModels, model => model.simulation_ibis_model_id === assembly.simulationIbisModelId, 'Exact native model association')
     const definition = assembly.definition, metadata = assembly.metadata, source = assembly.sourceEvidence
-    assert.deepEqual(definition.source, declared.source, 'Original native source descriptor')
-    assert.deepEqual(source.source, declared.source, 'Downloaded source retains its native descriptor')
-    assert.equal(definition.component, declared.component)
-    assert.deepEqual(definition.pinMap, declared.pin_to_source_port_map, 'Physical IBIS pin maps to the actual local source-port ID')
-    assert.deepEqual(definition.modelSelections, declared.model_selections)
-    assert.equal(definition.corner, declared.corner)
-    assert.equal(definition.packagePolicy, declared.package_policy)
+    assert.deepEqual(source.ibisModelAsset, declared.ibis_model_asset, 'Loaded source retains its native asset descriptor')
+    assert.equal(definition.component, declared.ibis_component_name)
+    assert.deepEqual(definition.pinMap, declared.ibis_pin_name_to_source_port_id, 'Physical IBIS pin maps to the actual local source-port ID')
+    assert.deepEqual(definition.modelSelections, declared.ibis_pin_name_to_model_name)
+    assert.equal(definition.corner, declared.model_value_corner)
+    let packagePolicy = 'omit'
+    if (declared.include_package_parasitics) packagePolicy = 'vendor'
+    assert.equal(definition.packagePolicy, packagePolicy)
+    const references = Object.fromEntries(Object.entries(declared.ibis_pin_name_to_reference_source_port_ids ?? {}).map(([pin, refs]) => [pin, {
+      pullup: refs.pullup_reference_source_port_id,
+      pulldown: refs.pulldown_reference_source_port_id,
+      powerClamp: refs.power_clamp_reference_source_port_id,
+      groundClamp: refs.ground_clamp_reference_source_port_id,
+      external: refs.external_reference_source_port_id,
+    }]))
+    assert.deepEqual(definition.references, JSON.parse(JSON.stringify(references)), 'Canonical reference roles reach the converter unchanged')
     const bytes = await readFile(join(out, source.ibsFile))
     const digest = sha256(bytes)
     assert.equal(digest, source.sourceSha256)
     assert.equal(digest, assembly.sourceSha256)
     assert.equal(digest, metadata.sourceSha256)
-    const checksums = await auditIbisSource(out, definition.source, source, bytes)
+    assert.deepEqual(definition.source, { file: source.ibsFile, sha256: digest }, 'Converter consumes the captured asset bytes')
+    const checksums = await auditIbisSource(out, declared.ibis_model_asset, source, bytes)
     const lib = await readFile(join(experimentDir, `${assembly.simulationIbisModelId}.lib`))
     assert.equal(sha256(lib), assembly.spiceSha256, 'Executed model-library bytes')
     const wrapper = lib.toString('utf8').match(/^\.subckt\s+(\S+)\s+([^\r\n]+)/mi)
@@ -94,11 +107,16 @@ export async function auditIbis(out, experimentDir, circuit, run) {
       assert.equal(pin.polarity, original.polarity?.toLowerCase() ?? 'non-inverting')
       if (original.enable) assert.equal(pin.enable, original.enable.toLowerCase())
       const state = one(states, element => element.source_port_id === pin.port, 'Explicit run state for every modeled signal')
-      assert.deepEqual(pin.runState, { mode: state.mode, ...(state.mode === 'output' ? { enabled: state.enabled } : {}) })
+      const expectedRunState = { mode: 'input' }
+      if (state.is_output) {
+        expectedRunState.mode = 'output'
+        expectedRunState.enabled = state.is_output_enabled
+      }
+      assert.deepEqual(pin.runState, expectedRunState, 'Canonical booleans reach the converter run state')
       const controls = stimuli.filter(stimulus => stimulus.source_port_id === pin.port)
-      const enabled = state.mode === 'output' && state.enabled
+      const enabled = state.is_output && state.is_output_enabled
       assert.equal(controls.length, enabled ? 1 : 0, 'Enabled output has exactly one explicit control; input/disabled output has none')
-      if (pin.enable && state.mode === 'output') assert.equal(pin.enableControlLevel, Number(state.enabled) ^ Number(pin.enable === 'active-low'), 'Boolean enable intent maps through vendor enable polarity')
+      if (pin.enable && state.is_output) assert.equal(pin.enableControlLevel, Number(state.is_output_enabled) ^ Number(pin.enable === 'active-low'), 'Boolean enable intent maps through vendor enable polarity')
       for (const referenceId of Object.values(pin.references)) {
         assert.ok(Object.values(definition.pinMap).includes(referenceId), 'Reference is part of the declared physical pin map')
         const supply = vendor.find(row => row.localPort === referenceId && row.supplyType)

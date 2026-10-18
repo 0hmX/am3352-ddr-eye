@@ -4,7 +4,7 @@ import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { sha256, json } from './independent-helpers.mjs'
 
-const ignored = new Set(['.git', 'node_modules', '.cache', '.tscircuit', '.venv', 'dist', 'runs', '.DS_Store'])
+const ignored = new Set(['.git', 'node_modules', '.cache', '.tscircuit', '.venv', 'dist', 'runs', 'models', '.DS_Store'])
 async function sources(root, prefix = '') {
   const files = []
   for (const name of (await readdir(join(root, prefix))).sort()) {

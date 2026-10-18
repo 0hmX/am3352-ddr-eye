@@ -198,7 +198,7 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
       if (differential && switching) assert.ok(minimumV < -0.2 && maximumV > 0.2, 'Complementary differential signals execute both voltage polarities')
       // A single-ended RS-485 bus leg has a nonzero common-mode voltage;
       // recording a leg relative to GND does not make it a CMOS logic pad.
-      const isCmosFixture = geometry.mappings.length === 1 && circuit.some(element => element.type === 'simulation_ibis_model' && element.component === 'LVC1G04_DCK')
+      const isCmosFixture = geometry.mappings.length === 1 && circuit.some(element => element.type === 'simulation_ibis_model' && element.ibis_component_name === 'LVC1G04_DCK')
       if (!differential && isCmosFixture) assert.ok(minimumV < 0.5 && maximumV > 2.5, 'This declared 3.3-V CMOS fixture executes both pad states')
       for (let i = 0; i < times.length; i++) {
         close(graph.timestamps_ms[i] / 1000, times[i], 'Graph time is actual solver time', 1e-8, 1e-18)

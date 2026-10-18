@@ -16,7 +16,11 @@ assert.ok(firstStimulus)
 const mutations = [
   ['missing-stimulus', circuit => circuit.filter(record => record.simulation_digital_stimulus_id !== firstStimulus.simulation_digital_stimulus_id), /enabled output.*(?:explicit digital stimulus|one explicit)|missing_stimulus/i],
   ['duplicate-stimulus', circuit => [...circuit, { ...circuit.find(record => record.type === 'simulation_digital_stimulus'), simulation_digital_stimulus_id: 'simulation_digital_stimulus_independent_duplicate', name: 'INDEPENDENT_DUPLICATE' }], /multiple stimuli|duplicate/i],
-  ['disabled-output-stimulus', circuit => circuit.map(record => record.type === 'simulation_ibis_pin_state' && record.source_port_id === firstStimulus.source_port_id && record.simulation_experiment_id === firstStimulus.simulation_experiment_id ? { ...record, mode: 'output', enabled: false } : record), /stimulus requires an enabled|input\/disabled output cannot/i],
+  ['disabled-output-stimulus', circuit => circuit.map(record => {
+    if (record.type === 'simulation_ibis_pin_state' && record.source_port_id === firstStimulus.source_port_id && record.simulation_experiment_id === firstStimulus.simulation_experiment_id)
+      return { ...record, is_output: true, is_output_enabled: false }
+    return record
+  }), /stimulus requires an enabled|input\/disabled output cannot/i],
   ['unknown-eye-probe', circuit => circuit.map(record => record.type === 'simulation_eye_diagram' ? { ...record, simulation_voltage_probe_id: 'simulation_voltage_probe_does_not_exist' } : record), /probeRef.*exactly one|probe.*missing|probe.*exactly one/i],
   ['missing-fixed-origin', circuit => circuit.map(record => { if (record.type !== 'simulation_eye_diagram') return record; const { time_origin_ms, ...rest } = record; return rest }), /explicit finite timeOrigin|time_origin_ms|timeOrigin/i],
 ]

@@ -36,14 +36,14 @@
     "fflate": "0.8.2",
     "react": "19.2.4",
     "tsx": "4.23.15",
-    "circuit-json": "0.0.528",
+    "circuit-json": "https://pkg.pr.new/circuit-json@d7fe21e",
     "tar": "7.5.22",
     "zod": "3.25.76"
   },
   "devDependencies": {
-    "@tscircuit/core": "0.0.2171",
+    "@tscircuit/core": "https://pkg.pr.new/tscircuit/core/@tscircuit/core@5f03a21",
     "@tscircuit/ibis-to-spice": "workspace:*",
-    "@tscircuit/props": "0.0.704",
+    "@tscircuit/props": "https://pkg.pr.new/@tscircuit/props@2a5a037",
     "@types/node": "22.20.5",
     "@types/react": "19.3.0",
     "typescript": "5.9.3"

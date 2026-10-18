@@ -3,7 +3,6 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
-import { inflateRawSync } from 'node:zlib'
 
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex')
 export const json = async path => JSON.parse(await readFile(path, 'utf8'))
@@ -48,35 +47,6 @@ export async function inventory(root, prefix = '') {
     else result[relative] = sha256(await readFile(join(root, relative)))
   }
   return result
-}
-
-// Independently decode a standard non-ZIP64 archive using zlib, not fflate.
-export function zipMember(bytes, member) {
-  for (let end = bytes.length - 22; end >= Math.max(0, bytes.length - 65557); end--) {
-    if (bytes.readUInt32LE(end) !== 0x06054b50) continue
-    let offset = bytes.readUInt32LE(end + 16)
-    const count = bytes.readUInt16LE(end + 10)
-    for (let i = 0; i < count; i++) {
-      assert.equal(bytes.readUInt32LE(offset), 0x02014b50, 'ZIP central entry')
-      const compression = bytes.readUInt16LE(offset + 10)
-      const length = bytes.readUInt32LE(offset + 20)
-      const nameLength = bytes.readUInt16LE(offset + 28)
-      const extraLength = bytes.readUInt16LE(offset + 30)
-      const commentLength = bytes.readUInt16LE(offset + 32)
-      const name = bytes.subarray(offset + 46, offset + 46 + nameLength).toString('utf8')
-      if (name === member) {
-        const local = bytes.readUInt32LE(offset + 42)
-        assert.equal(bytes.readUInt32LE(local), 0x04034b50, 'ZIP member local entry')
-        const start = local + 30 + bytes.readUInt16LE(local + 26) + bytes.readUInt16LE(local + 28)
-        const compressed = bytes.subarray(start, start + length)
-        assert.ok(compression === 0 || compression === 8, 'Supported locked ZIP encoding')
-        return compression === 0 ? compressed : inflateRawSync(compressed)
-      }
-      offset += 46 + nameLength + extraLength + commentLength
-    }
-    throw new Error(`Missing ZIP member ${member}`)
-  }
-  throw new Error('ZIP end record missing')
 }
 
 export function parseCsv(text) {
