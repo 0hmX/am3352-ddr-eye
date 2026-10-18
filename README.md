@@ -4,7 +4,45 @@ Write the board and simulation in TSX, run the local solvers, then inspect the b
 
 **Integration status:** the examples run locally against pinned PR previews of [core](https://github.com/tscircuit/core/pull/4765), [props](https://github.com/tscircuit/props/pull/945), and [Circuit JSON](https://github.com/tscircuit/circuit-json/pull/908). This is the API to review before upstream integration; use the checked-in lockfile.
 
-## How the data flows
+## Start here: the CLI and the two packages
+
+**`pcb-spice-pipeline` is the CLI that runs the whole simulation.** After [setup](#set-up-once), run the CMOS example directly:
+
+```sh
+pnpm exec pcb-spice-pipeline examples/single-ended/index.circuit.tsx --open
+```
+
+The repository shortcut `pnpm simulate:single-ended --open` runs that same CLI with that same file. `--open` opens the generated `results.html` after the simulation finishes.
+
+```mermaid
+flowchart TD
+    COMMAND["Your terminal<br/>pnpm simulate:single-ended<br/>--open"] --> RUNNER["pcb-spice-pipeline<br/>CLI + simulation coordinator"]
+    RUNNER -->|Imports as a library| CONVERTER["@tscircuit/ibis-to-spice<br/>IBIS → SPICE pad models"]
+    RUNNER -->|Runs| TOOLS["Installed external solvers<br/>FastHenry · FasterCap · ngspice"]
+    RUNNER -->|Writes after solving| RESULTS["HTML report + CSV + Circuit JSON"]
+    RESULTS -->|--open| BROWSER["Your browser<br/>results.html"]
+    classDef package fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
+    classDef native fill:#fff7ed,stroke:#ea580c,color:#7c2d12
+    class RUNNER,CONVERTER package
+    class TOOLS native
+```
+
+| Folder | Used here as | Responsibility |
+| --- | --- | --- |
+| [packages/pcb-spice-pipeline](packages/pcb-spice-pipeline) | `pcb-spice-pipeline` CLI | Loads TSX and modeling settings, calls the converter and solvers, and writes the results. |
+| [packages/ibis-to-spice](packages/ibis-to-spice) | `@tscircuit/ibis-to-spice` library | Converts the selected IBIS pads into SPICE models for the runner. |
+
+The runner calls the converter's TypeScript API, `convertIbisModelToSpice`. You do not need to run its standalone `ibis-to-spice` command for a circuit simulation. FastHenry, FasterCap, and ngspice are installed separately; neither package bundles them.
+
+**Recommended tscircuit command:** extend the existing `tsci simulate analog` command to use this backend when the TSX declares `spiceEngine="pcb_spice"`. The proposed invocation is:
+
+```text
+tsci simulate analog examples/single-ended/index.circuit.tsx --open
+```
+
+This backend dispatch and `--open` support are proposed integration work. The checked-in tscircuit CLI's analog command does not run this pipeline yet; use the runnable command above today.
+
+## Technical workflow
 
 ```mermaid
 flowchart TD
