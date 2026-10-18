@@ -68,23 +68,21 @@ flowchart TD
 
 ## What a person supplies
 
-**The required contract is a circuit entry with simulation declarations, IBIS bindings/data, and an exported `modeling` object.** The entry can render a default TSX board or export `circuitJson`. `modeling` contains the explicit physical assumptions for this backend.
+**You write the circuit/test in TSX, choose the IBIS bindings, and export a `modeling` object with the physical assumptions.** This section lists the authored inputs, not generated design data or solver output.
 
 `simulation.config.ts`, `simulation.json`, and `models.ts` are organizational conventions, not automatically discovered files or additional tscircuit formats. The entry imports what it needs and exports `modeling`; you can keep it in the entry itself. Existing examples need their imported files, but a new circuit does not need every file below.
 
-| File | Who supplies it? | What it contains |
+| File you write or edit | Purpose | What you choose |
 | --- | --- | --- |
-| [index.circuit.tsx](index.circuit.tsx) | Human-authored design/test | Board or saved-board import; IBIS attachments; buffer states; stimulus bits, timing, probes, and eye settings. |
-| [simulation.config.ts](simulation.config.ts) | Human-authored configuration | Assembles and exports `modeling`. The default DDR example also defines its `driver` and `receiver` IBIS bindings here. |
-| [simulation.json](simulation.json) | Human-chosen DDR settings | Selected lane endpoints; conductivity; equivalent-channel profiles; extraction controls; via assumptions; saved-board path and expected snapshot hash. Imported by `simulation.config.ts`; **not a complete standalone CLI input**. |
-| [board-construction.json](board-construction.json) | Imported construction facts + human assumptions | Copper layer z ranges and construction notes. The config copies `copperLayers` into `modeling.stackup`. Effective dielectric/return assumptions come from `modeling.profiles`; a dielectric description here does not enable a full layered field solve. |
-| [models.ts](examples/single-ended/models.ts) | Human-chosen model bindings | CMOS/RS-485 examples keep IBIS asset paths, component/model names, pin/rail mappings, corner, and package policy in a separate module. |
-| [vendor-models.json](vendor-models.json), [examples/vendor-models.lock.json](examples/vendor-models.lock.json) | Maintainer-selected sources + calculated hashes | Vendor URLs, archive members, and expected archive/extracted-file hashes. The example lock also records component/pin/model evidence; binding modules read its component name. Download hashes are checked; electrical selections are declared through the model bindings/TSX. |
-| [source-provenance.json](source-provenance.json) | Curated source evidence, including derived facts | Original board/revision, attribution, snapshot hashes/counts, pin evidence, and known limitations. Optional evidence metadata for a new circuit, not a file that configures the electrical test. |
-| [am3352.circuit.json](am3352.circuit.json) | Imported design output | The existing routed DDR board used by `ImportedBoard`. Fresh TSX boards do not need this snapshot. |
-| `models/*.ibs` | Vendor-authored, downloaded by setup | Original manufacturer model bytes prepared by `pnpm simulate:models`. Users select the model source rather than authoring its tables. A plain HTTP(S) IBIS asset can also supply the bytes. |
-| [tscircuit.config.json](tscircuit.config.json) | Human project setup | Design-preview/build entrypoints and ignored outputs; separate from the solver's `modeling` configuration. |
-| [toolchain-lock.json](packages/pcb-spice-pipeline/toolchain-lock.json) | Backend-maintainer setup | Pinned native solver sources/build inputs. It is not a per-circuit input users must create. |
+| [index.circuit.tsx](index.circuit.tsx) | Circuit and experiment | Board design/reference, IBIS attachments, buffer states, stimulus bits, timing, probes, and eye settings. |
+| [simulation.config.ts](simulation.config.ts) | Physical simulation configuration | Assembles and exports `modeling`. The default DDR example also defines its `driver` and `receiver` IBIS bindings here. |
+| [simulation.json](simulation.json) | Optional split of the physical settings | Selected lane endpoints, conductivity, equivalent-channel profiles, extraction controls, and via assumptions. Imported by `simulation.config.ts`; **not a complete standalone CLI input**. |
+| [board-construction.json](board-construction.json) | Construction facts and assumptions | Copper layer z ranges and construction notes. The config copies `copperLayers` into `modeling.stackup`; `modeling.profiles` supplies effective dielectric/return assumptions. |
+| [models.ts](examples/single-ended/models.ts) | IBIS model bindings | Asset paths/URLs, component/model names, pin/rail mappings, corner, and package policy. The CMOS/RS-485 examples keep these in a separate module. |
+
+Optional source notes belong in [source-provenance.json](source-provenance.json): chosen board origin/revision, attribution, evidence URLs, assumptions, and limitations. It documents those choices rather than configuring the solver. Calculated hashes/counts in the existing file are evidence, not values a person needs to author.
+
+[tscircuit.config.json](tscircuit.config.json) is ordinary project setup for preview/build entrypoints and ignored outputs, separate from the simulation inputs above.
 
 ### Which values require a human decision?
 
@@ -99,17 +97,11 @@ These choices are explicit today; the runner does not infer them from a routed b
 | Frequency range/model frequency, mesh/refinement, tolerances, lumped-section count | `modeling.extraction` and `sections` |
 | Via plating/equivalent-width/stub assumptions, when routes include vias | `viaPlatingMm`, `viaEquivalentWidthMm`, `omitThroughViaStubs` |
 | Supply voltages and included passive components | Physical TSX voltage sources or `modeling.supplies`; explicit `modeling.passiveComponents` selection |
-| Which external data revision to trust | Vendor/source locks; optional `ibisModelAssetSha256` and `fixtureProvenance.originalJsonSha256` verification pins |
+| Which manufacturer's model source to use | IBIS asset path/URL in the model bindings; the repository examples pin their sources in vendor locks |
 
 For the default DDR example, `simulation.config.ts` combines `simulation.json` with construction data, IBIS bindings, a supply/reference, and source evidence. `simulation.json` describes the **physical reduction**, while the TSX declares the **experiment and timing**. The [CMOS configuration](examples/single-ended/simulation.config.ts) keeps its physical settings directly in TypeScript; the [three-trace DDR example](examples/ddr-dq/index.circuit.tsx) extends the root configuration in its entry.
 
-### What is derived instead?
-
-The runner resolves port/trace IDs and reads route lengths, widths, and layer/via transitions from Circuit JSON. It then generates the reduced geometry, R/L/C matrices, SPICE models/decks, voltage samples, folded eyes, CSV summaries, HTML, and result records. Passive values come from the selected circuit components. These are not additional values a person must type into a simulation config.
-
-`source-provenance.json` mixes reviewed evidence with calculated facts such as hashes and element counts. Its `selectedElectricalSettings` describes the source/example choices; changing that metadata does not change the actual IBIS bindings or experiment. The default config copies it into `modeling.sourceProvenance` for the run receipt.
-
-The generated `inputs/modeling.json` is a snapshot of the assembled `modeling` input. `project-provenance.json` records actual imported files and hashes; `receipt.json` records the executed run. These are outputs, distinct from the curated source-evidence file. Setup also generates `tools.json` and build receipts under the native tool cache. You do not author these files to start a simulation.
+Route measurements, model conversion, and solver results are computed automatically. They are not additional input files to write.
 
 ## 1. Attach a real IBIS model
 
