@@ -4,6 +4,16 @@ Write the board and simulation in TSX, run the local solvers, then inspect the b
 
 **Integration status:** the examples run locally against pinned PR previews of [core](https://github.com/tscircuit/core/pull/4765), [props](https://github.com/tscircuit/props/pull/945), and [Circuit JSON](https://github.com/tscircuit/circuit-json/pull/908). This is the API to review before upstream integration; use the checked-in lockfile.
 
+## HTML report and eye diagram
+
+**[Download the recorded CMOS report: HTML + CSV](assets/simulation-api/cmos-report.zip?raw=1).** Unzip it and open `results.html` in your browser, keeping `csv/` beside it. Viewing this saved run needs no solvers or development tools. To create a new run, use `pnpm simulate:single-ended --open` after [setup](#set-up-once).
+
+| HTML report interface — saved DDR run | Receiver eye diagram — CMOS run |
+| --- | --- |
+| [![HTML report showing the board and highlighted simulation traces](assets/simulation-api/html-report.png)](assets/simulation-api/html-report.png) | [![CMOS receiver eye diagram with 26 complete windows over two UI](assets/simulation-api/cmos-eye.png)](assets/simulation-api/cmos-eye.png) |
+
+Click either preview to enlarge it. In the downloaded report, choose **Plots → Eye** to inspect receiver/transmitter eyes, or **Board**, **Tests**, **Results**, and **CSV files** to inspect the circuit, test settings, measurements, and exports. The eye above uses 26 windows, 50 ns UI, and a 200–1600 ns gate; the unterminated fixture's overshoot remains visible.
+
 ## Start here: the CLI and the two packages
 
 **`pcb-spice-pipeline` is the CLI that runs the whole simulation.** After [setup](#set-up-once), run the CMOS example directly:
