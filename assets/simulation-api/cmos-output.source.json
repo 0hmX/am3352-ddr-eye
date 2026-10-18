@@ -1,0 +1,25 @@
+{
+  "figure": "cmos-output.png",
+  "figureSha256": "63fe6ae7cd7240920f9e5e7570e9311fad03f432494c19928544de3940612a9d",
+  "entry": "examples/single-ended/index.circuit.tsx",
+  "recordedAtUtc": "2026-10-18T13:56:37.957Z",
+  "receiptSha256": "e04f9496fed35d307473ce4da65cfcd593d3ce9379f43b42f8f00d2e9dd33952",
+  "sourceCircuitJsonSha256": "186b2ffb26f727b6a2eec90713f89b786fb5ad14a0251cae89e20cc9f5fadfbf",
+  "files": {
+    "csv/01-si-waveforms.csv": "c1863ed5b56e9df9fc0e9b61737c4eeb32afae894216ff6d1fdf9b5aee3e59dd",
+    "csv/01-si-eye-1.csv": "96f836565657bb728882770a26f9a010acd39bb6518550b7d78c9f3ccdb6aada",
+    "csv/results-summary.csv": "a54b4e9d8f9f9b2abebeca3514f48a124f306f52c6ff249cd6f2f388fdc1dda4",
+    "csv/eye-summary.csv": "b096528c974228c443f5d953202946f7b54ee0fef77edd913fcfa1a099d3efc6"
+  },
+  "waveformSamples": 129803,
+  "eyeWindows": 26,
+  "waveformDisplaySeconds": [
+    2e-07,
+    8e-07
+  ],
+  "eyeGateSeconds": [
+    2e-07,
+    1.6e-06
+  ],
+  "note": "Static plots of recorded CSV data, not a screenshot. Every source CSV hash matches the run receipt. Eye windows are linearly interpolated from adaptive solver samples."
+}
