@@ -1,162 +1,132 @@
-# tscircuit local signal-integrity simulation
+# Run a circuit simulation
 
-Run native tscircuit TSX through local FastHenry, FasterCap, and ngspice, then inspect interactive waveforms, eye diagrams, and CSV results. The DDR example simulates DQ0 with quiet and switching DQS/DQSn neighbors.
+Choose a TSX file below, copy its command, and wait for the simulation to finish. The command then opens that example's **results in your web browser**: the board, waveforms, eye diagrams, and CSV downloads.
 
-**Python is not required. External solvers are downloaded and installed separately; they are not bundled with this repository.** Ordinary dependency installation, preview, and circuit builds do not install or run those solvers.
+**`--open` means “open the results page in my browser when the simulation finishes.”** It does not open the TSX source file. Leave it off if you only want to save the results.
 
-## Requirements
+## 1. Set up once
 
-- Node.js **22.13 or newer**; validation used Node 24.
-- pnpm **11.25.0**, matching `package.json`, and Git.
-- macOS: Xcode command-line tools and [Homebrew](https://brew.sh/). If needed, run `xcode-select --install` and finish installation before continuing. The setup command below installs CMake, LLVM, and libomp through Homebrew.
-- Debian/Ubuntu Linux: an account that can run `sudo apt-get`, or root. The setup command installs the compiler, Git, curl, CMake, bison, flex, and bzip2.
-
-macOS Apple Silicon is the validated platform. Linux setup is implemented but has not been validated end to end. The native installer does not support Windows.
-
-## Clone, install, and see the DDR results
-
-Run these commands in a terminal after installing the requirements above:
+You need Node.js **22.13 or newer**, Git, and pnpm **11.25.0**. On macOS, install Xcode command-line tools and [Homebrew](https://brew.sh/) first. On Debian/Ubuntu, setup needs access to `sudo apt-get` or root.
 
 ```sh
 git clone https://github.com/0hmX/am3352-ddr-eye.git
 cd am3352-ddr-eye
 npm install --global pnpm@11.25.0
 pnpm install --frozen-lockfile
-
 pnpm simulate:setup --install-deps
-pnpm exec pcb-spice-pipeline --check-tools
-
-pnpm simulate:ddr-dq --out .tscircuit/ddr --open
 ```
 
-`simulate:setup` first downloads and verifies the vendor models into `models/`, then builds the pinned, unmodified solver sources into `node_modules/.cache/pcb-spice-pipeline/tools`. Setup needs network access and can take several minutes. If all build prerequisites are already installed, use `pnpm simulate:setup` without `--install-deps`.
+The last command downloads the vendor IBIS models and builds FastHenry, FasterCap, and ngspice on your computer. `--install-deps` also installs their compiler/build dependencies. If those dependencies are already installed, use `pnpm simulate:setup` instead.
 
-The final command runs both `DDR_QUIET` and `DDR_SWITCHING` and opens `.tscircuit/ddr/results.html`. The simulation can also take several minutes. Each experiment uses one native ngspice transient for all its probes and eyes.
+Setup and simulations can take several minutes. Python is not required. External solvers are installed separately and are not bundled with the project. macOS Apple Silicon is validated; Linux setup is implemented but has not been validated end to end. The native installer does not support Windows.
 
-The project currently pins matching PR previews of [core](https://github.com/tscircuit/core/pull/4765), [props](https://github.com/tscircuit/props/pull/945), and [Circuit JSON](https://github.com/tscircuit/circuit-json/pull/908). Use the checked-in lockfile to install the API these examples require.
+## 2. Run the example you want
 
-### Compare quiet and switching neighbors
+Run these commands from the `am3352-ddr-eye` folder. Each command creates a new results folder automatically.
 
-Use the DDR run created above:
+### Default circuit: `index.circuit.tsx`
 
 ```sh
-pnpm simulate:compare .tscircuit/ddr --probe DQ0_RX --out .tscircuit/comparison --open
+pnpm simulate --open
 ```
 
-This opens `.tscircuit/comparison/results.html` and writes `comparison.csv` alongside the other CSV exports. Comparison checks that the circuit, models, victim traffic, rails, and geometry match; only the selected neighbors' traffic may change. It currently requires a ground-referenced single-ended victim probe. Differences use the union of adaptive timestamps, with RMS integrated over time.
+Runs [index.circuit.tsx](index.circuit.tsx). Opens the AM3352 DDR strobe report: **DQS/DQSn, two selected traces**, with transmit and receive waveforms and eyes.
 
-Output directories must be **new**. For another run, choose another `--out` path, or omit `--out` to create a timestamped directory under `dist/`. Reopen an existing report directly in your browser; reopening it does not rerun the solvers.
-
-## Other examples and circuit preview
-
-| Command | Simulation |
-| --- | --- |
-| `pnpm simulate --open` | AM3352 differential DQS/DQSn, two selected traces |
-| `pnpm simulate:ddr-dq --open` | DQ0 victim with DQS/DQSn neighbors, three selected traces, quiet/switching experiments |
-| `pnpm simulate:single-ended --open` | SN74LVC1G04 CMOS pad/channel |
-| `pnpm simulate:non-ddr --open` | SN65HVD72 RS-485 pad/channel with termination |
-
-For circuit preview and export, run:
+### DDR data and strobe: `examples/ddr-dq/index.circuit.tsx`
 
 ```sh
-pnpm typecheck
-pnpm build
+pnpm simulate:ddr-dq --open
+```
+
+Runs [examples/ddr-dq/index.circuit.tsx](examples/ddr-dq/index.circuit.tsx). Opens the **DQ0 + DQS + DQSn, three-trace report**. It contains both `DDR_QUIET` and `DDR_SWITCHING` experiments so you can inspect the effect of neighbor switching.
+
+### One CMOS signal: `examples/single-ended/index.circuit.tsx`
+
+```sh
+pnpm simulate:single-ended --open
+```
+
+Runs [examples/single-ended/index.circuit.tsx](examples/single-ended/index.circuit.tsx). Opens the **SN74LVC1G04 CMOS pad/channel report**, with transmitter and receiver waveforms and eyes.
+
+### RS-485 pair: `examples/differential-data/index.circuit.tsx`
+
+```sh
+pnpm simulate:non-ddr --open
+```
+
+Runs [examples/differential-data/index.circuit.tsx](examples/differential-data/index.circuit.tsx). Opens the **SN65HVD72 RS-485 report**, with the A/B pair, receiver termination, differential results, and A-to-ground results.
+
+## 3. Find or reopen your results
+
+The terminal prints the exact results path. Each run saves a new folder such as:
+
+```text
+dist/simulation-<timestamp>/
+  results.html
+  csv/
+  receipt.json
+  ...solver inputs and logs
+```
+
+Open `results.html` in your browser to view that saved run again. This does not rerun the simulation. Keep the `csv/` directory beside it for CSV downloads.
+
+The report has Board, Tests, Results, Plots, CSV files, and Model tabs. Unused traces and components are gray; simulated ones are highlighted. Select an experiment or probe, overlay waveforms, switch to eyes, zoom, or pan.
+
+CSV exports include trace/probe maps, the test plan, result summaries, and waveform/eye samples. Units are seconds and volts unless a column says otherwise. The run also retains the generated SPICE decks, geometry, R/L/C matrices, model bytes, native command logs, and a hash-bound receipt. Generated files are ignored by Git.
+
+## View the circuit design
+
+```sh
 pnpm dev
 ```
 
-`pnpm dev` starts the circuit preview. Run simulation commands in another terminal. Preview and build render native simulation declarations without downloading IBIS assets or executing `pcb_spice` experiments.
+Starts the tscircuit design preview, with `index.circuit.tsx` as the default circuit. This shows the circuit design; use one of the four simulation commands above to generate simulation results. Keep the preview running in its terminal and run simulation commands in another terminal.
 
-## Results
+## If something fails
 
-`results.html` works offline and has Board, Tests, Results, Plots, CSV files, and Model tabs. Unused routing and component bounds appear in gray; simulated components and selected traces are highlighted. All board layers are projected into a top view.
-
-Select an experiment or probe, overlay waveforms, switch to an eye diagram, scroll to zoom, drag to pan, or enter an exact time range. The cursor reports an actual adaptive solver sample. Plot display envelopes preserve extrema; numerical analysis uses the complete recorded samples.
-
-Every run writes a `csv/` directory with:
-
-- `trace-map.csv`, `probe-map.csv`, and `test-plan.csv` identifying the circuit and tests.
-- `results-summary.csv` and `eye-summary.csv` summarizing observations.
-- Numbered waveform and eye CSVs for each experiment.
-
-Comparison adds `comparison.csv`. Units are seconds and volts unless a column says otherwise. Keep the HTML and its CSV directory together for file downloads; plots and the in-page waveform export also work with the HTML alone.
-
-The full run directory also contains captured inputs and model bytes, geometry and R/L/C matrices, generated SPICE decks, native commands and logs, probe-bound `circuit-results.json`, and a hash-bound `receipt.json`. Generated results and prepared models are ignored by Git.
-
-## Native TSX API
-
-Simulation declarations use the native API from `@tscircuit/core` and model types from `@tscircuit/props`. Inside a board with routed TX/RX components:
-
-```tsx
-import { analog } from "@tscircuit/core"
-import { inputPad, outputPad } from "./examples/single-ended/models"
-
-export function CmosSimulation() {
-  return <>
-<ibismodel componentRef="chip.TX" {...outputPad} />
-<ibismodel componentRef="chip.RX" {...inputPad} />
-<analog.transientsimulation
-  name="SI" spiceEngine="pcb_spice" duration="1600ns" timePerStep="50ps"
-  ibisPinStates={{
-    ".TX > .Y": { isOutput: true, isOutputEnabled: true },
-    ".RX > .A": { isOutput: false },
-  }}
-/>
-<analog.digitalstimulus name="DATA" simulationRef=".SI" drives=".TX > .Y"
-  unitInterval="50ns" startTime="0ns" initialState={0}
-  pattern={{ type: "bits", bits: "001110100101011000101101", repeat: true }} />
-<voltageprobe name="DATA_RX" connectsTo=".RX > .A" referenceTo=".RX > .GND" />
-<analog.eyediagram name="CMOS_DATA" simulationRef=".SI" probeRef=".DATA_RX"
-  unitInterval="50ns" timeOrigin="0ns" startTime="200ns" />
-  </>
-}
-```
-
-See the complete [CMOS circuit](examples/single-ended/index.circuit.tsx), [model definitions](examples/single-ended/models.ts), and [physical modeling configuration](examples/single-ended/simulation.config.ts). The entry must export `modeling` with selected routes, stackup, conductor/return geometry, materials, and extraction settings. The runner consumes the canonical Circuit JSON records and executes only experiments with `spiceEngine="pcb_spice"`.
-
-An IBIS model uses a shared Asset reference:
-
-```ts
-const ibisModelAsset = {
-  project_relative_path: "models/sn74lvc1g04.ibs",
-  url: "./models/sn74lvc1g04.ibs",
-  mimetype: "text/plain",
-}
-```
-
-`project_relative_path` is relative to the circuit project's root, including when the entry is in an example subdirectory. The runner reads that file first; if absent, it can fetch an HTTP(S) `url`. Assets must be extracted `.ibs` files, not ZIP archives. `pnpm simulate:models` prepares the repository's models without installing solvers. Their expected byte hashes are declared separately in `modeling.ibisModelAssetSha256` and checked before simulation.
-
-Physical IBIS pin names map to TSX port labels through `ibisPinNameToPortLabel`; selected buffers, reference rails, `modelValueCorner`, and `includePackageParasitics` are explicit. Use component selectors such as `chip.U1` when BGA pin names could also match `.U1`.
-
-For a saved board, import `ImportedBoard` from `pcb-spice-pipeline/tsx` and put native simulation declarations **inside** it:
-
-```tsx
-<ImportedBoard circuitJson={savedBoard}>
-  <ibismodel componentRef="chip.U1" {...driver} />
-  {/* Native transient, stimulus, probe, and eye declarations go here. */}
-</ImportedBoard>
-```
-
-The bridge preserves the original physical records and verifies the mapping of referenced native pins and nets. Saved footprints are represented as generic chips for preview. Additional physical children, ambiguous bindings, and previously saved simulation declarations/results are rejected. To run an existing Circuit JSON simulation, export `circuitJson` and `modeling` directly instead. See the [DDR example](examples/ddr-dq/index.circuit.tsx).
-
-## Troubleshooting and verification
-
-| Problem | Action |
+| What happened | What to do |
 | --- | --- |
-| pnpm will not start | Check `node --version` is at least 22.13 and `pnpm --version` is 11.25.0. |
-| Native solvers are not installed | Finish `pnpm simulate:setup`, then run `pnpm exec pcb-spice-pipeline --check-tools`. |
-| IBIS asset is missing or its bytes differ | Run `pnpm simulate:models`. Vendor downloads must match their locks; do not edit prepared files. |
-| Output directory already exists | Choose a new `--out` path or omit `--out`. |
-| Setup or a native solver fails | Read the stdout/stderr log paths in the error. Setup logs are under the tools directory's `logs/`; run logs are in the output directory. |
-| No browser opens | Open the printed `results.html` path manually. Linux `--open` uses `xdg-open`. |
+| A command is not found | Run it from the repository folder after `pnpm install --frozen-lockfile`. Check Node is at least 22.13 and pnpm is 11.25.0. |
+| Solvers are not installed | Finish `pnpm simulate:setup`. Check them with `pnpm exec pcb-spice-pipeline --check-tools`. |
+| An IBIS file is missing or changed | Run `pnpm simulate:models` to restore the vendor models. |
+| No browser opens | Open the printed `results.html` path yourself. Linux automatic opening uses `xdg-open`. |
+| A solver or setup fails | Read the stdout/stderr log paths printed in the error. |
 
-Native tools normally live under `node_modules/.cache/pcb-spice-pipeline/tools`. `PCB_SPICE_CACHE` changes the runtime cache location. For an explicit tools installation:
+<details>
+<summary>Optional: compare DQ0 with quiet versus switching neighbors</summary>
+
+First run the three-trace DDR example into a named folder, then create a comparison for its DQ0 receiver:
 
 ```sh
-pnpm simulate:setup --tools-dir /absolute/path/to/tools
-PCB_SPICE_TOOLS=/absolute/path/to/tools/tools.json pnpm simulate:ddr-dq --open
+pnpm simulate:ddr-dq --out .tscircuit/ddr
+pnpm simulate:compare .tscircuit/ddr --probe DQ0_RX --open
 ```
 
-Setup records source revisions, checksums, build commands, executable hashes, and installed runtime libraries. Solvers must pass these checks before execution. Local/user ngspice startup files are ignored, and runtime-library overrides are rejected. See the [toolchain lock](packages/pcb-spice-pipeline/toolchain-lock.json) for pinned sources and license details. Vendor files are fetched locally and are not redistributed in the repository.
+`--out` chooses where the first run is saved. That folder must not exist yet; use a different name for another run. `--probe DQ0_RX` chooses the DQ0 receiver signal to compare. The second command opens a comparison report and writes `comparison.csv`.
+
+Comparison checks that models, victim traffic, rails, geometry, and other electrical conditions match. Only the selected neighbors' traffic may change. It currently requires a ground-referenced single-ended victim. Differences use the union of adaptive timestamps, with RMS integrated over time.
+
+</details>
+
+<details>
+<summary>Writing your own TSX circuit</summary>
+
+Start with the complete [CMOS circuit](examples/single-ended/index.circuit.tsx), its [IBIS model definitions](examples/single-ended/models.ts), and its [physical modeling configuration](examples/single-ended/simulation.config.ts).
+
+The examples use native `<ibismodel>`, `<analog.transientsimulation>`, `<analog.digitalstimulus>`, `<voltageprobe>`, and `<analog.eyediagram>` elements. `spiceEngine="pcb_spice"` selects this local runner. The entry exports `modeling` to describe selected routes, stackup, conductor/return geometry, materials, and extraction settings.
+
+Models use `IbisModelDefinition` from `@tscircuit/props`. Their `ibisModelAsset.project_relative_path` points to an extracted `.ibs` file relative to the project root. The runner reads it first, then can fall back to an HTTP(S) asset URL. `pnpm simulate:models` prepares the repository's files; `modeling.ibisModelAssetSha256` declares their expected byte hashes.
+
+Physical IBIS pin names map to TSX labels through `ibisPinNameToPortLabel`. Buffer selections, reference rails, `modelValueCorner`, and `includePackageParasitics` are explicit. Use selectors such as `chip.U1` when BGA pin names could also match `.U1`.
+
+For saved boards, put native simulation declarations inside `<ImportedBoard circuitJson={savedBoard}>`, imported from `pcb-spice-pipeline/tsx`. See the [DDR example](examples/ddr-dq/index.circuit.tsx). The bridge preserves original physical records and verifies referenced pin/net mappings. Additional physical children, ambiguous bindings, and existing saved simulation declarations/results are rejected. To run an existing Circuit JSON simulation, export `circuitJson` and `modeling` directly.
+
+The project pins matching PR previews of [core](https://github.com/tscircuit/core/pull/4765), [props](https://github.com/tscircuit/props/pull/945), and [Circuit JSON](https://github.com/tscircuit/circuit-json/pull/908). Use the checked-in lockfile.
+
+</details>
+
+<details>
+<summary>Build checks, tests, and tool installation paths</summary>
 
 ```sh
 pnpm typecheck
@@ -165,12 +135,26 @@ pnpm test:native
 pnpm simulate:prove
 ```
 
-`test:native` requires installed solvers and prepared models. It tests the full three-signal complex network, real vendor fixtures, received data histories, startup, probe associations, and eye gates. `simulate:prove` runs all four examples twice with fresh solves and independent artifact audits, so it takes longer. Unit tests run with `pnpm test` and additionally require Bun; normal simulation does not.
+`test:native` requires prepared models and installed solvers. It checks the full three-signal complex network, vendor fixtures, received data histories, startup, probe associations, and eye gates. `simulate:prove` runs all four examples twice with fresh solves and independent audits. Unit tests use `pnpm test` and additionally require Bun; normal simulation does not.
 
-## Model scope
+Tools normally live under `node_modules/.cache/pcb-spice-pipeline/tools`. `PCB_SPICE_CACHE` changes the runtime cache location. For an explicit tools installation:
 
-The backend supports **one to three selected coupled channels** and unswept transient experiments. It preserves mutual R/L/C coupling and an explicit finite return conductor. Unused traces remain visible in the report but are not included in the electrical solve.
+```sh
+pnpm simulate:setup --tools-dir /absolute/path/to/tools
+PCB_SPICE_TOOLS=/absolute/path/to/tools/tools.json pnpm simulate:ddr-dq --open
+```
 
-Routed lengths and widths are straightened into stages with assumed spacing, homogeneous effective dielectric, and fixed-frequency R/L. Full planes, unselected nearby nets, dielectric loss, copper roughness, complete via pads/stubs, and the board PDN are omitted. Reference rails use explicit ideal supplies. The DDR comparison assumes uniform 0.75 mm center spacing and continuous write-direction pad/channel activity; controller logic, commands, bursts, training, and clock recovery are not modeled. The source board is an incomplete saved routing checkpoint.
+Setup verifies pinned source revisions, executable hashes, and installed runtime libraries. Local/user ngspice startup files are ignored and runtime-library overrides are rejected. See the [toolchain lock](packages/pcb-spice-pipeline/toolchain-lock.json) for sources and licenses. Vendor files are fetched locally and are not redistributed in the repository.
 
-These are finite observed transient eyes, without BER extrapolation, protocol compliance, or a hardware accuracy claim. IBIS currents outside characterized voltage ranges hold the endpoint current, with the approximation recorded in metadata. The unterminated CMOS fixture rings above its 3.3 V rail and its selected input lacks a power-clamp table; the raw excursions remain visible and do not establish a safe interface. Package parasitics are omitted where the backend cannot represent the vendor data, with omissions recorded in the receipt.
+</details>
+
+<details>
+<summary>What the simulation includes and leaves out</summary>
+
+The backend supports **one to three selected coupled channels** and unswept transient experiments. It retains mutual R/L/C coupling and an explicit finite return conductor. Unused traces are visible in the report but are not included in the electrical solve.
+
+Routed lengths and widths are straightened into stages with assumed spacing, homogeneous effective dielectric, and fixed-frequency R/L. Full planes, unselected nearby nets, dielectric loss, copper roughness, complete via pads/stubs, and the board PDN are omitted. Reference rails use explicit ideal supplies. The DDR comparison assumes uniform 0.75 mm center spacing and continuous write-direction pad/channel activity. Controller logic, commands, bursts, training, and clock recovery are not modeled. The source board is an incomplete saved routing checkpoint; preview represents saved footprints as generic chips.
+
+These are finite observed transient eyes, without BER extrapolation, protocol compliance, or a hardware accuracy claim. IBIS currents outside characterized voltage ranges hold the endpoint current, with that approximation recorded. The unterminated CMOS fixture rings above its 3.3 V rail and its selected input lacks a power-clamp table; the raw excursions remain visible and do not establish a safe interface. Package parasitic omissions are recorded in the receipt.
+
+</details>
