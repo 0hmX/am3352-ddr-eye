@@ -17,7 +17,6 @@ import { waveformRows, measureWaveform, foldEye } from './metrics.mjs'
 import { useNativeIbis } from './native-ibis.mjs'
 import { eyeSimulation, resolveEyeDiagram } from './eyediagram.mjs'
 import { projectProvenance } from './project-provenance.mjs'
-import { collectSimulation } from 'pcb-spice-pipeline/tsx'
 import { serializeSimulation } from './tsx-render.js'
 import { writeViewer } from './viewer.js'
 const exec=promisify(execFile),repo=resolve(dirname(fileURLToPath(import.meta.url)),'..')
@@ -43,9 +42,8 @@ export async function loadEntry(path) {
     if(!cj) {
       const {Circuit}=await import('@tscircuit/core'),c=new Circuit()
       if(!mod.default) fail('tsx_entry','Export default TSX board or circuitJson, plus modeling')
-      const collector=new Map()
-      c.add(collectSimulation(typeof mod.default==='function'?mod.default():mod.default,collector))
-      await c.renderUntilSettled();cj=serializeSimulation(c,collector)
+      c.add(typeof mod.default==='function'?mod.default():mod.default)
+      await c.renderUntilSettled();cj=serializeSimulation(c)
     }
     if(!mod.modeling) fail('tsx_entry','Export modeling with explicit physical inputs')
     let originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256

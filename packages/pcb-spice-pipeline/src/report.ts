@@ -1,4 +1,4 @@
-import type { CircuitJson } from './schema.js'
+import type { CircuitJson, SimulationIbisPinState } from './schema.js'
 import type { Geometry, Modeling } from './geometry.js'
 import { selectPort } from './geometry.js'
 import type { SimulationPlan } from './declarations.js'
@@ -177,6 +177,11 @@ function routeDrawing(context: ReportContext): string {
     </svg><div class="board-legend">${context.lanes.map((lane, i) => `<span style="color:${colors[i % colors.length]}">● ${html(lane.name)}</span>`).join('')}<span class="component-key">▣ Simulated components</span><span class="unused-key">— Context only</span></div><p class="hint">Top view · component bounds · gray geometry is outside this simulation.</p></div>`
 }
 
+function bufferState(state: SimulationIbisPinState): string[] {
+  if(state.is_output) return ['output',String(state.is_output_enabled)]
+  return ['input','—']
+}
+
 export function reportSections(data: ReportData, files: ReportFile[]) {
   const context = data.context, observed = new Set(data.runs.flatMap(run => run.probes.filter(p => p.name === data.comparisonProbeName).map(p => p.signalSourceId)))
   const traces = context ? `<div class="board-layout">${routeDrawing(context)}<aside class="trace-inspector"><h2>Selected network</h2>${context.lanes.map((lane, i) => `<div class="trace-row"><h3><span style="color:${['#2563eb', '#e96535', '#159c80'][i % 3]}">●</span> ${html(lane.name)} <small>${data.changes?.length && observed.size ? observed.has(lane.to) ? 'Victim' : 'Neighbor' : ''}</small></h3><div class="pin-pair">${html(label(context, lane.from))} → ${html(label(context, lane.to))}</div><dl><dt>Path length</dt><dd>${number(lane.lengthMm, 'mm')}</dd><dt>Wire width</dt><dd>${lane.widthsMm.map(v => number(v, 'mm')).join(' / ')}</dd><dt>Vias</dt><dd>${lane.vias}</dd></dl><div class="hint">${html(lane.layers.join(' → '))}</div></div>`).join('')}<details><summary>Trace IDs</summary>${table(['Trace', 'Source / PCB ID'], context.lanes.map(lane => [lane.name, `${lane.sourceTraceId} / ${lane.pcbTraceId}`]))}</details></aside></div>` : '<p>Trace geometry unavailable.</p>'
@@ -184,7 +189,7 @@ export function reportSections(data: ReportData, files: ReportFile[]) {
     `${context?.lanes.find(lane => lane.from === s.source_port_id)?.name ?? 'Signal'} · ${label(context, s.source_port_id)}`,
     s.inverted ? s.pattern.bits.replace(/[01]/g, bit => bit === '0' ? '1' : '0') : s.pattern.bits,
     `${s.pattern.repeat ? 'Repeat' : 'Once'}; UI ${number(s.unit_interval_ms, 'ns', 1e6)}; starts ${number(s.start_time_ms, 'ns', 1e6)}`,
-    s.initial_state ^ Number(s.inverted ?? false)]))}${run.test.states?.length ? `<details><summary>Buffer states</summary>${table(['Pin', 'Mode', 'Enabled'], run.test.states.map(state => [label(context, state.source_port_id), state.mode, state.mode === 'output' ? String(state.enabled) : '—']))}</details>` : ''}` : '<p>Settings unavailable.</p>'}</article>`).join('')
+    s.initial_state ^ Number(s.inverted ?? false)]))}${run.test.states?.length ? `<details><summary>Buffer states</summary>${table(['Pin', 'Mode', 'Enabled'], run.test.states.map(state => [label(context, state.source_port_id), ...bufferState(state)]))}</details>` : ''}` : '<p>Settings unavailable.</p>'}</article>`).join('')
   const findings = data.runs.map((run, i) => `<article class="result-card"><div class="result-heading"><h2>${html(run.name)}</h2><button data-run="${i}" data-probe="${Math.max(0, run.probes.findIndex(p => p.name === data.comparisonProbeName))}" data-mode="waveform">Open waveforms</button></div>${table(['Probe', 'Signal − reference', 'Minimum', 'Maximum'], run.probes.map(probe => {
     let minimum = Infinity, maximum = -Infinity
     for (const row of run.rows) { minimum = Math.min(minimum, row[probe.column]); maximum = Math.max(maximum, row[probe.column]) }
@@ -199,8 +204,8 @@ export function reportSections(data: ReportData, files: ReportFile[]) {
     `${c.active} − ${c.quiet}`, `${number(c.startSeconds, 'ns', 1e9)} to ${number(c.endSeconds, 'ns', 1e9)}`, number(c.peakAbsoluteV, 'mV', 1000), number(c.timeRmsV, 'mV', 1000),
   ]))}</div>` : ''
   const models = data.runs.map(run => run.test?.models ?? []).flat().filter((model, i, all) => all.findIndex(m => m.pipelineId === model.pipelineId) === i)
-  const settings = context ? `<details><summary>Electrical model and extraction settings</summary>${table(['Setting', 'Value'], context.settings)}${models.length ? table(['IBIS device', 'Selected buffers', 'Corner / package policy', 'Model source'], models.map(model => [
-    model.component, Object.entries(model.model_selections ?? {}).map(([pin, buffer]) => `${pin}: ${buffer}`).join('; '), `${model.corner} / ${model.package_policy}`, 'url' in model.source ? model.source.url : 'file' in model.source ? model.source.file : 'Inline model stored with simulation inputs',
+  const settings = context ? `<details><summary>Electrical model and extraction settings</summary>${table(['Setting', 'Value'], context.settings)}${models.length ? table(['IBIS device', 'Selected buffers', 'Corner / package parasitics', 'Model asset'], models.map(model => [
+    model.ibis_component_name, Object.entries(model.ibis_pin_name_to_model_name ?? {}).map(([pin, buffer]) => `${pin}: ${buffer}`).join('; '), `${model.model_value_corner} / ${String(model.include_package_parasitics)}`, model.ibis_model_asset.project_relative_path,
   ])) : ''}</details>` : ''
   return { traces, plan, findings: changes + findings, settings,
     downloads: `<p class="hint">Time: seconds · voltage: volts. Keep the csv folder beside results.html.</p><div class="table-scroll"><table><thead><tr><th>File</th><th>Data</th><th>Size</th></tr></thead><tbody>${files.map(file => `<tr><td><a href="${html(file.path)}" download title="${html(file.description)}">${html(file.path.slice(4))}</a></td><td>${html(file.label)}</td><td>${number(Buffer.byteLength(file.content) / 1024, 'KB')}</td></tr>`).join('')}</tbody></table></div>` }

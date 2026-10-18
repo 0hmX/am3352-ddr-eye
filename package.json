@@ -11,7 +11,7 @@
     "dev": "tsci dev",
     "build": "pnpm --filter pcb-spice-pipeline build && tsci build --disable-parts-engine",
     "typecheck": "tsc --noEmit && pnpm --filter pcb-spice-pipeline typecheck",
-    "simulate:setup": "pcb-spice-pipeline --setup",
+    "simulate:setup": "pnpm simulate:models && pcb-spice-pipeline --setup",
     "simulate": "pcb-spice-pipeline index.circuit.tsx",
     "simulate:repeat": "pcb-spice-pipeline --repeat index.circuit.tsx",
     "postinstall": "node scripts/prepare-types.mjs && pnpm --filter @tscircuit/ibis-to-spice build && pnpm --filter pcb-spice-pipeline build",
@@ -21,15 +21,16 @@
     "simulate:single-ended": "pcb-spice-pipeline examples/single-ended/index.circuit.tsx",
     "simulate:prove": "node scripts/prove-all.mjs",
     "simulate:ddr-dq": "pcb-spice-pipeline examples/ddr-dq/index.circuit.tsx",
-    "simulate:compare": "pcb-spice-pipeline --compare"
+    "simulate:compare": "pcb-spice-pipeline --compare",
+    "simulate:models": "node scripts/prepare-models.mjs"
   },
   "dependencies": {
     "tscircuit": "0.0.2940",
-    "@tscircuit/core": "0.0.2171",
-    "@tscircuit/props": "0.0.704",
+    "@tscircuit/core": "https://pkg.pr.new/tscircuit/core/@tscircuit/core@5f03a21",
+    "@tscircuit/props": "https://pkg.pr.new/@tscircuit/props@2a5a037",
     "@tscircuit/ibis-to-spice": "workspace:*",
     "react": "19.2.4",
-    "circuit-json": "0.0.528"
+    "circuit-json": "https://pkg.pr.new/circuit-json@d7fe21e"
   },
   "devDependencies": {
     "@tscircuit/cli": "0.1.2237",

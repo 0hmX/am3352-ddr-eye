@@ -1,11 +1,15 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {readFile} from 'node:fs/promises'
+import {readFile,writeFile,mkdir,mkdtemp,rm,stat} from 'node:fs/promises'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 import {geometryFromCircuitJson,fastHenryDeck,fasterCapDeck,selectPort} from '../src/geometry.js'
 import {generalDeclarations,circuitNodes,modelRunDefinition} from '../src/declarations.js'
 import {foldProbeEye,probeWaveformRows} from '../src/metrics.mjs'
 import {loopImpedance,referenceCapacitance} from '../src/matrices.mjs'
 import {generalSimulationSpice,electricalSources,validateProbeScope} from '../src/general-spice.js'
+import {runGeneralPipeline} from '../src/general-pipeline.js'
+import {sha256} from '../src/io.mjs'
 
 const read=async path=>JSON.parse(await readFile(new URL(path,import.meta.url),'utf8'))
 const circuit=await read('./fixtures/straight.circuit.json'),physical=await read('./fixtures/straight.modeling.json')
@@ -13,9 +17,13 @@ const fixture=()=>{
   const cj=structuredClone(circuit),m={...structuredClone(physical),channelReference:{sourcePortId:'g0'},supplies:[{positive:{sourcePortId:'v0'},negative:{sourcePortId:'g0'},voltageV:3.3}]}
   cj.push(...['u0','u1'].map((id,i)=>({type:'source_component',source_component_id:id,name:i?'RX':'TX',source_group_id:'board-group'})),{type:'source_port',source_port_id:'g0',source_component_id:'u0',name:'GND'},{type:'source_port',source_port_id:'v0',source_component_id:'u0',name:'VDD'})
   cj.push({type:'source_group',source_group_id:'board-group',subcircuit_id:'board',is_subcircuit:true})
-  for(const [index,ids] of [['p0','p1'],['p2','p3']].entries()) cj.push({type:'simulation_ibis_model',simulation_ibis_model_id:`model-${index}`,source_component_id:`u${index}`,source:{content:'IBIS text tested separately by converter'},component:'test',pin_to_source_port_map:Object.fromEntries(ids.map((id,i)=>[String(i+1),id])),corner:'typical',package_policy:'omit'})
-  cj.push({type:'simulation_experiment',simulation_experiment_id:'run',subcircuit_id:'board',name:'data',experiment_type:'spice_transient_analysis',end_time_ms:.01,start_time_ms:0,time_per_step:.000001})
-  for(const [i,id] of ['p0','p1','p2','p3'].entries()) cj.push({type:'simulation_ibis_pin_state',simulation_experiment_id:'run',source_port_id:id,mode:i<2?'output':'input',...(i<2?{enabled:true}:{})})
+  for(const [index,ids] of [['p0','p1'],['p2','p3']].entries()) cj.push({type:'simulation_ibis_model',simulation_ibis_model_id:`model-${index}`,source_component_id:`u${index}`,ibis_model_asset:{project_relative_path:'models/test.ibs',url:'./models/test.ibs',mimetype:'text/plain'},ibis_component_name:'test',ibis_pin_name_to_source_port_id:Object.fromEntries(ids.map((id,i)=>[String(i+1),id])),model_value_corner:'typical',include_package_parasitics:false})
+  cj.push({type:'simulation_experiment',simulation_experiment_id:'run',subcircuit_id:'board',name:'data',experiment_type:'spice_transient_analysis',spice_engine:'pcb_spice',end_time_ms:.01,start_time_ms:0,time_per_step:.000001})
+  for(const [i,id] of ['p0','p1','p2','p3'].entries()) {
+    const state={type:'simulation_ibis_pin_state',simulation_experiment_id:'run',source_port_id:id,is_output:i<2}
+    if(state.is_output) state.is_output_enabled=true
+    cj.push(state)
+  }
   for(const [i,id] of ['p0','p1'].entries()) cj.push({type:'simulation_digital_stimulus',simulation_experiment_id:'run',source_port_id:id,name:`stimulus${i}`,unit_interval_ms:.001,start_time_ms:0,initial_state:0,inverted:Boolean(i),pattern:{type:'bits',bits:'001110100',repeat:true}})
   cj.push({type:'simulation_voltage_probe',simulation_voltage_probe_id:'diff',subcircuit_id:'board',name:'diff',signal_input_source_port_id:'p2',reference_input_source_port_id:'p3'},{type:'simulation_voltage_probe',simulation_voltage_probe_id:'single',subcircuit_id:'board',name:'single',signal_input_source_port_id:'p2'})
   for(const [i,probe] of ['diff','single'].entries()) cj.push({type:'simulation_eye_diagram',simulation_eye_diagram_id:`eye-${i}`,simulation_experiment_id:'run',simulation_voltage_probe_id:probe,name:probe,unit_interval_ms:.001,time_origin_ms:.00025,start_time_ms:0,end_time_ms:.01})
@@ -117,20 +125,89 @@ test('recorded probe columns remain bound and finite timestamps strictly increas
 test('every selected lane endpoint requires one modeled pin and explicit state before extraction',()=>{
   for(const mutate of [
     cj=>{
-      for(const model of cj.filter(e=>e.type==='simulation_ibis_model')) for(const [pin,port] of Object.entries(model.pin_to_source_port_map)) if(['p1','p3'].includes(port)) delete model.pin_to_source_port_map[pin]
+      for(const model of cj.filter(e=>e.type==='simulation_ibis_model')) for(const [pin,port] of Object.entries(model.ibis_pin_name_to_source_port_id)) if(['p1','p3'].includes(port)) delete model.ibis_pin_name_to_source_port_id[pin]
       return cj.filter(e=>!(['simulation_ibis_pin_state','simulation_digital_stimulus'].includes(e.type)&&['p1','p3'].includes(e.source_port_id)))
     },
     cj=>cj.filter(e=>!(e.type==='simulation_ibis_pin_state'&&e.source_port_id==='p3')),
-    cj=>{cj.find(e=>e.type==='simulation_ibis_model'&&e.source_component_id==='u1').pin_to_source_port_map.alias='p3';return cj},
+    cj=>{cj.find(e=>e.type==='simulation_ibis_model'&&e.source_component_id==='u1').ibis_pin_name_to_source_port_id.alias='p3';return cj},
   ]) {
     const {cj,m,g}=fixture()
     assert.throws(()=>generalDeclarations(mutate(cj),g,m),/channel_model.*endpoint p[13].*exactly one modeled physical pin/)
   }
   const {cj,m,g}=fixture()
   for(const state of cj.filter(e=>e.type==='simulation_ibis_pin_state')) {
-    state.mode=['p2','p3'].includes(state.source_port_id)?'output':'input'
-    state.enabled=state.mode==='output'
+    state.is_output=['p2','p3'].includes(state.source_port_id)
+    delete state.is_output_enabled
+    if(state.is_output) state.is_output_enabled=true
   }
   for(const stimulus of cj.filter(e=>e.type==='simulation_digital_stimulus')) stimulus.source_port_id=stimulus.source_port_id==='p0'?'p2':'p3'
   assert.doesNotThrow(()=>generalDeclarations(cj,g,m),'physical route orientation does not constrain bidirectional run roles')
+})
+
+test('PCB engine selects its own experiment while native results and sweeps remain untouched',()=>{
+  const {cj,m,g}=fixture()
+  const native={type:'simulation_experiment',simulation_experiment_id:'native',name:'Native DC',spice_engine:'ngspice',experiment_type:'spice_dc_operating_point'}
+  const graph={type:'simulation_transient_voltage_graph',simulation_transient_voltage_graph_id:'native-result',simulation_experiment_id:'native',timestamps_ms:[0,1],voltage_levels:[0,3.3]}
+  const sweep={type:'simulation_parameter_sweep',simulation_parameter_sweep_id:'native-sweep',simulation_experiment_id:'native',parameter_type:'voltage',source_net_id:'native-net',parameter_values:[1,2],parameter_unit:'V'}
+  cj.push(native,graph,sweep)
+  const original=structuredClone(cj),{plans}=generalDeclarations(cj,g,m)
+  assert.deepEqual(plans.map(plan=>plan.simulationExperimentId),['run'])
+  assert.deepEqual(cj,original,'routing an external experiment leaves other engines and their results unchanged')
+  sweep.simulation_experiment_id='run'
+  assert.throws(()=>generalDeclarations(cj,g,m),/unswept transient/)
+  sweep.simulation_experiment_id='native'
+  cj.find(record=>record.simulation_experiment_id==='run'&&record.type==='simulation_experiment').experiment_type='spice_dc_operating_point'
+  assert.throws(()=>generalDeclarations(cj,g,m),/unswept transient/)
+})
+
+test('canonical IBIS model and boolean pin states translate only at the converter boundary',()=>{
+  const {cj,m,g}=fixture(),model=cj.find(record=>record.type==='simulation_ibis_model')
+  model.include_package_parasitics=true
+  model.model_value_corner='minimum'
+  model.ibis_pin_name_to_model_name={'1':'DRIVER'}
+  model.ibis_pin_name_to_reference_source_port_ids={'1':{
+    pullup_reference_source_port_id:'v0',pulldown_reference_source_port_id:'g0',
+    power_clamp_reference_source_port_id:'v0',ground_clamp_reference_source_port_id:'g0',external_reference_source_port_id:'v0',
+  }}
+  const {models,plans}=generalDeclarations(cj,g,m),{definition,run}=modelRunDefinition(models[0],plans[0])
+  assert.equal(definition.component,'test')
+  assert.equal(definition.corner,'minimum')
+  assert.equal(definition.packagePolicy,'vendor')
+  assert.deepEqual(definition.modelSelections,{'1':'DRIVER'})
+  assert.deepEqual(definition.references,{'1':{pullup:'v0',pulldown:'g0',powerClamp:'v0',groundClamp:'g0',external:'v0'}})
+  assert.deepEqual(run.pinStates.p0,{mode:'output',enabled:true})
+  assert.equal(model.source,undefined,'the external declaration has no converter-specific source union')
+})
+
+test('pipeline verifies optional expected IBIS asset hashes before conversion, output or native tools',async t=>{
+  const root=await mkdtemp(join(tmpdir(),'pipeline-asset-lock-'))
+  t.after(()=>rm(root,{recursive:true,force:true}))
+  const {cj,m}=fixture()
+  for(const component of cj.filter(record=>record.type==='source_component')) component.ftype='simple_chip'
+  for(const state of cj.filter(record=>record.type==='simulation_ibis_pin_state')) {
+    state.is_output=false
+    delete state.is_output_enabled
+  }
+  for(const [pin,name] of [['rx-vdd','VDD'],['rx-gnd','GND']]) cj.push({type:'source_port',source_port_id:pin,source_component_id:'u1',name})
+  cj.push({type:'source_trace',source_trace_id:'vdd',connected_source_port_ids:['v0','rx-vdd'],connected_source_net_ids:[]},
+    {type:'source_trace',source_trace_id:'gnd',connected_source_port_ids:['g0','rx-gnd'],connected_source_net_ids:[]})
+  const models=cj.filter(record=>record.type==='simulation_ibis_model')
+  models[0].ibis_pin_name_to_source_port_id['3']='v0';models[0].ibis_pin_name_to_source_port_id['4']='g0'
+  models[1].ibis_pin_name_to_source_port_id['3']='rx-vdd';models[1].ibis_pin_name_to_source_port_id['4']='rx-gnd'
+  const circuitJson=cj.filter(record=>record.type!=='simulation_digital_stimulus')
+  const bytes=Buffer.from('[IBIS Ver] 4.2\r\n[Component] test\r\n[Pin] signal_name model_name\r\n1 D1 IN\r\n2 D2 IN\r\n3 VDD POWER\r\n4 VSS GND\r\n[Model] IN\r\nModel_type Input\r\nC_comp 1p 1p 1p\r\n[Voltage Range] 3.3 3.3 3.3\r\n[Power Clamp]\r\n-10 -0.1 -0.1 -0.1\r\n10 0.1 0.1 0.1\r\n[Gnd Clamp]\r\n-10 -0.2 -0.2 -0.2\r\n10 0.2 0.2 0.2\r\n[End]\r\n')
+  const path='models/test.ibs',file=join(root,path)
+  await mkdir(join(root,'models'));await writeFile(file,bytes)
+  const run=async(name,modeling,pattern)=>{
+    const outputDir=join(root,name)
+    await assert.rejects(runGeneralPipeline({circuitJson,modeling,baseDir:root,outputDir}),pattern)
+    await assert.rejects(stat(outputDir),{code:'ENOENT'},'preflight never creates simulation output')
+  }
+  const locked={...m,ibisModelAssetSha256:{[path]:sha256(bytes).toUpperCase()}}
+  await run('match',locked,/native_runtime/)
+  await run('optional',m,/native_runtime/)
+  await writeFile(file,Buffer.concat([bytes,Buffer.from('| changed valid model comment\r\n')]))
+  await run('mutated',locked,/vendor_hash.*test\.ibs.*bytes differ/)
+  for(const ibisModelAssetSha256 of [{},{[path]:'bad-hash'},null,[]])
+    await run('missing-or-invalid', {...m,ibisModelAssetSha256}, /vendor_hash.*(?:expected|must map)/)
 })

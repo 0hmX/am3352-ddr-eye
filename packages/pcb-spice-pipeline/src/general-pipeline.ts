@@ -1,13 +1,12 @@
-import {readFile,writeFile,mkdir,readdir,stat} from 'node:fs/promises'
-import {resolve,dirname,join,extname,isAbsolute} from 'node:path'
+import {readFile,writeFile,mkdir,readdir,stat,realpath} from 'node:fs/promises'
+import {resolve,dirname,join,extname,isAbsolute,relative} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {hostname,platform,arch} from 'node:os'
 import {gunzipSync} from 'node:zlib'
 import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
 import * as converter from '@tscircuit/ibis-to-spice'
-import type {IbisSource} from '@tscircuit/ibis-to-spice'
-import type {CircuitJson} from './schema.js'
+import type {CircuitJson,SimulationIbisModel} from './schema.js'
 import {parseRecord} from './schema.js'
 import {geometryFromCircuitJson} from './geometry.js'
 import {generalDeclarations,modelRunDefinition} from './declarations.js'
@@ -32,6 +31,7 @@ export interface PipelineProject {
 }
 
 type PipelineModeling = Modeling & {
+  ibisModelAssetSha256?: Record<string, string>
   fixtureProvenance?: unknown
   sourceProvenance?: {preSolvedAssessment?: unknown; [key: string]: unknown}
 }
@@ -61,29 +61,32 @@ const safeId=(id: string): string=>{
   if(typeof id!=='string'||!/^[a-zA-Z0-9_-]+$/.test(id)) fail('simulation_id','Serialized simulation IDs must be safe stable identifiers')
   return id
 }
-export async function loadModelSource(model: {source: IbisSource; pipelineId: string},baseDir: string,cache: string) {
-  const original=model.source,source=original.file?{...original,file:resolve(baseDir,original.file)}:original
-  let downloaded: Buffer | undefined
-  const fetcher=async (url: string)=>{
-    if(!source.sha256) fail('vendor_hash','URL imports require source.sha256 for the raw downloaded bytes')
-    await mkdir(cache,{recursive:true})
-    const path=join(cache,sha256(JSON.stringify([url,source.sha256.toLowerCase()]))+'.source')
-    let fresh=false
-    try {downloaded=await readFile(path)} catch(error) {
-      if(!missingFile(error)) throw error
-      const response=await fetch(url)
-      if(!response.ok) fail('vendor_download',`IBIS source HTTP ${response.status}: ${url}`)
-      downloaded=Buffer.from(await response.arrayBuffer());fresh=true
-    }
-    if(sha256(downloaded)!==source.sha256.toLowerCase()) fail('vendor_hash','Downloaded or cached raw source bytes differ from source.sha256')
-    if(fresh) await writeFile(path,downloaded)
-    return new Response(new Uint8Array(downloaded),{status:200})
+export async function loadModelSource(model: Pick<SimulationIbisModel,'ibis_model_asset'> & {pipelineId: string},baseDir: string,cache: string) {
+  const asset=model.ibis_model_asset,path=asset.project_relative_path
+  const parts=path.split(/[\\/]/)
+  if(!path||isAbsolute(path)||path.startsWith('\\')||/^[a-z]:/i.test(path)||parts.includes('..')) fail('ibis_asset_path','IBIS project_relative_path must stay inside the circuit project')
+  const root=await realpath(baseDir),localPath=resolve(root,...parts)
+  let bytes: Buffer | undefined,resolvedPath: string | undefined,resolvedFrom: 'project' | 'url'='project'
+  try {
+    resolvedPath=await realpath(localPath)
+    const location=relative(root,resolvedPath)
+    if(location==='..'||location.startsWith('../')||isAbsolute(location)) fail('ibis_asset_path','IBIS asset symlink must stay inside the circuit project')
+    bytes=await readFile(resolvedPath)
+  } catch(error) {if(!missingFile(error)) throw error}
+  if(!bytes) {
+    if(!/^https?:\/\//i.test(asset.url)) fail('ibis_asset_missing',`IBIS asset not found at ${path}; provide the file or an HTTP(S) IBIS URL. For repository examples, run pnpm simulate:models`)
+    const response=await fetch(asset.url)
+    if(!response.ok) fail('vendor_download',`IBIS asset HTTP ${response.status}: ${asset.url}`)
+    if(/text\/html/i.test(response.headers.get('content-type')??'')) fail('ibis_asset','IBIS asset URL returned HTML instead of model data')
+    bytes=Buffer.from(await response.arrayBuffer());resolvedFrom='url';resolvedPath=undefined
   }
-  const reader=async (path: string)=>{downloaded=await readFile(path);return downloaded}
-  const text=await converter.loadIbisDefinitionSource(source,{fetcher,readFile:reader}),bytes=Buffer.from(text,'utf8')
-  const id=safeId(model.pipelineId)
-  const ibsFile=`inputs/ibis/${id}.ibs`,archiveFile=source.archive?`inputs/ibis/${id}.zip`:null
-  return {text,bytes,archive:source.archive?downloaded:null,evidence:{simulationIbisModelId:id,source:original,rawSourceFile:archiveFile??ibsFile,rawSourceSha256:sha256(downloaded??bytes),ibsFile,sourceSha256:sha256(bytes),archiveFile,archiveSha256:source.archive&&downloaded?sha256(downloaded):null}}
+  if(bytes.length>64*1024*1024) fail('ibis_asset','IBIS asset exceeds 64 MiB')
+  if(bytes[0]===0x50&&bytes[1]===0x4b) fail('ibis_asset','IBIS asset must be a plain .ibs file; extract ZIP archives before declaring ibisModelAsset')
+  const text=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes)
+  if(/^\s*(?:<!doctype\s+html|<html)\b/i.test(text)) fail('ibis_asset','IBIS asset contains HTML instead of model data')
+  const id=safeId(model.pipelineId),sourceSha256=sha256(bytes),ibsFile=`inputs/ibis/${id}.ibs`
+  if(resolvedFrom==='url') {await mkdir(cache,{recursive:true});await writeFile(join(cache,sourceSha256+'.ibs'),bytes)}
+  return {text,bytes,evidence:{simulationIbisModelId:id,ibisModelAsset:asset,resolvedFrom,resolvedPath,ibsFile,sourceSha256,rawSourceFile:ibsFile,rawSourceSha256:sourceSha256}}
 }
 
 /** Verify binaries and installed dependencies from the pristine pinned build. */
@@ -127,24 +130,38 @@ export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,b
   const roots=['dist','LICENSE','package.json','scripts','src','tests','toolchain-lock.json','tsconfig.json']
   const sourceExclusions=(await readdir(packageRoot)).filter(name=>!roots.includes(name))
   const sourceFiles=await hashes(packageRoot,'',sourceExclusions)
-  if(typeof converter.convertIbisModelToSpice!=='function'||typeof converter.loadIbisDefinitionSource!=='function') fail('converter_version','Install/build the same-repository general IBIS converter')
+  if(typeof converter.convertIbisModelToSpice!=='function') fail('converter_version','Install/build the same-repository general IBIS converter')
   const geometry=geometryFromCircuitJson(circuitJson,modeling),declarations=generalDeclarations(circuitJson,geometry,modeling)
   const electrical=electricalSources(circuitJson,modeling,declarations.nodes)
   for(const plan of declarations.plans) {safeId(plan.simulationExperimentId);for(const eye of plan.eyes) safeId(eye.simulationEyeDiagramId)}
   // Validate every source, buffer state and observation before spending solver work.
+  const expectedHashes=modeling.ibisModelAssetSha256
+  if(expectedHashes!==undefined&&(!expectedHashes||typeof expectedHashes!=='object'||Array.isArray(expectedHashes))) fail('vendor_hash','modeling.ibisModelAssetSha256 must map project-relative IBIS asset paths to SHA-256 hashes')
   const loaded: Awaited<ReturnType<typeof loadModelSource>>[]=[]
-  for(const model of declarations.models) loaded.push(await loadModelSource(model,baseDir,vendorCache))
+  for(const model of declarations.models) {
+    const path=model.ibis_model_asset.project_relative_path
+    let expected: string | undefined
+    if(expectedHashes!==undefined) {
+      expected=expectedHashes[path]
+      if(typeof expected!=='string'||!/^[a-f0-9]{64}$/i.test(expected)) fail('vendor_hash',`${path}: modeling.ibisModelAssetSha256 requires an expected 64-digit SHA-256 hash for each used IBIS asset`)
+    }
+    const source=await loadModelSource(model,project?.root??baseDir,vendorCache)
+    if(expected!==undefined&&source.evidence.sourceSha256!==expected.toLowerCase()) fail('vendor_hash',`${path}: IBIS asset bytes differ from modeling.ibisModelAssetSha256`)
+    loaded.push(source)
+  }
   const compiled=declarations.plans.map(plan=>plan.models.map(model=>{
     const index=declarations.models.findIndex(selected=>selected.pipelineId===model.pipelineId)
-    const input=modelRunDefinition(model,plan),result=converter.convertIbisModelToSpice(loaded[index].text,input.definition,input.run)
-    return {...result,name:model.component,pipelineId:model.pipelineId,input,sourceEvidence:loaded[index].evidence}
+    const input=modelRunDefinition(model,plan),source=loaded[index]
+    input.definition.source={file:source.evidence.ibsFile,sha256:source.evidence.sourceSha256}
+    const result=converter.convertIbisModelToSpice(source.bytes,input.definition,input.run)
+    return {...result,name:model.ibis_component_name,pipelineId:model.pipelineId,input,sourceEvidence:loaded[index].evidence}
   }))
   for(const [i,plan] of declarations.plans.entries()) validateProbeScope(plan,geometry,compiled[i],declarations.nodes,electrical)
   if(!tools) fail('native_runtime','Pass installed native runtime tools; run pcb-spice-pipeline --setup')
   const toolEvidence=await nativeToolEvidence(tools)
   await mkdir(join(out,'inputs'),{recursive:true})
   await mkdir(join(out,'inputs/ibis'))
-  for(const source of loaded) {await writeFile(join(out,source.evidence.ibsFile),source.bytes);if(source.archive&&source.evidence.archiveFile) await writeFile(join(out,source.evidence.archiveFile),source.archive)}
+  for(const source of loaded) await writeFile(join(out,source.evidence.ibsFile),source.bytes)
   await json(join(out,'inputs/modeling.json'),modeling)
   const inputCircuitBytes=circuitBytes??Buffer.from(JSON.stringify(circuitJson,null,2)+'\n')
   await writeFile(join(out,'inputs/circuit.json'),inputCircuitBytes)
@@ -202,13 +219,12 @@ export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,b
     }
     await json(join(dir,'eyes.json'),eyes)
     for(const probe of plan.probes) results.push(parseRecord({type:'simulation_transient_voltage_graph',simulation_transient_voltage_graph_id:`simulation_transient_voltage_graph_${plan.simulationExperimentId}_${probe.column}`,simulation_experiment_id:plan.simulationExperimentId,simulation_voltage_probe_id:probe.simulationVoltageProbeId,timestamps_ms:rows.map(row=>row[0]*1000),voltage_levels:rows.map(row=>row[probe.column]),time_per_step:plan.maxStepSeconds*1000,start_time_ms:rows[0][0]*1000,end_time_ms:rows[rows.length-1][0]*1000,name:probe.name}))
-    const resultIndex=results.findIndex(record=>record.type==='simulation_experiment'&&record.simulation_experiment_id===plan.simulationExperimentId)
-    results[resultIndex]=parseRecord({...results[resultIndex],execution_status:'complete',execution_mode:'external'})
     experiments.push({simulationExperimentId:plan.simulationExperimentId,name:plan.name,directory:relative,durationSeconds:plan.durationSeconds,startTimeSeconds:plan.startTimeSeconds,maxStepSeconds:plan.maxStepSeconds,probes:plan.probes,eyes,solverInvocations:1,waveformSamples:rows.length,assembly:join(relative,'native-ibis-assembly.json')})
   }
   // Registered validation prevents result probe associations from disappearing.
   const canonical=results.map(record=>parseRecord(record))
-  for(const graph of canonical.filter(record=>record.type==='simulation_transient_voltage_graph')) if(!graph.simulation_voltage_probe_id) fail('result_schema','Installed Circuit JSON schema discarded the result probe ID')
+  const pcbExperimentIds=new Set(declarations.plans.map(plan=>plan.simulationExperimentId))
+  for(const graph of canonical.filter(record=>record.type==='simulation_transient_voltage_graph')) if(pcbExperimentIds.has(graph.simulation_experiment_id)&&!graph.simulation_voltage_probe_id) fail('result_schema','Installed Circuit JSON schema discarded the result probe ID')
   await json(join(out,'circuit-results.json'),canonical)
   const limitations=[...geometry.approximations,...compiled.flatMap(models=>models.flatMap(model=>model.warnings??[])),
     'Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded',
