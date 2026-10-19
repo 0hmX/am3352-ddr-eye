@@ -137,7 +137,7 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
   const modeling = await json(join(out, 'inputs/modeling.json'))
   const geometry = await json(join(out, 'geometry.json'))
   const nodeMap = await json(join(out, 'electrical-node-map.json'))
-  assert.equal(modeling.circuitJsonUnits, 'mm', 'Explicit PCB length units')
+  assert.equal(geometry.units.circuitJson, 'mm', 'Circuit JSON length units')
   assert.ok(['straightened-stages', 'routed-copper'].includes(modeling.reduction), 'Supported channel geometry is explicitly chosen')
   assert.ok(modeling.stackup.length > 0 && modeling.extraction, 'Locked board construction and extraction inputs')
   if (modeling.reduction === 'straightened-stages') assert.ok(modeling.profiles, 'Straightened reduction declares finite return profiles')

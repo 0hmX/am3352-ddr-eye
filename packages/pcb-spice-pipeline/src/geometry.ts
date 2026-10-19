@@ -11,7 +11,7 @@ export interface ExtractionSettings {
   groundMeshMm?: number
 }
 export interface Modeling {
-  circuitJsonUnits: 'mm'; reduction: 'straightened-stages' | 'routed-copper'; conductivitySm: number; sections: number
+  reduction: 'straightened-stages' | 'routed-copper'; conductivitySm: number; sections: number
   relativePermittivity?: number
   groundReturn?: PortSelector
   stackup: { name: string; zMinMm: number; zMaxMm: number }[]
@@ -50,7 +50,6 @@ export interface Geometry {
 const positive=(v: unknown,label: string): number=>{if(typeof v!=='number'||!Number.isFinite(v)||v<=0) fail('modeling_input',`${label} must be a positive number`);return v}
 const finite=(v: unknown,label: string): number=>{if(typeof v!=='number'||!Number.isFinite(v)) fail('modeling_input',`${label} must be explicit and finite`);return v}
 export function validateModeling(m: Modeling): void {
-  if(m.circuitJsonUnits!=='mm') fail('units','Set circuitJsonUnits="mm" explicitly')
   if(!['straightened-stages','routed-copper'].includes(m.reduction)) fail('reduction','Select straightened-stages or routed-copper')
   positive(m.conductivitySm,'conductivitySm')
   if(!Array.isArray(m.stackup)||!m.stackup.length) fail('stackup','Explicit copper layer zMinMm/zMaxMm is required')

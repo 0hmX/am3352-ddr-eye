@@ -3,7 +3,7 @@ import sourceProvenance from "../vendor-models.lock.json"
 
 export const modeling = {
   ibisModelAssetSha256: { [`models/${sourceProvenance.models.rs485.file}`]: sourceProvenance.models.rs485.sha256 },
-  circuitJsonUnits: "mm", reduction: "straightened-stages",
+  reduction: "straightened-stages",
   conductivitySm: boardConstruction.copperConductivitySm,
   stackup: boardConstruction.copperLayers,
   lanes: [

@@ -1,5 +1,4 @@
 {
-  "circuitJsonUnits": "mm",
   "reduction": "straightened-stages",
   "conductivitySm": 58000000,
   "sections": 12,

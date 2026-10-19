@@ -1,5 +1,4 @@
 {
-  "circuitJsonUnits": "mm",
   "reduction": "routed-copper",
   "conductivitySm": 58000000,
   "sections": 12,
