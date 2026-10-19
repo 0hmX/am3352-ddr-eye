@@ -1,6 +1,6 @@
 {
   "circuitJsonUnits": "mm",
-  "reduction": "straightened-stages",
+  "reduction": "routed-copper",
   "conductivitySm": 58000000,
   "sections": 12,
   "extraction": {
@@ -13,42 +13,8 @@
     "reciprocityTolerance": 0.025,
     "dcResistanceTolerance": 0.002,
     "refinementFilaments": 11,
-    "convergenceTolerance": 0.05
-  },
-  "profiles": {
-    "top": {
-      "spacingMm": 0.75,
-      "relativePermittivity": 2.55,
-      "return": {
-        "widthMm": 2.0,
-        "thicknessMm": 0.035,
-        "lengthFactor": 1.0,
-        "centerYMm": 0,
-        "centerZMm": -0.2
-      }
-    },
-    "inner1": {
-      "spacingMm": 0.75,
-      "relativePermittivity": 4.1,
-      "return": {
-        "widthMm": 2.0,
-        "thicknessMm": 0.035,
-        "lengthFactor": 1.0,
-        "centerYMm": 0,
-        "centerZMm": 0.1245
-      }
-    },
-    "via": {
-      "spacingMm": 0.75,
-      "relativePermittivity": 4.1,
-      "return": {
-        "widthMm": 2.0,
-        "thicknessMm": 0.035,
-        "lengthFactor": 1.0,
-        "centerYMm": 0,
-        "centerZMm": -0.2
-      }
-    }
+    "convergenceTolerance": 0.05,
+    "groundMeshMm": 2
   },
   "lanes": [
     {
@@ -79,7 +45,7 @@
     }
   ],
   "circuit": "am3352.circuit.json",
-  "description": "AM3352 saved routed DQS pair; general model/stimulus/probe/eye API and explicit reduced channel",
+  "description": "AM3352 saved routed DQS pair with inferred net-connected GND copper",
   "viaPlatingMm": 0.025,
   "viaEquivalentWidthMm": 0.1,
   "omitThroughViaStubs": true,
@@ -89,5 +55,6 @@
     "originalJsonSha256": "c9d7059fe536865784f175855e0dcc76510972319eec848c18b0ef6dcd2adb40",
     "boardSource": "https://tscircuit.com/astra/am3352-sbc#files",
     "stackupStatus": "Selected repository assumption, not manufacturing sign-off"
-  }
+  },
+  "relativePermittivity": 4.1
 }

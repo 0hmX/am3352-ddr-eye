@@ -181,14 +181,16 @@
     "stackupCode": "JLC04161H-3313",
     "stackupStatus": "Original designer selected working stackup; dimensions calculated; copper migration and manufacturer sign-off incomplete. Not measured manufactured construction.",
     "simulationAdditionalAssumptions": [
-      "Straightened stages from actual route lengths and widths",
-      "Explicit finite return conductor replaces actual plane shape",
-      "Homogeneous effective permittivity per stage",
+      "Original route coordinates, widths and selected stackup copper heights",
+      "Ground copper polygons and cutouts inferred through the physical reference net; adaptive rectangular mesh with finite via/pad contacts",
+      "Homogeneous effective permittivity for the whole routed network",
+      "Only selected physical ground leads extracted; other ground routing and stitching omitted",
       "Assumed conductivity and via plating",
       "Via pads and through-via stubs omitted",
       "R/L fixed at selected 100MHz",
       "TI coupled package excluded",
-      "Ideal supply and deterministic clock, no firmware, jitter, noise or silicon measurement"
+      "Ideal supply and deterministic clock, no firmware, jitter, noise or silicon measurement",
+      "Total routed R/L/C distributed uniformly into pi sections; spatially varying line parameters not fitted"
     ]
   },
   "licenses": {

@@ -1,17 +1,22 @@
 import type { CircuitJson } from './schema.js'
 import { fail } from './matrices.mjs'
+import { routedCopperGeometry, copperFastHenryDeck, copperFasterCapDeck } from './copper.js'
+import type { RoutedCopper } from './copper.js'
 
 export type PortSelector = { sourcePortId: string; component?: never; port?: never } | { sourcePortId?: never; component: string; port: string }
 export interface ExtractionSettings {
   minimumHz: number; maximumHz: number; modelHz: number
   filaments: number; refinementFilaments: number; convergenceTolerance: number
   capTolerance: number; maxPanelLengthMm: number; reciprocityTolerance: number; dcResistanceTolerance: number
+  groundMeshMm?: number
 }
 export interface Modeling {
-  circuitJsonUnits: 'mm'; reduction: 'straightened-stages'; conductivitySm: number; sections: number
+  circuitJsonUnits: 'mm'; reduction: 'straightened-stages' | 'routed-copper'; conductivitySm: number; sections: number
+  relativePermittivity?: number
+  groundReturn?: PortSelector
   stackup: { name: string; zMinMm: number; zMaxMm: number }[]
   lanes: { port: string; from: PortSelector; to: PortSelector; sourceTraceId?: string; driverPort?: string; receiverPort?: string }[]
-  profiles: Record<string, { spacingMm: number; relativePermittivity: number; return: {
+  profiles?: Record<string, { spacingMm: number; relativePermittivity: number; return: {
     widthMm: number; thicknessMm: number; lengthFactor: number; centerYMm: number; centerZMm: number
   } }>
   extraction: ExtractionSettings
@@ -35,6 +40,7 @@ export interface LaneMapping {
 export interface GeometryCell {
   stage: number; profile: string; relativePermittivity: number; conductivitySm: number
   conductors: { name: string; lengthM: number; widthM: number; thicknessM: number; yM: number; zM: number }[]
+  routedCopper?: RoutedCopper
 }
 export interface Geometry {
   cells: GeometryCell[]; mappings: LaneMapping[]
@@ -44,8 +50,8 @@ export interface Geometry {
 const positive=(v: unknown,label: string): number=>{if(typeof v!=='number'||!Number.isFinite(v)||v<=0) fail('modeling_input',`${label} must be a positive number`);return v}
 const finite=(v: unknown,label: string): number=>{if(typeof v!=='number'||!Number.isFinite(v)) fail('modeling_input',`${label} must be explicit and finite`);return v}
 export function validateModeling(m: Modeling): void {
-  if(m.circuitJsonUnits!=='mm') fail('units','Set circuitJsonUnits="mm" explicitly; solver decks use metres')
-  if(m.reduction!=='straightened-stages') fail('reduction','Select explicit straightened-stages approximation')
+  if(m.circuitJsonUnits!=='mm') fail('units','Set circuitJsonUnits="mm" explicitly')
+  if(!['straightened-stages','routed-copper'].includes(m.reduction)) fail('reduction','Select straightened-stages or routed-copper')
   positive(m.conductivitySm,'conductivitySm')
   if(!Array.isArray(m.stackup)||!m.stackup.length) fail('stackup','Explicit copper layer zMinMm/zMaxMm is required')
   if(new Set(m.stackup.map(l=>l.name)).size!==m.stackup.length) fail('stackup','Copper layer names must be distinct')
@@ -53,8 +59,14 @@ export function validateModeling(m: Modeling): void {
   if(!Array.isArray(m.lanes)||![1,2,3].includes(m.lanes.length)) fail('lanes','One to three explicit source/receiver lanes are supported')
   for(const [i,l] of m.lanes.entries()) if(!l.port||!l.from||!l.to) fail('pin_mapping',`Lane ${i}: port/from/to mappings required`)
   if(new Set(m.lanes.map(l=>l.port)).size!==m.lanes.length) fail('pin_mapping','Lane port labels must be distinct')
-  if(!m.profiles) fail('return_geometry','Explicit profiles with reference conductor geometry and permittivity required')
-  for(const [name,p] of Object.entries(m.profiles)) {
+  if(m.reduction==='routed-copper') {
+    positive(m.relativePermittivity,'relativePermittivity (homogeneous dielectric approximation)')
+    positive(m.extraction?.groundMeshMm,'extraction.groundMeshMm')
+    const layers=[...m.stackup].sort((a,b)=>a.zMinMm-b.zMinMm)
+    for(let i=1;i<layers.length;i++) if(layers[i].zMinMm<=layers[i-1].zMaxMm) fail('stackup',`Copper layers ${layers[i-1].name} and ${layers[i].name} require a positive dielectric gap`)
+  }
+  else if(!m.profiles) fail('return_geometry','Explicit profiles with reference conductor geometry and permittivity required')
+  for(const [name,p] of Object.entries(m.reduction==='routed-copper'?{}:m.profiles!)) {
     positive(p.spacingMm,`${name} spacingMm`);positive(p.relativePermittivity,`${name} relativePermittivity`)
     if(!p.return) fail('return_geometry',`${name}: explicit finite return required`)
     for(const key of ['widthMm','thicknessMm','lengthFactor'] as const) positive(p.return[key],`${name}.return.${key}`)
@@ -115,8 +127,9 @@ export function geometryFromCircuitJson(cj: CircuitJson,m: Modeling): Geometry {
     const matches=(a: { x: number; y: number },p: { x: number; y: number })=>Math.hypot(a.x-p.x,a.y-p.y)<1e-5
     if(matches(route[0],ports[1])&&matches(route[route.length-1],ports[0])) route=[...route].reverse().map(p=>p.route_type==='via'?{...p,from_layer:p.to_layer,to_layer:p.from_layer}:p)
     if(!matches(route[0],ports[0])||!matches(route[route.length-1],ports[1])) fail('endpoint_position',`${lane.port}: routed endpoints do not match selected physical source/receiver ports`)
-    for(const [point,port] of [[route[0],ports[0]],[route[route.length-1],ports[1]]] as const) for(const key of ['start_pcb_port_id','end_pcb_port_id'] as const) {
-      if(point.route_type==='wire'&&point[key]&&point[key]!==port.pcb_port_id) fail('stale_endpoint',`${lane.port}: ${key}=${point[key]} disagrees with ${port.pcb_port_id}; repair source metadata explicitly`)
+    for(const [point,port] of [[route[0],ports[0]],[route[route.length-1],ports[1]]] as const) {
+      if(point.route_type==='wire'&&!port.layers.includes(point.layer)) fail('endpoint_layer',`${lane.port}: route layer does not reach physical pad ${port.pcb_port_id}`)
+      for(const key of ['start_pcb_port_id','end_pcb_port_id'] as const) if(point.route_type==='wire'&&point[key]&&point[key]!==port.pcb_port_id) fail('stale_endpoint',`${lane.port}: ${key}=${point[key]} disagrees with ${port.pcb_port_id}; repair source metadata explicitly`)
     }
     const stages: RouteStage[]=[]
     const layer=(n: string)=>{const l=m.stackup.find(l=>l.name===n);if(!l) fail('stackup',`No copper z range for ${n}`);return l}
@@ -152,9 +165,10 @@ export function geometryFromCircuitJson(cj: CircuitJson,m: Modeling): Geometry {
     routes.push(stages)
     mappings.push({port:lane.port,sourceTraceId:src.source_trace_id,pcbTraceId:traces[0].pcb_trace_id,from:from.source_port_id,to:to.source_port_id,pcbPorts:ports.map(p=>p.pcb_port_id),stages,originalRoute:route})
   }
+  if(m.reduction==='routed-copper') return routedCopperGeometry(cj,m,mappings)
   if(routes.some(route=>route.length!==routes[0].length||route.some((s,i)=>s.profile!==routes[0][i].profile))) fail('route_topology','Selected routes must have identical ordered layer/via stage topology')
   const cells: GeometryCell[]=routes[0].map((_,i)=>{
-    const signals=routes.map(r=>r[i]),profile=m.profiles[signals[0].profile]
+    const signals=routes.map(r=>r[i]),profile=m.profiles![signals[0].profile]
     if(!profile) fail('return_geometry',`Missing ${signals[0].profile} return/material profile`)
     const conductors=signals.map((s,j)=>({name:`sig${j}`,lengthM:s.lengthMm/1000,widthM:s.widthMm/1000,thicknessM:s.thicknessMm/1000,yM:(j-(signals.length-1)/2)*profile.spacingMm/1000,zM:0}))
     conductors.push({name:'return',lengthM:Math.max(...signals.map(s=>s.lengthMm))/1000*profile.return.lengthFactor,widthM:profile.return.widthMm/1000,thicknessM:profile.return.thicknessMm/1000,yM:profile.return.centerYMm/1000,zM:profile.return.centerZMm/1000})
@@ -164,6 +178,7 @@ export function geometryFromCircuitJson(cj: CircuitJson,m: Modeling): Geometry {
   return {cells,mappings,units:{circuitJson:'mm',geometry:'m',conductivity:'S/m'},approximations:['Actual stage lengths, widths and ordered layer transitions from routed Circuit JSON; routes straightened within each stage','Uniform declared signal center spacing per profile; actual varying route spacing is not extracted','Finite parallel return bar per stage; isolated neutral conductor group, with ideal reference joins between stages','Homogeneous explicit effective permittivity per stage; no dielectric loss, roughness, plane cutouts, unselected neighboring nets or bend coupling','Via rectangle preserves assumed plated barrel metal area; pads and unconnected through-via stubs omitted','Whole-stage matrices divided into uniform pi sections; constant R/L at modelHz; frequency dispersion not fitted']}
 }
 export function fastHenryDeck(cell: GeometryCell,extraction: ExtractionSettings): string {
+  if(cell.routedCopper) return copperFastHenryDeck(cell,extraction)
   const lines=[`* PCB pipeline: ${cell.conductors.length} primitive paths, all oriented +x`,'.units m',`.default sigma=${cell.conductivitySm} nhinc=${extraction.filaments} nwinc=${extraction.filaments}`]
   for(const [i,c] of cell.conductors.entries()) lines.push(`N${i}a x=0 y=${c.yM} z=${c.zM}`,`N${i}b x=${c.lengthM} y=${c.yM} z=${c.zM}`,`E${i} N${i}a N${i}b w=${c.widthM} h=${c.thicknessM} wx=0 wy=1 wz=0`)
   for(let i=0;i<cell.conductors.length;i++) lines.push(`.external N${i}a N${i}b`)
@@ -171,6 +186,7 @@ export function fastHenryDeck(cell: GeometryCell,extraction: ExtractionSettings)
   return lines.join('\n')+'\n'
 }
 export function fasterCapDeck(cell: GeometryCell,extraction: ExtractionSettings): Record<string,string> {
+  if(cell.routedCopper) return copperFasterCapDeck(cell)
   const files: Record<string,string>={},list=['* 3D conductor surfaces; metres; homogeneous dielectric']
   for(const c of cell.conductors) {
     const rows=['* closed box conductor surface'],n=Math.ceil(c.lengthM/(extraction.maxPanelLengthMm/1000))
