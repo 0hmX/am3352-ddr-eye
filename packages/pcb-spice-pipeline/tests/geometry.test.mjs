@@ -7,6 +7,7 @@ const small={circuitJson:await readJson('./fixtures/straight.circuit.json'),mode
 const real={circuitJson:await readJson('../../../am3352.circuit.json'),modeling:await readJson('./fixtures/am3352.modeling.json')}
 test('actual original routed DQS lengths and 4 physical endpoints are retained',()=>{
   const g=geometryFromCircuitJson(real.circuitJson,real.modeling)
+  assert.deepEqual(g.units,{circuitJson:'mm',geometry:'m',conductivity:'S/m'})
   assert.equal(g.cells.length,5)
   assert.deepEqual(g.mappings.map(m=>m.pcbPorts),[['pcb_port_13','pcb_port_361'],['pcb_port_31','pcb_port_362']])
   assert.ok(Math.abs(g.cells[2].conductors[0].lengthM-.04273605248690546)<1e-12)
@@ -21,8 +22,8 @@ test('real DQ0 and both DQS legs retain six endpoints and a shared return',()=>{
   assert.equal(new Set(g.mappings.flatMap(mapping=>[mapping.from,mapping.to])).size,6)
   assert.ok(g.cells.every(cell=>cell.conductors.length===4))
 })
-test('unknown stackup, return, units and omitted pin mapping produce explicit diagnostics',()=>{
-  for(const [key,value,pattern] of [['stackup',[],/stackup/],['profiles',{},/return_geometry/],['circuitJsonUnits',undefined,/units/],['lanes',[],/lanes/]]) {
+test('unknown stackup, return and omitted pin mapping produce explicit diagnostics',()=>{
+  for(const [key,value,pattern] of [['stackup',[],/stackup/],['profiles',{},/return_geometry/],['lanes',[],/lanes/]]) {
     assert.throws(()=>geometryFromCircuitJson(small.circuitJson,{...small.modeling,[key]:value}),pattern)
   }
 })
