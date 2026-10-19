@@ -6,27 +6,27 @@ Write the board and simulation in TSX, run the local solvers, then inspect the b
 
 ## HTML report and eye diagram
 
-**[Download the recorded CMOS report: HTML + CSV](assets/simulation-api/cmos-report.zip?raw=1).** Unzip it and open `results.html` in your browser, keeping `csv/` beside it. Viewing this saved run needs no solvers or development tools. To create a new run, use `pnpm simulate:single-ended --open` after [setup](#set-up-once).
+**[Download the recorded DDR report: HTML + CSV](assets/simulation-api/ddr-report.zip?raw=1).** Unzip it and open `results.html` in your browser, keeping `csv/` beside it. It contains the DQ0 + DQS + DQSn simulation with quiet and switching experiments, six probes per experiment, and four eyes. To create a new run, use `pnpm simulate:ddr-dq --open` after [setup](#set-up-once).
 
-| HTML report interface — saved DDR run | Receiver eye diagram — CMOS run |
+| HTML report interface — saved DDR run | DDR DQ0 receiver eye — switching neighbors |
 | --- | --- |
-| [![HTML report showing the board and highlighted simulation traces](assets/simulation-api/html-report.png)](assets/simulation-api/html-report.png) | [![CMOS receiver eye diagram with 26 complete windows over two UI](assets/simulation-api/cmos-eye.png)](assets/simulation-api/cmos-eye.png) |
+| [![HTML report showing the board and highlighted simulation traces](assets/simulation-api/html-report.png)](assets/simulation-api/html-report.png) | [![DDR DQ0 receiver eye with 46 complete windows and 2.5 ns UI](assets/simulation-api/ddr-eye.png)](assets/simulation-api/ddr-eye.png) |
 
-Click either preview to enlarge it. In the downloaded report, choose **Plots → Eye** to inspect receiver/transmitter eyes, or **Board**, **Tests**, **Results**, and **CSV files** to inspect the circuit, test settings, measurements, and exports. The eye above uses 26 windows, 50 ns UI, and a 200–1600 ns gate; the unterminated fixture's overshoot remains visible.
+Click either preview to enlarge it. To reproduce the eye view, choose **Plots → DDR_SWITCHING → DQ0_RX → Eye** in the downloaded report. It measures `U3.E3 − U3.B1` over 40–160 ns: 46 complete windows, 2.5 ns UI, and approximately 0.219–1.297 V. The folds use recorded samples with linear interpolation; no artificial jitter is added. **Board**, **Tests**, **Results**, and **CSV files** show the circuit, test settings, measurements, and exports.
 
 ## Start here: the CLI and the two packages
 
-**`pcb-spice-pipeline` is the CLI that runs the whole simulation.** After [setup](#set-up-once), run the CMOS example directly:
+**`pcb-spice-pipeline` is the CLI that runs the whole simulation.** After [setup](#set-up-once), run the three-trace DDR example directly:
 
 ```sh
-pnpm exec pcb-spice-pipeline examples/single-ended/index.circuit.tsx --open
+pnpm exec pcb-spice-pipeline examples/ddr-dq/index.circuit.tsx --open
 ```
 
-The repository shortcut `pnpm simulate:single-ended --open` runs that same CLI with that same file. `--open` opens the generated `results.html` after the simulation finishes.
+The repository shortcut `pnpm simulate:ddr-dq --open` runs that same CLI with that same file. `--open` opens the generated `results.html` after the simulation finishes.
 
 ```mermaid
 flowchart TD
-    COMMAND["Your terminal<br/>pnpm simulate:single-ended<br/>--open"] --> RUNNER["pcb-spice-pipeline<br/>CLI + simulation coordinator"]
+    COMMAND["Your terminal<br/>pnpm simulate:ddr-dq<br/>--open"] --> RUNNER["pcb-spice-pipeline<br/>CLI + simulation coordinator"]
     RUNNER -->|Imports as a library| CONVERTER["@tscircuit/ibis-to-spice<br/>IBIS → SPICE pad models"]
     RUNNER -->|Runs| TOOLS["Installed external solvers<br/>FastHenry · FasterCap · ngspice"]
     RUNNER -->|Writes after solving| RESULTS["HTML report + CSV + Circuit JSON"]
@@ -47,7 +47,7 @@ The runner calls the converter's TypeScript API, `convertIbisModelToSpice`. You 
 **Recommended tscircuit command:** extend the existing `tsci simulate analog` command to use this backend when the TSX declares `spiceEngine="pcb_spice"`. The proposed invocation is:
 
 ```text
-tsci simulate analog examples/single-ended/index.circuit.tsx --open
+tsci simulate analog examples/ddr-dq/index.circuit.tsx --open
 ```
 
 This backend dispatch and `--open` support are proposed integration work. The checked-in tscircuit CLI's analog command does not run this pipeline yet; use the runnable command above today.
@@ -113,125 +113,142 @@ For the default DDR example, `simulation.config.ts` combines `simulation.json` w
 
 Route measurements, model conversion, and solver results are computed automatically. They are not additional input files to write.
 
-## 1. Attach a real IBIS model
+## 1. Attach real IBIS models
 
-The [CMOS example](examples/single-ended/index.circuit.tsx) connects the output pad of `TX` to the input pad of `RX`. Both use TI's SN74LVC1G04 model. Setup downloads and extracts `sn74lvc1g04.ibs` using the URL and hashes in the [vendor lock](examples/vendor-models.lock.json).
+The [DDR example](examples/ddr-dq/index.circuit.tsx) drives three channels from the AM3352 (`U1`) to the Winbond DDR memory (`U3`): DQ0 data and the complementary DQS/DQSn strobes. Setup downloads their IBIS files using the URLs and hashes in [vendor-models.json](vendor-models.json).
 
-This is the output-pad definition from [models.ts](examples/single-ended/models.ts), with the locked file/component names expanded:
+The root [simulation.config.ts](simulation.config.ts) defines the DQS pair; the DDR example adds DQ0. Expanded into one object, the driver binding is:
 
 ```ts
 import type { IbisModelDefinition } from "@tscircuit/props"
 
-export const outputPad: IbisModelDefinition = {
+const driver: IbisModelDefinition = {
   ibisModelAsset: {
-    project_relative_path: "models/sn74lvc1g04.ibs",
-    url: "./models/sn74lvc1g04.ibs",
+    project_relative_path: "models/sprm552c.ibs",
+    url: "./models/sprm552c.ibs",
     mimetype: "text/plain",
   },
-  ibisComponentName: "LVC1G04_DCK",
-  ibisPinNameToPortLabel: { "4": "Y", "5": "VCC", "3": "GND" },
-  ibisPinNameToModelName: { "4": "LVC1G04_OUT_33" },
+  ibisComponentName: "am335x_zcz",
+  ibisPinNameToPortLabel: { P1: "P1", P2: "P2", M3: "M3", E5: "E5", A1: "A1" },
+  ibisPinNameToModelName: { P1: "Model_655", P2: "Model_847", M3: "Model_343" },
   ibisPinNameToReferencePortLabels: {
-    "4": { pullup: "VCC", pulldown: "GND", powerClamp: "VCC", groundClamp: "GND" },
+    P1: { pullup: "E5", pulldown: "A1", powerClamp: "E5", groundClamp: "A1" },
+    P2: { pullup: "E5", pulldown: "A1", powerClamp: "E5", groundClamp: "A1" },
+    M3: { pullup: "E5", pulldown: "A1", powerClamp: "E5", groundClamp: "A1" },
   },
   modelValueCorner: "typical",
   includePackageParasitics: false,
 }
 ```
 
-`project_relative_path` locates the extracted file from the project root. Pin `4` in the IBIS file binds to TSX port `Y`; its supply references bind to `VCC` and `GND`. The receiver definition in the same file selects pin `2` and model `LVC1G04_IN_33`.
+`project_relative_path` locates the extracted file from the project root. IBIS pin `M3` binds to TSX port `M3` for DQ0; its supply references bind to `E5` and `A1`. The receiver uses `models/W631GG6MB-12.ibs`, component `W631GG6MB-12`, and model `ODT_60` for pins `E3`, `F3`, and `G3`, with supply/reference pins `A1` and `B1`.
 
 The runner reads the local `.ibs` first. If it is missing, an HTTP(S) `ibisModelAsset.url` can provide the **plain IBIS file**; a vendor ZIP or download-page URL cannot. The examples prepare local files and check their expected hashes.
 
 ## 2. Declare the experiment in TSX
 
-These declarations sit inside the CMOS example's `<board>`. The file imports `analog` from `@tscircuit/core` and `inputPad` / `outputPad` from `./models`:
+This is the switching experiment from [examples/ddr-dq/index.circuit.tsx](examples/ddr-dq/index.circuit.tsx), expanded from its quiet/switching loop. The file imports `analog` from `@tscircuit/core`, `ImportedBoard` from `pcb-spice-pipeline/tsx`, the saved board, and the bindings above:
 
 ```tsx
-<>
-  <ibismodel componentRef=".TX" {...outputPad} />
-  <ibismodel componentRef=".RX" {...inputPad} />
+<ImportedBoard circuitJson={routedBoard}>
+  <ibismodel componentRef="chip.U1" {...driver} />
+  <ibismodel componentRef="chip.U3" {...receiver} />
 
   <analog.transientsimulation
     spiceEngine="pcb_spice"
-    name="SI"
-    duration="1600ns"
-    timePerStep="50ps"
+    name="DDR_SWITCHING"
+    duration="160ns"
+    timePerStep="10ps"
     ibisPinStates={{
-      ".TX > .Y": { isOutput: true, isOutputEnabled: true },
-      ".RX > .A": { isOutput: false },
+      ".U1 > .M3": { isOutput: true, isOutputEnabled: true },
+      ".U1 > .P1": { isOutput: true, isOutputEnabled: true },
+      ".U1 > .P2": { isOutput: true, isOutputEnabled: true },
+      ".U3 > .E3": { isOutput: false },
+      ".U3 > .F3": { isOutput: false },
+      ".U3 > .G3": { isOutput: false },
     }}
   />
   <analog.digitalstimulus
-    name="DATA"
-    simulationRef=".SI"
-    drives=".TX > .Y"
-    unitInterval="50ns"
-    startTime="0ns"
-    initialState={0}
-    pattern={{ type: "bits", bits: "001110100101011000101101", repeat: true }}
+    name="DQ0_SWITCHING" simulationRef=".DDR_SWITCHING" drives=".U1 > .M3"
+    unitInterval="2.5ns" startTime="0ns" initialState={0}
+    pattern={{ type: "bits", bits: "00010111", repeat: true }}
   />
-  <voltageprobe name="DATA_RX" connectsTo=".RX > .A" referenceTo=".RX > .GND" />
+  <analog.digitalstimulus
+    name="DQS_P_SWITCHING" simulationRef=".DDR_SWITCHING" drives=".U1 > .P1"
+    unitInterval="2.5ns" startTime="1.25ns" initialState={0}
+    pattern={{ type: "bits", bits: "01", repeat: true }}
+  />
+  <analog.digitalstimulus
+    name="DQS_N_SWITCHING" simulationRef=".DDR_SWITCHING" drives=".U1 > .P2"
+    unitInterval="2.5ns" startTime="1.25ns" initialState={0} inverted
+    pattern={{ type: "bits", bits: "01", repeat: true }}
+  />
+
+  <voltageprobe name="DQ0_RX" connectsTo=".U3 > .E3" referenceTo=".U3 > .B1" />
+  <voltageprobe name="DQ0_TX" connectsTo=".U1 > .M3" referenceTo=".U1 > .A1" />
+  <voltageprobe name="DQS_RX" connectsTo=".U3 > .F3" referenceTo=".U3 > .B1" />
+  <voltageprobe name="DQSn_RX" connectsTo=".U3 > .G3" referenceTo=".U3 > .B1" />
+  <voltageprobe name="DDR_RX" connectsTo=".U3 > .F3" referenceTo=".U3 > .G3" />
+  <voltageprobe name="DDR_TX" connectsTo=".U1 > .P1" referenceTo=".U1 > .P2" />
   <analog.eyediagram
-    name="CMOS_DATA"
-    simulationRef=".SI"
-    probeRef=".DATA_RX"
-    unitInterval="50ns"
-    timeOrigin="0ns"
-    startTime="200ns"
-    endTime="1600ns"
+    name="DQ0_receive_eye_SWITCHING"
+    simulationRef=".DDR_SWITCHING" probeRef=".DQ0_RX"
+    unitInterval="2.5ns" timeOrigin="0ns" startTime="40ns"
   />
-</>
+</ImportedBoard>
 ```
 
-`ibismodel` binds pad behavior to a component. `transientsimulation` selects the engine, duration, maximum solver step, and pad states. `digitalstimulus` sets the transmitted bits. `voltageprobe` names the measured voltage; `eyediagram` folds that probe into two-bit windows over the chosen time range.
+`ibismodel` attaches pad behavior to each chip. `transientsimulation` sets the engine, timing, and six pad states. The three stimuli drive DQ0 and opposite DQS/DQSn patterns; the strobes are offset by half a bit. Probes name the measured voltages. The eye folds DQ0 at the receiver into two-bit windows after the first 40 ns.
 
-This excerpt omits the physical board, supplies, routes, and additional TX probe/eye. Run the [complete circuit](examples/single-ended/index.circuit.tsx), which also exports [`modeling`](examples/single-ended/simulation.config.ts). That configuration explicitly selects traces and defines the return conductor, stackup, materials, and extraction assumptions. These are still required by this local backend.
+Run the [complete circuit](examples/ddr-dq/index.circuit.tsx), which also declares the DQS receiver eye and the quiet-neighbor experiment. In the quiet experiment, the DQ0 bits stay identical while DQS/DQSn are held low/high. Its exported `modeling` selects the three routes and defines the supply, stackup, return conductor, and extraction assumptions. `chip.U1` and `chip.U3` disambiguate the chip bindings from similarly named BGA pins.
 
 ## 3. Run it and inspect the output
 
-After [setup](#set-up-once), run the complete CMOS example:
+After [setup](#set-up-once), run the complete DDR example:
 
 ```sh
-pnpm simulate:single-ended --open
+pnpm simulate:ddr-dq --open
 ```
 
 **`--open` opens the generated HTML report in your browser after the solve finishes.** Leave it off to save results without opening a browser. Each run creates a fresh folder and prints its location.
 
-![Recorded CMOS transmitter and receiver waveforms, with a receiver eye diagram](assets/simulation-api/cmos-output.png)
+![Recorded DDR DQ0 transmitter and receiver waveforms, with the receiver eye under switching DQS/DQSn neighbors](assets/simulation-api/ddr-output.png)
 
-These are static plots of a recorded native run, not a report screenshot. [Source hashes](assets/simulation-api/cmos-output.source.json) identify the underlying CSV data. The interactive HTML adds the board view, experiment/probe selection, plot overlays, zoom/pan, and CSV downloads. Unused traces and components are gray; simulated ones are highlighted.
+These plots use the same recorded DDR run as the downloadable report above. The interactive HTML adds the board view, experiment/probe selection, plot overlays, zoom/pan, and CSV downloads. Unused traces and components are gray; the three simulated traces and their chips are highlighted.
 
-| Recorded CMOS result | Value |
+| Recorded DDR result | Value |
 | --- | --- |
-| Selected route | `TX.Y → RX.A`, 28.45 mm |
-| Run | 1.6 µs; 50 ps maximum integration step |
-| Waveform data | 129,803 adaptive timestamps; TX and RX voltages |
-| Receiver eye | 26 complete windows; 50 ns UI; 200–1600 ns gate |
-| Receiver range | −0.955 to 5.629 V |
+| Selected routes | DQ0 `U1.M3 → U3.E3`; DQS `U1.P1 → U3.F3`; DQSn `U1.P2 → U3.G3` |
+| Routed lengths | 45.044, 45.046, and 45.168 mm respectively; two vias each |
+| Experiments | `DDR_QUIET` and `DDR_SWITCHING`; 160 ns each; 10 ps maximum integration step |
+| Waveform data | Six probes; 45,786 quiet / 163,305 switching adaptive timestamps |
+| DQ0 receiver eye | 46 complete windows per experiment; 2.5 ns UI; 40–160 ns gate |
+| DQ0 receiver range, switching | 0.219–1.297 V |
 
-The unterminated fixture rings above its 3.3 V rail, and the selected input lacks a power-clamp table. The plot retains those excursions; it does not establish a safe interface or protocol compliance.
+This is a reduced three-channel model with assumed 0.75 mm spacing and 1.5 V supplies. The recorded eye shows the simulated response; it does not establish DDR compliance or BER.
 
 The saved run contains:
 
 ```text
 dist/simulation-<timestamp>/
-  results.html                Interactive results page
-  circuit-results.json        Circuit JSON plus experiment/probe-linked voltage graphs
-  csv/01-si-waveforms.csv      Actual timestamps and named probe voltages
-  csv/01-si-eye-1.csv          Receiver eye windows
-  csv/trace-map.csv           Simulated trace endpoints and dimensions
-  csv/results-summary.csv     Voltage ranges by experiment and probe
-  receipt.json               Inputs, solver evidence, and file hashes
-  ...                        SPICE decks, geometry, R/L/C matrices, logs
+  results.html                         Interactive results page
+  circuit-results.json                 Circuit JSON plus probe-linked voltage graphs
+  csv/01-ddr_quiet-waveforms.csv        Quiet-neighbor timestamps and six probe voltages
+  csv/02-ddr_switching-waveforms.csv    Switching-neighbor timestamps and six probe voltages
+  csv/02-ddr_switching-eye-1.csv        DQ0 receiver eye windows
+  csv/02-ddr_switching-eye-2.csv        Differential DQS receiver eye windows
+  csv/trace-map.csv                    Simulated trace endpoints and dimensions
+  csv/results-summary.csv              Voltage ranges by experiment and probe
+  receipt.json                        Inputs, solver evidence, and file hashes
+  ...                                 Quiet eyes, geometry, SPICE decks, R/L/C matrices, logs
 ```
 
-For example, `csv/01-si-waveforms.csv` begins:
+For example, `csv/02-ddr_switching-waveforms.csv` begins:
 
 ```csv
-"time_s","DATA_RX_v","DATA_TX_v"
-0,0.0016569380076181023,0.0016569319231534397
-5e-13,0.0016569380076181008,0.0016569319231534395
+"time_s","DDR_RX_v","DDR_TX_v","DQ0_RX_v","DQ0_TX_v","DQS_RX_v","DQSn_RX_v"
+0,-0.9651458949156386,-0.9775911478295296,0.2691189208862423,0.2624298168802997,0.2688864227406533,1.234032317656292
+1.0000000000000002e-13,-0.9651458949156111,-0.9775911478295269,0.2691189208862421,0.2624298168803058,0.26888642274065583,1.2340323176562669
 ```
 
 Reopen `results.html` to inspect a saved run without solving again. Keep `csv/` beside it for downloads. Waveform timestamps are adaptive; eye samples are linearly interpolated from them. CSV units are seconds and volts unless a column says otherwise.
