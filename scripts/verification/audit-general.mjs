@@ -20,6 +20,58 @@ function exactlyOne(elements, predicate, label) {
   return matches[0]
 }
 
+// Compare saved copper without importing the geometry generator. Ring order and
+// winding may change during normalization; every physical vertex must survive.
+export function auditGroundCopper(circuit, modeling, geometry) {
+  const reference = selector => exactlyOne(circuit, record => record.type === 'source_port' && (selector.sourcePortId
+    ? record.source_port_id === selector.sourcePortId
+    : record.source_component_id === exactlyOne(circuit, component => component.type === 'source_component' && component.name === selector.component, 'Reference component').source_component_id &&
+      (record.name === selector.port || record.port_hints?.includes(selector.port) || `pin${record.pin_number}` === selector.port)), 'Physical ground reference').source_port_id
+  const connected = new Set([reference(modeling.channelReference)])
+  const traces = circuit.filter(record => record.type === 'source_trace')
+  for (let previous = -1; previous !== connected.size;) {
+    previous = connected.size
+    for (const trace of traces) {
+      const members = [...trace.connected_source_port_ids, ...(trace.connected_source_net_ids ?? [])]
+      if (members.some(id => connected.has(id))) members.forEach(id => connected.add(id))
+    }
+  }
+  const ground = exactlyOne(circuit, record => record.type === 'source_net' && record.is_ground && connected.has(record.source_net_id), 'Net-inferred ground')
+  const pours = circuit.filter(record => record.type === 'pcb_copper_pour' && connected.has(record.source_net_id))
+  assert.ok(pours.length > 0, 'Physical copper on the inferred ground net')
+  const ring = points => {
+    const tokens = points.map(point => point.map(value => { assert.ok(Number.isFinite(value)); return value.toPrecision(15) }).join(','))
+    const rotations = values => values.map((_, i) => [...values.slice(i), ...values.slice(0, i)].join(';'))
+    return [...rotations(tokens), ...rotations([...tokens].reverse())].sort()[0]
+  }
+  const polygon = rings => [ring(rings[0]), ...rings.slice(1).map(ring).sort()]
+  return geometry.cells.map(cell => {
+    const copper = cell.routedCopper
+    assert.ok(copper, 'Routed reduction retains actual ground geometry')
+    assert.equal(copper.sourceNetId, ground.source_net_id, 'Extracted plane belongs to independently inferred GND net')
+    assert.equal(copper.referenceSourcePortIds.length, 2, 'Two physical reference contacts')
+    assert.notEqual(copper.referenceSourcePortIds[0], copper.referenceSourcePortIds[1], 'Distinct driver and receiver ground contacts')
+    assert.equal(copper.referenceSourcePortIds[0], reference(modeling.channelReference))
+    if (modeling.groundReturn) assert.equal(copper.referenceSourcePortIds[1], reference(modeling.groundReturn))
+    copper.referenceSourcePortIds.forEach(id => {
+      assert.ok(connected.has(id), 'Both reference contacts connect electrically to GND')
+      reference({ sourcePortId: id })
+    })
+    assert.deepEqual(copper.pours.map(pour => pour.pcbCopperPourId).sort(), pours.map(pour => pour.pcb_copper_pour_id).sort(), 'Every net-connected ground pour included')
+    for (const pour of copper.pours) {
+      const original = exactlyOne(pours, record => record.pcb_copper_pour_id === pour.pcbCopperPourId, 'Original ground pour')
+      assert.equal(original.shape, 'brep', 'Ground pour has real polygon geometry')
+      assert.equal(pour.layer, original.layer, 'Ground layer preserved')
+      const originalRings = [original.brep_shape.outer_ring, ...original.brep_shape.inner_rings].map(ring => ring.vertices.map(point => [point.x, point.y]))
+      assert.deepEqual(polygon(pour.polygon), polygon(originalRings), 'Ground boundaries and every cutout preserved')
+      const layer = exactlyOne(modeling.stackup, layer => layer.name === pour.layer, 'Ground stackup layer')
+      close(pour.zMinMm, layer.zMinMm, 'Ground copper bottom from stackup')
+      close(pour.zMaxMm, layer.zMaxMm, 'Ground copper top from stackup')
+    }
+    return { stage: cell.stage, sourceNetId: ground.source_net_id, referenceSourcePortIds: copper.referenceSourcePortIds, groundPourIds: copper.pours.map(pour => pour.pcbCopperPourId), boundariesAndCutoutsPreserved: true }
+  })
+}
+
 export async function auditRun(projectRoot, directory, { verifyLiveSources = true } = {}) {
   const root = resolve(projectRoot), out = resolve(directory)
   const receipt = await json(join(out, 'receipt.json'))
@@ -86,8 +138,11 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
   const geometry = await json(join(out, 'geometry.json'))
   const nodeMap = await json(join(out, 'electrical-node-map.json'))
   assert.equal(modeling.circuitJsonUnits, 'mm', 'Explicit PCB length units')
-  assert.equal(modeling.reduction, 'straightened-stages', 'Reduced channel approximation is explicitly chosen')
-  assert.ok(modeling.stackup.length > 0 && modeling.profiles && modeling.extraction, 'Locked board construction and extraction inputs')
+  assert.ok(['straightened-stages', 'routed-copper'].includes(modeling.reduction), 'Supported channel geometry is explicitly chosen')
+  assert.ok(modeling.stackup.length > 0 && modeling.extraction, 'Locked board construction and extraction inputs')
+  if (modeling.reduction === 'straightened-stages') assert.ok(modeling.profiles, 'Straightened reduction declares finite return profiles')
+  assert.ok(geometry.cells.every(cell => Boolean(cell.routedCopper) === (modeling.reduction === 'routed-copper')), 'Every extracted cell agrees with the declared reduction')
+  const groundCopperAudit = modeling.reduction === 'routed-copper' ? auditGroundCopper(circuit, modeling, geometry) : null
   assert.ok(circuit.some(element => element.type === 'pcb_board'), 'Actual TSX board was rendered')
   assert.ok(circuit.some(element => element.type === 'pcb_trace'), 'Actual routed copper is present')
   assert.ok([1, 2, 3].includes(geometry.mappings.length), 'Declared backend supports one to three lanes')
@@ -239,7 +294,7 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
     studies.push({ id: run.simulationExperimentId, name: run.name, samples: times.length, probes: run.probes.map(probe => ({ ...probe, observedVoltageRangeV: probeValues.get(probe.simulationVoltageProbeId).observedVoltageRangeV, differential: probeValues.get(probe.simulationVoltageProbeId).differential })), eyes: checkedEyes, solverInvocations: actualSolverCommands.length, physicalSupplies, vendorIbis, physicalSanity })
   }
   assert.equal(studies.reduce((count, run) => count + run.eyes.length, 0), eyes.length, 'Every native eye executed')
-  return { status: verifyLiveSources ? 'passed' : 'preflight-passed', liveSourceAndDependencyVerification: verifyLiveSources, directory: out, generatedFilesIndependentlyHashed: Object.keys(hashes).length, packageSourcesIndependentlyHashed: sources.length, converterRuntimeFilesIndependentlyHashed: converterFilesIndependentlyHashed, projectInputsIndependentlyHashed: projectInputs.length, registeredSchemaRoundTripsChecked: schemaRoundTrips, preservedBoardGeometry, independentlyRecomputedMatrices, studies, commands, limitations: receipt.limitations, conclusion: verifyLiveSources ? 'Declared experiments were executed reproducibly and folded from actual voltage observations. This does not independently validate the reduced electrical model or board signal integrity.' : 'Preflight checks executed numerical artifacts and captured inputs only; current source/dependency identity is not accepted until a fresh frozen-source run.' }
+  return { status: verifyLiveSources ? 'passed' : 'preflight-passed', liveSourceAndDependencyVerification: verifyLiveSources, directory: out, generatedFilesIndependentlyHashed: Object.keys(hashes).length, packageSourcesIndependentlyHashed: sources.length, converterRuntimeFilesIndependentlyHashed: converterFilesIndependentlyHashed, projectInputsIndependentlyHashed: projectInputs.length, registeredSchemaRoundTripsChecked: schemaRoundTrips, preservedBoardGeometry, groundCopperAudit, independentlyRecomputedMatrices, studies, commands, limitations: receipt.limitations, conclusion: verifyLiveSources ? 'Declared experiments were executed reproducibly and folded from actual voltage observations. This does not independently validate the reduced electrical model or board signal integrity.' : 'Preflight checks executed numerical artifacts and captured inputs only; current source/dependency identity is not accepted until a fresh frozen-source run.' }
 }
 
 export async function compareRuns(a, b) {

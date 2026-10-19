@@ -31,7 +31,7 @@ const receiver: IbisModelDefinition = {
 export const modeling = {
   ...dqsModeling,
   circuit: "../../am3352.circuit.json",
-  description: "AM3352 DQ0 victim with quiet and switching DQS/DQSn neighbors in a coupled equivalent channel",
+  description: "AM3352 DQ0 victim with quiet and switching DQS/DQSn neighbors; original routed traces and inferred GND copper",
   lanes: [
     {
       port: "DQ0", driverPort: "M3", receiverPort: "E3",
@@ -40,16 +40,6 @@ export const modeling = {
     },
     ...dqsModeling.lanes,
   ],
-  boardConstruction: {
-    ...dqsModeling.boardConstruction,
-    extractionAssumptions: {
-      ...dqsModeling.boardConstruction.extractionAssumptions,
-      separationStatus: "Ordered DQ0, DQS, DQSn at uniform 0.75mm center spacing; equivalent-channel assumption, not the real varying spacing. Original routed coordinates remain preserved.",
-      omissions: dqsModeling.boardConstruction.extractionAssumptions.omissions.map(
-        (item) => item.replace("neighboring-net coupling", "unselected neighboring-net coupling"),
-      ),
-    },
-  },
 }
 
 export default function Board() {
@@ -63,7 +53,7 @@ export default function Board() {
       <voltageprobe name="DQ0_TX" connectsTo=".U1 > .M3" referenceTo=".U1 > .A1" />
       <voltageprobe name="DQS_RX" connectsTo=".U3 > .F3" referenceTo=".U3 > .B1" />
       <voltageprobe name="DQSn_RX" connectsTo=".U3 > .G3" referenceTo=".U3 > .B1" />
-      {/* Keep the coupled geometry, buffers, rails and victim identical in both runs. */}
+      {/* Keep the routed geometry, buffers, rails and victim identical in both runs. */}
       {(["QUIET", "SWITCHING"] as const).map((activity) => {
         const simulationRef = `.DDR_${activity}`
         const neighborBits = { QUIET: "0", SWITCHING: "01" }[activity]

@@ -38,7 +38,9 @@
     "tsx": "4.23.15",
     "circuit-json": "https://pkg.pr.new/circuit-json@d7fe21e",
     "tar": "7.5.22",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "earcut": "3.2.4",
+    "polygon-clipping": "0.15.7"
   },
   "devDependencies": {
     "@tscircuit/core": "https://pkg.pr.new/tscircuit/core/@tscircuit/core@5f03a21",

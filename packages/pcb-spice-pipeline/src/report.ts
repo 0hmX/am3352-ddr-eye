@@ -98,7 +98,7 @@ export function reportContext(circuit: CircuitJson, geometry: Geometry, modeling
       layers: lane.stages.map(stage => stage.profile), widthsMm: [...new Set(lane.stages.filter(stage => stage.kind === 'wire').map(stage => stage.widthMm))],
       vias: lane.stages.filter(stage => stage.kind === 'via').length, route: lane.originalRoute.map(({ x, y }) => ({ x, y })) })),
     settings: [
-      ['Channel model', 'Straightened stages from selected routed traces, with full mutual R/L/C coupling and an explicit finite return conductor'],
+      ['Channel model', modeling.reduction==='routed-copper'?'Original routed signals and inferred ground copper polygons, with mutual R/L/C coupling':'Straightened stages from selected routed traces, with full mutual R/L/C coupling and an explicit finite return conductor'],
       ['R/L model frequency', number(modeling.extraction.modelHz, 'MHz', 1e-6)],
       ['Extraction frequency range', `${number(modeling.extraction.minimumHz, 'Hz')} to ${number(modeling.extraction.maximumHz, 'MHz', 1e-6)}`],
       ['Lumped sections per stage', String(modeling.sections)],
@@ -107,7 +107,8 @@ export function reportContext(circuit: CircuitJson, geometry: Geometry, modeling
         `${number(s.voltageV, 'V DC')}; ${ports[selectPort(circuit, s.positive).source_port_id]} − ${ports[selectPort(circuit, s.negative).source_port_id]}`]),
       ...circuit.filter(e => e.type === 'simulation_voltage_source').map((s): [string, string] => ['Physical voltage source',
         `${number(s.voltage, 'V')} ${s.is_dc_source || !s.wave_shape ? 'DC' : s.wave_shape}; ${label({ ports }, s.is_dc_source ? s.positive_source_port_id ?? s.positive_source_net_id : s.terminal1_source_port_id)} − ${label({ ports }, s.is_dc_source ? s.negative_source_port_id ?? s.negative_source_net_id : s.terminal2_source_port_id)}`]),
-      ...Object.entries(modeling.profiles).map(([name, profile]): [string, string] => [name + ' material / return',
+      ...(modeling.reduction==='routed-copper' ? [['Ground mesh spacing', number(modeling.extraction.groundMeshMm!, 'mm')], ['Homogeneous relative permittivity', number(modeling.relativePermittivity!)] ] as [string,string][] : []),
+      ...Object.entries(modeling.profiles??{}).map(([name, profile]): [string, string] => [name + ' material / return',
         `Signal center spacing ${number(profile.spacingMm, 'mm')}; relative permittivity ${number(profile.relativePermittivity)}; return width ${number(profile.return.widthMm, 'mm')}, thickness ${number(profile.return.thicknessMm, 'mm')}, center y/z ${number(profile.return.centerYMm, 'mm')} / ${number(profile.return.centerZMm, 'mm')}, length factor ${profile.return.lengthFactor}`]),
     ],
   }
