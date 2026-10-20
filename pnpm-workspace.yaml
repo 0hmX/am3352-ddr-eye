@@ -1,6 +1,9 @@
 packages:
   - .
   - packages/*
+# Overrides inject pkg.pr.new previews into tscircuit's transitive dependencies.
+# A fresh install with true fails ERR_PNPM_EXOTIC_SUBDEP on @tscircuit/core.
+# Enable this once the core/props/circuit-json PRs are published to the registry.
 blockExoticSubdeps: false
 allowBuilds:
   esbuild: true
