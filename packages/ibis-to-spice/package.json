@@ -34,7 +34,7 @@
     "@tscircuit/ngspice-spice-engine": "0.0.20",
     "tsup": "8.5.1",
     "typescript": "5.9.3",
-    "circuit-json": "https://pkg.pr.new/circuit-json@33a8207"
+    "circuit-json": "https://pkg.pr.new/circuit-json@6b5a674"
   },
   "license": "MIT",
   "bin": {

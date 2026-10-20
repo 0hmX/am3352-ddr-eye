@@ -10,8 +10,8 @@ allowBuilds:
   '@resvg/resvg-js': true
   sharp: false
 overrides:
-  '@tscircuit/core': https://pkg.pr.new/tscircuit/core/@tscircuit/core@5f03a21
-  '@tscircuit/props': https://pkg.pr.new/@tscircuit/props@c390bfa
+  '@tscircuit/core': https://pkg.pr.new/tscircuit/core/@tscircuit/core@b03ec8e
+  '@tscircuit/props': https://pkg.pr.new/@tscircuit/props@dfd3737
   '@tscircuit/ibis-to-spice': workspace:*
   '@tscircuit/cli': 0.1.2237
   '@tscircuit/eval': 0.0.1538
@@ -28,7 +28,7 @@ overrides:
   "@tscircuit/modelprinter": "0.0.34"
   "@tscircuit/schematic-match-adapt": "0.0.22"
   "bpc-graph": "0.0.67"
-  "circuit-json": https://pkg.pr.new/circuit-json@33a8207
+  "circuit-json": https://pkg.pr.new/circuit-json@6b5a674
   "circuit-json-to-bpc": "0.0.14"
   "circuit-json-to-connectivity-map": "0.0.33"
   "circuit-json-to-spice": "0.0.46"

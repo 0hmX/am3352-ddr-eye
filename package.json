@@ -26,11 +26,11 @@
   },
   "dependencies": {
     "tscircuit": "0.0.2940",
-    "@tscircuit/core": "https://pkg.pr.new/tscircuit/core/@tscircuit/core@5f03a21",
-    "@tscircuit/props": "https://pkg.pr.new/@tscircuit/props@c390bfa",
+    "@tscircuit/core": "https://pkg.pr.new/tscircuit/core/@tscircuit/core@b03ec8e",
+    "@tscircuit/props": "https://pkg.pr.new/@tscircuit/props@dfd3737",
     "@tscircuit/ibis-to-spice": "workspace:*",
     "react": "19.2.4",
-    "circuit-json": "https://pkg.pr.new/circuit-json@33a8207"
+    "circuit-json": "https://pkg.pr.new/circuit-json@6b5a674"
   },
   "devDependencies": {
     "@tscircuit/cli": "0.1.2237",
