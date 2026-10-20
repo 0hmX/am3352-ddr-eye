@@ -1,12 +1,42 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {eyeSimulation,resolveEyeDiagram} from '../src/eyediagram.mjs'
-import {measureWaveform,foldEye} from '../src/metrics.mjs'
+import {measureWaveform,foldEye,foldProbeEye} from '../src/metrics.mjs'
 
 const geometry={mappings:[{from:'driver-p',to:'receiver-p'},{from:'driver-n',to:'receiver-n'}]}
 const declaration={name:'DDR receive eye',positiveSourcePortId:'receiver-p',negativeSourcePortId:'receiver-n',
   unitIntervalSeconds:2.5e-9,durationSeconds:100e-9,timeStepSeconds:10e-12,startTimeSeconds:20e-9}
 const modeling={requireNativeEye:true,simulation:{supplyV:1.5,uiSeconds:999}}
+
+test('empty eye gate reports timing and skipped UIs instead of an empty eye',()=>{
+  const eye={name:'DQ0',column:1,unitIntervalSeconds:2.5e-9,timeOriginSeconds:0,
+    startTimeSeconds:40e-9,endTimeSeconds:45e-9}
+  const rows=[[0,0],[40e-9,1],[45e-9,0]]
+  assert.throws(()=>foldProbeEye(rows,eye,5),error=>{
+    assert.equal(error.code,'eye_windows')
+    assert.match(error.message,/DQ0: no complete two-UI windows/)
+    assert.ok(error.message.includes(`gate [${eye.startTimeSeconds}, ${eye.endTimeSeconds}] s`))
+    assert.ok(error.message.includes(`UI ${eye.unitIntervalSeconds} s`))
+    assert.match(error.message,/skip 16 UI/)
+    return true
+  })
+})
+
+test('two-UI eye windows center half a UI after stimulus bit boundaries',()=>{
+  const ui=2.5e-9,origin=1.25e-9
+  const eye={name:'DQ0',column:1,unitIntervalSeconds:ui,timeOriginSeconds:origin,
+    startTimeSeconds:origin+16*ui,endTimeSeconds:origin+20*ui}
+  // A ramp makes interpolated voltage equal absolute time, independent of bit levels.
+  const folded=foldProbeEye([[0,0],[100e-9,100e-9]],eye,5)
+  assert.deepEqual(folded.boundaryIndices,[17,18])
+  assert.equal(folded.windows,2)
+  for(const [window,offset,time,value] of folded.samples) {
+    const boundary=origin+folded.boundaryIndices[window]*ui
+    assert.ok(Math.abs(time-(boundary-ui/2+offset))<1e-22)
+    assert.ok(Math.abs(value-time)<1e-22)
+    if(offset===ui) assert.ok(Math.abs(time-(boundary+ui/2))<1e-22)
+  }
+})
 
 test('native element owns timing and resolves selected physical receiver probes',()=>{
   const result=eyeSimulation(modeling,[declaration]),eye=resolveEyeDiagram(geometry,result,[declaration])
