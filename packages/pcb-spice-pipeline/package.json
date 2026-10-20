@@ -43,9 +43,9 @@
     "polygon-clipping": "0.15.7"
   },
   "devDependencies": {
-    "@tscircuit/core": "https://pkg.pr.new/tscircuit/core/@tscircuit/core@b03ec8e",
+    "@tscircuit/core": "https://pkg.pr.new/tscircuit/core/@tscircuit/core@e20386d",
     "@tscircuit/ibis-to-spice": "workspace:*",
-    "@tscircuit/props": "https://pkg.pr.new/@tscircuit/props@dfd3737",
+    "@tscircuit/props": "https://pkg.pr.new/@tscircuit/props@ba70063",
     "@types/node": "22.20.5",
     "@types/react": "19.3.0",
     "typescript": "5.9.3"

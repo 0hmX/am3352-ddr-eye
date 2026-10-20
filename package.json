@@ -26,8 +26,8 @@
   },
   "dependencies": {
     "tscircuit": "0.0.2940",
-    "@tscircuit/core": "https://pkg.pr.new/tscircuit/core/@tscircuit/core@b03ec8e",
-    "@tscircuit/props": "https://pkg.pr.new/@tscircuit/props@dfd3737",
+    "@tscircuit/core": "https://pkg.pr.new/tscircuit/core/@tscircuit/core@e20386d",
+    "@tscircuit/props": "https://pkg.pr.new/@tscircuit/props@ba70063",
     "@tscircuit/ibis-to-spice": "workspace:*",
     "react": "19.2.4",
     "circuit-json": "https://pkg.pr.new/circuit-json@6b5a674"

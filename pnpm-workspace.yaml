@@ -10,8 +10,8 @@ allowBuilds:
   '@resvg/resvg-js': true
   sharp: false
 overrides:
-  '@tscircuit/core': https://pkg.pr.new/tscircuit/core/@tscircuit/core@b03ec8e
-  '@tscircuit/props': https://pkg.pr.new/@tscircuit/props@dfd3737
+  '@tscircuit/core': https://pkg.pr.new/tscircuit/core/@tscircuit/core@e20386d
+  '@tscircuit/props': https://pkg.pr.new/@tscircuit/props@ba70063
   '@tscircuit/ibis-to-spice': workspace:*
   '@tscircuit/cli': 0.1.2237
   '@tscircuit/eval': 0.0.1538
