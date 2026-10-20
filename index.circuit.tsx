@@ -23,11 +23,11 @@ export default function Board() {
         }}
       />
       <analog.digitalstimulus name="DQS_P" simulationRef=".DDR_SI"
-        drives=".U1 > .P1" unitInterval="2.5ns" startTime="0ns"
-        initialState={0} pattern={{ type: "bits", bits: "01", repeat: true }} />
+        sourcePinRef=".U1 > .P1" bitDuration="2.5ns" startTime="0ns"
+        initialState={0} transmittedData={{ transmissionType: "bits", bits: "01", repeat: true }} />
       <analog.digitalstimulus name="DQS_N" simulationRef=".DDR_SI"
-        drives=".U1 > .P2" unitInterval="2.5ns" startTime="0ns"
-        initialState={0} inverted pattern={{ type: "bits", bits: "01", repeat: true }} />
+        sourcePinRef=".U1 > .P2" bitDuration="2.5ns" startTime="0ns"
+        initialState={0} inverted transmittedData={{ transmissionType: "bits", bits: "01", repeat: true }} />
       <voltageprobe name="DDR_RX" connectsTo=".U3 > .F3" referenceTo=".U3 > .G3" />
       <voltageprobe name="DDR_TX" connectsTo=".U1 > .P1" referenceTo=".U1 > .P2" />
       <analog.eyediagram

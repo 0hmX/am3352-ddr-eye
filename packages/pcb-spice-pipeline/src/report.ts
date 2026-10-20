@@ -128,8 +128,8 @@ export function reportFiles(data: ReportData): ReportFile[] {
       probes.push([run.name, probe.name, probe.name + '_v', ...probeLabels(probe, data.context), probe.signalSourceId, probe.referenceSourceId, probe.simulationVoltageProbeId])
     }
     for (const stimulus of run.test?.stimuli ?? []) tests.push([i + 1, run.name, label(data.context, stimulus.source_port_id),
-      stimulus.pattern.bits, stimulus.pattern.repeat, Boolean(stimulus.inverted), stimulus.initial_state,
-      stimulus.unit_interval_ms / 1000, stimulus.start_time_ms / 1000, run.test!.startTimeSeconds, run.test!.durationSeconds, run.test!.maxStepSeconds])
+      stimulus.transmission_pattern.bits, stimulus.transmission_pattern.repeat, Boolean(stimulus.inverted), stimulus.initial_state,
+      stimulus.bit_duration_ms / 1000, stimulus.start_time_ms / 1000, run.test!.startTimeSeconds, run.test!.durationSeconds, run.test!.maxStepSeconds])
     run.eyes.forEach((eye, index) => {
       eyes.push([run.name, eye.name, run.probes.find(p => p.simulationVoltageProbeId === eye.simulationVoltageProbeId)?.name,
         eye.startTimeSeconds, eye.endTimeSeconds, eye.unitIntervalSeconds, eye.timeOriginSeconds, eye.windows ?? eye.windowOriginsSeconds?.length,
@@ -188,8 +188,8 @@ export function reportSections(data: ReportData, files: ReportFile[]) {
   const traces = context ? `<div class="board-layout">${routeDrawing(context)}<aside class="trace-inspector"><h2>Selected network</h2>${context.lanes.map((lane, i) => `<div class="trace-row"><h3><span style="color:${['#2563eb', '#e96535', '#159c80'][i % 3]}">●</span> ${html(lane.name)} <small>${data.changes?.length && observed.size ? observed.has(lane.to) ? 'Victim' : 'Neighbor' : ''}</small></h3><div class="pin-pair">${html(label(context, lane.from))} → ${html(label(context, lane.to))}</div><dl><dt>Path length</dt><dd>${number(lane.lengthMm, 'mm')}</dd><dt>Wire width</dt><dd>${lane.widthsMm.map(v => number(v, 'mm')).join(' / ')}</dd><dt>Vias</dt><dd>${lane.vias}</dd></dl><div class="hint">${html(lane.layers.join(' → '))}</div></div>`).join('')}<details><summary>Trace IDs</summary>${table(['Trace', 'Source / PCB ID'], context.lanes.map(lane => [lane.name, `${lane.sourceTraceId} / ${lane.pcbTraceId}`]))}</details></aside></div>` : '<p>Trace geometry unavailable.</p>'
   const plan = data.runs.map(run => `<article class="test-card"><h2>${html(run.name)}</h2>${run.test ? `<p class="hint">${number(run.test.startTimeSeconds, 'ns', 1e9)}–${number(run.test.durationSeconds, 'ns', 1e9)} · max step ${number(run.test.maxStepSeconds, 'ps', 1e12)} · ${run.rows.length.toLocaleString('en-US')} samples</p>${table(['Trace / driver', 'Drive bits', 'Schedule', 'Initial bit'], run.test.stimuli.map(s => [
     `${context?.lanes.find(lane => lane.from === s.source_port_id)?.name ?? 'Signal'} · ${label(context, s.source_port_id)}`,
-    s.inverted ? s.pattern.bits.replace(/[01]/g, bit => bit === '0' ? '1' : '0') : s.pattern.bits,
-    `${s.pattern.repeat ? 'Repeat' : 'Once'}; UI ${number(s.unit_interval_ms, 'ns', 1e6)}; starts ${number(s.start_time_ms, 'ns', 1e6)}`,
+    s.inverted ? s.transmission_pattern.bits.replace(/[01]/g, bit => bit === '0' ? '1' : '0') : s.transmission_pattern.bits,
+    `${s.transmission_pattern.repeat ? 'Repeat' : 'Once'}; UI ${number(s.bit_duration_ms, 'ns', 1e6)}; starts ${number(s.start_time_ms, 'ns', 1e6)}`,
     s.initial_state ^ Number(s.inverted ?? false)]))}${run.test.states?.length ? `<details><summary>Buffer states</summary>${table(['Pin', 'Mode', 'Enabled'], run.test.states.map(state => [label(context, state.source_port_id), ...bufferState(state)]))}</details>` : ''}` : '<p>Settings unavailable.</p>'}</article>`).join('')
   const findings = data.runs.map((run, i) => `<article class="result-card"><div class="result-heading"><h2>${html(run.name)}</h2><button data-run="${i}" data-probe="${Math.max(0, run.probes.findIndex(p => p.name === data.comparisonProbeName))}" data-mode="waveform">Open waveforms</button></div>${table(['Probe', 'Signal − reference', 'Minimum', 'Maximum'], run.probes.map(probe => {
     let minimum = Infinity, maximum = -Infinity

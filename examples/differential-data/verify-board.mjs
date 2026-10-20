@@ -76,7 +76,7 @@ assert.ok(!Object.hasOwn(experiment, "execution_mode"))
 const controls = list("simulation_digital_stimulus")
 assert.equal(controls.length, settings.stimulusCount)
 assert.ok(controls.every(x => x.pattern.bits.includes("00") && x.pattern.bits.includes("11")))
-assert.ok(controls.every(x => Math.abs(x.unit_interval_ms - settings.unitIntervalMs) < 1e-12))
+assert.ok(controls.every(x => Math.abs(x.bit_duration_ms - settings.unitIntervalMs) < 1e-12))
 if (scenario === "rs485") {
   assert.equal(one("simulation_digital_stimulus", x => x.source_port_id === port("TX", "A").source_port_id).inverted, false)
   assert.equal(one("simulation_digital_stimulus", x => x.source_port_id === port("TX", "B").source_port_id).inverted, true)

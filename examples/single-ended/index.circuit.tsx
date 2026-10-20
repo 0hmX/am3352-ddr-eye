@@ -30,9 +30,9 @@ export default function Board() {
     <analog.transientsimulation spiceEngine="pcb_spice" name="SI" duration="1600ns" timePerStep="50ps" ibisPinStates={{
       ".TX > .Y": { isOutput: true, isOutputEnabled: true }, ".RX > .A": { isOutput: false },
     }} />
-    <analog.digitalstimulus name="DATA" simulationRef=".SI" drives=".TX > .Y"
-      unitInterval="50ns" startTime="0ns" initialState={0}
-      pattern={{ type: "bits", bits: "001110100101011000101101", repeat: true }} />
+    <analog.digitalstimulus name="DATA" simulationRef=".SI" sourcePinRef=".TX > .Y"
+      bitDuration="50ns" startTime="0ns" initialState={0}
+      transmittedData={{ transmissionType: "bits", bits: "001110100101011000101101", repeat: true }} />
     <voltageprobe name="DATA_RX" connectsTo=".RX > .A" referenceTo=".RX > .GND" />
     <analog.eyediagram name="CMOS_DATA" simulationRef=".SI" probeRef=".DATA_RX"
       unitInterval="50ns" timeOrigin="0ns" startTime="200ns" endTime="1600ns" />

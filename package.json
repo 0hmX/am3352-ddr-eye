@@ -27,10 +27,10 @@
   "dependencies": {
     "tscircuit": "0.0.2940",
     "@tscircuit/core": "https://pkg.pr.new/tscircuit/core/@tscircuit/core@5f03a21",
-    "@tscircuit/props": "https://pkg.pr.new/@tscircuit/props@2a5a037",
+    "@tscircuit/props": "https://pkg.pr.new/@tscircuit/props@c390bfa",
     "@tscircuit/ibis-to-spice": "workspace:*",
     "react": "19.2.4",
-    "circuit-json": "https://pkg.pr.new/circuit-json@d7fe21e"
+    "circuit-json": "https://pkg.pr.new/circuit-json@33a8207"
   },
   "devDependencies": {
     "@tscircuit/cli": "0.1.2237",

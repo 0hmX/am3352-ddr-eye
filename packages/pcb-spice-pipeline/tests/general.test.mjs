@@ -24,7 +24,7 @@ const fixture=()=>{
     if(state.is_output) state.is_output_enabled=true
     cj.push(state)
   }
-  for(const [i,id] of ['p0','p1'].entries()) cj.push({type:'simulation_digital_stimulus',simulation_experiment_id:'run',source_port_id:id,name:`stimulus${i}`,unit_interval_ms:.001,start_time_ms:0,initial_state:0,inverted:Boolean(i),pattern:{type:'bits',bits:'001110100',repeat:true}})
+  for(const [i,id] of ['p0','p1'].entries()) cj.push({type:'simulation_digital_stimulus',simulation_experiment_id:'run',source_port_id:id,name:`stimulus${i}`,bit_duration_ms:.001,start_time_ms:0,initial_state:0,inverted:Boolean(i),transmission_pattern:{transmission_type:'bits',bits:'001110100',repeat:true}})
   cj.push({type:'simulation_voltage_probe',simulation_voltage_probe_id:'diff',subcircuit_id:'board',name:'diff',signal_input_source_port_id:'p2',reference_input_source_port_id:'p3'},{type:'simulation_voltage_probe',simulation_voltage_probe_id:'single',subcircuit_id:'board',name:'single',signal_input_source_port_id:'p2'})
   for(const [i,probe] of ['diff','single'].entries()) cj.push({type:'simulation_eye_diagram',simulation_eye_diagram_id:`eye-${i}`,simulation_experiment_id:'run',simulation_voltage_probe_id:probe,name:probe,unit_interval_ms:.001,time_origin_ms:.00025,start_time_ms:0,end_time_ms:.01})
   return {cj,m,g:geometryFromCircuitJson(cj,m)}
@@ -58,6 +58,37 @@ test('serialized arbitrary data and two eye measurements share one experiment de
   assert.equal(deck,generalSimulationSpice({...plan,eyes:[]},g,m,extraction,compiled,nodes,electrical),'eye display metadata never changes the electrical experiment')
 })
 
+test('canonical digital fields normalize string and array bits without changing eye timing',()=>{
+  const {cj,m,g}=fixture(),before=structuredClone(cj)
+  const expected=generalDeclarations(cj,g,m)
+  for(const stimulus of cj.filter(e=>e.type==='simulation_digital_stimulus')) stimulus.transmission_pattern.bits=[...stimulus.transmission_pattern.bits].map(Number)
+  const {plans,models}=generalDeclarations(cj,g,m),plan=plans[0]
+  assert.deepEqual(plan.stimuli,expected.plans[0].stimuli)
+  assert.deepEqual(modelRunDefinition(models[0],plan),modelRunDefinition(expected.models[0],expected.plans[0]))
+  assert.equal(plan.stimuli[0].bit_duration_ms,.001)
+  assert.equal(plan.eyes[0].unitIntervalSeconds,1e-6)
+  assert.ok(Array.isArray(cj.find(e=>e.type==='simulation_digital_stimulus').transmission_pattern.bits),'source records remain unchanged')
+  assert.deepEqual(expected.plans[0].stimuli.map(s=>s.transmission_pattern.bits),before.filter(e=>e.type==='simulation_digital_stimulus').map(s=>s.transmission_pattern.bits))
+})
+
+test('digital stimuli reject invalid bits and obsolete field names before solver execution',()=>{
+  for(const bits of ['',[],[0,2],[false,true],['0','1'],[0,null],'012',101]) {
+    const {cj,m,g}=fixture()
+    cj.find(e=>e.type==='simulation_digital_stimulus').transmission_pattern.bits=bits
+    assert.throws(()=>generalDeclarations(cj,g,m),/stimulus_pattern/)
+  }
+  for(const field of ['bit_duration_ms','transmission_pattern','transmission_type']) {
+    const {cj,m,g}=fixture(),stimulus=cj.find(e=>e.type==='simulation_digital_stimulus')
+    if(field==='bit_duration_ms') {stimulus.unit_interval_ms=stimulus[field];delete stimulus[field]}
+    else if(field==='transmission_pattern') {stimulus.pattern=stimulus[field];delete stimulus[field]}
+    else {stimulus.transmission_pattern.type='bits';delete stimulus.transmission_pattern[field]}
+    assert.throws(()=>generalDeclarations(cj,g,m),/simulation_timing|stimulus_pattern/)
+  }
+  const {cj,m,g}=fixture(),stimulus=cj.find(e=>e.type==='simulation_digital_stimulus')
+  stimulus.transmission_pattern={transmission_type:'bits',bits:[0,1],repeat:false}
+  assert.throws(()=>generalDeclarations(cj,g,m),/stimulus_coverage/)
+})
+
 test('canonical DC port and net terminals preserve the explicit supply reference',()=>{
   for(const useNets of [false,true]) {
     const {cj,m,g}=fixture()
@@ -78,7 +109,7 @@ test('missing references, duplicate controls, invalid gates and noncovering bits
     cj=>{cj.find(e=>e.type==='simulation_eye_diagram').simulation_voltage_probe_id='missing'},
     cj=>{cj.push({...cj.find(e=>e.type==='simulation_digital_stimulus')})},
     cj=>{cj.find(e=>e.type==='simulation_eye_diagram').end_time_ms=.02},
-    cj=>{cj.find(e=>e.type==='simulation_digital_stimulus').pattern={type:'bits',bits:'001',repeat:false}},
+    cj=>{cj.find(e=>e.type==='simulation_digital_stimulus').transmission_pattern={transmission_type:'bits',bits:'001',repeat:false}},
     cj=>{cj.find(e=>e.type==='simulation_experiment').time_per_step=0},
     cj=>{cj.find(e=>e.type==='simulation_experiment').subcircuit_id='unrelated'},
   ]) {const {cj,m,g}=fixture();mutate(cj);assert.throws(()=>generalDeclarations(cj,g,m),/reference|duplicate|gate|cover|timing|scope/)}

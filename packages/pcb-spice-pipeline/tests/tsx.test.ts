@@ -19,8 +19,8 @@ const declarations = (componentRef = '.U1') => [
   h(analog.transientsimulation, { name: 'SI', duration: '100ns', timePerStep: '10ps', spiceEngine: 'pcb_spice',
     ibisPinStates: { '.U1 > .DATA': { isOutput: true, isOutputEnabled: true } }, key: 'transient' }),
   h('voltageprobe', { name: 'RX', connectsTo: '.U1 > .DATA', referenceTo: '.U1 > .GND', key: 'probe' }),
-  h(analog.digitalstimulus, { name: 'DATA', simulationRef: '.SI', drives: '.U1 > .DATA', unitInterval: '2.5ns', startTime: '0ns', initialState: 0,
-    pattern: { type: 'bits', bits: '0011', repeat: true }, key: 'stimulus' }),
+  h(analog.digitalstimulus, { name: 'DATA', simulationRef: '.SI', sourcePinRef: '.U1 > .DATA', bitDuration: '2.5ns', startTime: '0ns', initialState: 0,
+    transmittedData: { transmissionType: 'bits', bits: '0011', repeat: true }, key: 'stimulus' }),
   h(analog.eyediagram, { name: 'RX_EYE', simulationRef: '.SI', probeRef: '.RX', unitInterval: '2.5ns', timeOrigin: '0ns', startTime: '20ns', key: 'eye' }),
 ]
 const tree = () => h('board', { width: 10, height: 10, routingDisabled: true, schematicDisabled: true },
@@ -43,6 +43,15 @@ test('native core renders ordinary TSX simulation records without fetching a mod
   const experiment = records.find(e => e.type === 'simulation_experiment')!
   assert.equal(experiment.type, 'simulation_experiment')
   if (experiment.type !== 'simulation_experiment') return
+  const stimulus = records.find(e => e.type === 'simulation_digital_stimulus')!
+  assert.equal(stimulus.type, 'simulation_digital_stimulus')
+  if (stimulus.type !== 'simulation_digital_stimulus') return
+  assert.ok(Math.abs(stimulus.bit_duration_ms - .0000025) < 1e-18)
+  assert.deepEqual(stimulus.transmission_pattern, { transmission_type: 'bits', bits: '0011', repeat: true })
+  const eye = records.find(e => e.type === 'simulation_eye_diagram')!
+  assert.equal(eye.type, 'simulation_eye_diagram')
+  if (eye.type !== 'simulation_eye_diagram') return
+  assert.equal(eye.unit_interval_ms, stimulus.bit_duration_ms)
   assert.equal(experiment.spice_engine, 'pcb_spice')
   assert.ok(Math.abs(experiment.end_time_ms! - .0001) < 1e-18)
 })

@@ -69,15 +69,15 @@ export default function Board() {
             }} />,
           // Repeating 00010111 covers all eight three-bit victim histories.
           <analog.digitalstimulus key={`victim-${activity}`} name={`DQ0_${activity}`} simulationRef={simulationRef}
-            drives=".U1 > .M3" unitInterval="2.5ns" startTime="0ns"
-            initialState={0} pattern={{ type: "bits", bits: "00010111", repeat: true }} />,
+            sourcePinRef=".U1 > .M3" bitDuration="2.5ns" startTime="0ns"
+            initialState={0} transmittedData={{ transmissionType: "bits", bits: "00010111", repeat: true }} />,
           // Quiet neighbors remain driven low/high. Switching edges are DQ-centered.
           <analog.digitalstimulus key={`dqs-${activity}`} name={`DQS_P_${activity}`} simulationRef={simulationRef}
-            drives=".U1 > .P1" unitInterval="2.5ns" startTime="1.25ns"
-            initialState={0} pattern={{ type: "bits", bits: neighborBits, repeat: true }} />,
+            sourcePinRef=".U1 > .P1" bitDuration="2.5ns" startTime="1.25ns"
+            initialState={0} transmittedData={{ transmissionType: "bits", bits: neighborBits, repeat: true }} />,
           <analog.digitalstimulus key={`dqsn-${activity}`} name={`DQS_N_${activity}`} simulationRef={simulationRef}
-            drives=".U1 > .P2" unitInterval="2.5ns" startTime="1.25ns"
-            initialState={0} inverted pattern={{ type: "bits", bits: neighborBits, repeat: true }} />,
+            sourcePinRef=".U1 > .P2" bitDuration="2.5ns" startTime="1.25ns"
+            initialState={0} inverted transmittedData={{ transmissionType: "bits", bits: neighborBits, repeat: true }} />,
           <analog.eyediagram key={`victim-eye-${activity}`} name={`DQ0_receive_eye_${activity}`} simulationRef={simulationRef}
             probeRef=".DQ0_RX" unitInterval="2.5ns" timeOrigin="0ns" startTime="40ns" />,
           <analog.eyediagram key={`strobe-eye-${activity}`} name={`DQS_receive_eye_${activity}`} simulationRef={simulationRef}
