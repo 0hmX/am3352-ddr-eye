@@ -179,19 +179,19 @@ This is the switching experiment from [examples/ddr-dq/index.circuit.tsx](exampl
     }}
   />
   <analog.digitalstimulus
-    name="DQ0_SWITCHING" simulationRef=".DDR_SWITCHING" drives=".U1 > .M3"
-    unitInterval="2.5ns" startTime="0ns" initialState={0}
-    pattern={{ type: "bits", bits: "00010111", repeat: true }}
+    name="DQ0_SWITCHING" simulationRef=".DDR_SWITCHING" sourcePinRef=".U1 > .M3"
+    bitDuration="2.5ns" startTime="0ns" initialState={0}
+    transmittedData={{ transmissionType: "bits", bits: "00010111", repeat: true }}
   />
   <analog.digitalstimulus
-    name="DQS_P_SWITCHING" simulationRef=".DDR_SWITCHING" drives=".U1 > .P1"
-    unitInterval="2.5ns" startTime="1.25ns" initialState={0}
-    pattern={{ type: "bits", bits: "01", repeat: true }}
+    name="DQS_P_SWITCHING" simulationRef=".DDR_SWITCHING" sourcePinRef=".U1 > .P1"
+    bitDuration="2.5ns" startTime="1.25ns" initialState={0}
+    transmittedData={{ transmissionType: "bits", bits: "01", repeat: true }}
   />
   <analog.digitalstimulus
-    name="DQS_N_SWITCHING" simulationRef=".DDR_SWITCHING" drives=".U1 > .P2"
-    unitInterval="2.5ns" startTime="1.25ns" initialState={0} inverted
-    pattern={{ type: "bits", bits: "01", repeat: true }}
+    name="DQS_N_SWITCHING" simulationRef=".DDR_SWITCHING" sourcePinRef=".U1 > .P2"
+    bitDuration="2.5ns" startTime="1.25ns" initialState={0} inverted
+    transmittedData={{ transmissionType: "bits", bits: "01", repeat: true }}
   />
 
   <voltageprobe name="DQ0_RX" connectsTo=".U3 > .E3" referenceTo=".U3 > .B1" />

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 import { readFile } from "node:fs/promises"
+import { transmittedBits } from "../../packages/pcb-spice-pipeline/dist/stimulus.js"
 
 const [file, scenario] = process.argv.slice(2)
 assert.ok(file && ["rs485", "cmos"].includes(scenario), "Usage: node verify-board.mjs CIRCUIT_JSON rs485|cmos")
@@ -75,7 +76,9 @@ assert.equal(experiment.spice_engine, "pcb_spice")
 assert.ok(!Object.hasOwn(experiment, "execution_mode"))
 const controls = list("simulation_digital_stimulus")
 assert.equal(controls.length, settings.stimulusCount)
-assert.ok(controls.every(x => x.pattern.bits.includes("00") && x.pattern.bits.includes("11")))
+assert.ok(controls.every(x => x.transmission_pattern.transmission_type === "bits"))
+const explicitDataBits = controls.map(x => transmittedBits(x.transmission_pattern.bits))
+assert.ok(explicitDataBits.every(bits => bits.includes("00") && bits.includes("11")))
 assert.ok(controls.every(x => Math.abs(x.bit_duration_ms - settings.unitIntervalMs) < 1e-12))
 if (scenario === "rs485") {
   assert.equal(one("simulation_digital_stimulus", x => x.source_port_id === port("TX", "A").source_port_id).inverted, false)
@@ -88,4 +91,4 @@ assert.equal(list("simulation_voltage_probe").length, 2)
 assert.equal(new Set(list("simulation_eye_diagram").map(x => x.simulation_voltage_probe_id)).size, 2)
 console.log(JSON.stringify({ scenario, status: "verified", modelCount: 2, lengthsMm: lengths,
   pcbTraceCount: list("pcb_trace").length, pcbViaCount: list("pcb_via").length,
-  sourceSha256: vendor.sha256, explicitDataBits: controls.map(x => x.pattern.bits) }, null, 2))
+  sourceSha256: vendor.sha256, explicitDataBits }, null, 2))

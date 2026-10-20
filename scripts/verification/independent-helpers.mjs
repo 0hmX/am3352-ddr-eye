@@ -174,9 +174,14 @@ export function vendorPinEvidence(text, componentName, selected, corner = 'typic
 
 // Use native Circuit JSON milliseconds and enumerate bit boundaries directly.
 export function bitSchedule(stimulus, durationMs, vendorPolarity) {
-  assert.equal(stimulus.pattern.type, 'bits')
-  assert.match(stimulus.pattern.bits, /^[01]+$/)
-  const interval = stimulus.unit_interval_ms * 1e-3
+  const pattern = stimulus.transmission_pattern
+  assert.equal(pattern.transmission_type, 'bits')
+  assert.equal(typeof pattern.repeat, 'boolean')
+  if (Array.isArray(pattern.bits)) assert.ok(pattern.bits.length && Array.from(pattern.bits).every(bit => bit === 0 || bit === 1), 'Numeric binary bits')
+  const bits = Array.isArray(pattern.bits) ? pattern.bits.join('') : pattern.bits
+  assert.equal(typeof bits, 'string')
+  assert.match(bits, /^[01]+$/)
+  const interval = stimulus.bit_duration_ms * 1e-3
   const start = stimulus.start_time_ms * 1e-3
   const duration = durationMs * 1e-3
   assert.ok(interval > 0 && start >= 0 && start < duration)
@@ -187,11 +192,11 @@ export function bitSchedule(stimulus, durationMs, vendorPolarity) {
   let previous = initialState
   for (let bit = 0; start + bit * interval < duration - interval * 1e-12; bit++) {
     assert.ok(bit < 100000, 'Bounded explicit bit expansion')
-    assert.ok(stimulus.pattern.repeat || bit < stimulus.pattern.bits.length, 'Nonrepeating data covers experiment')
-    const state = padState(Number(stimulus.pattern.bits[bit % stimulus.pattern.bits.length]))
+    assert.ok(pattern.repeat || bit < bits.length, 'Nonrepeating data covers experiment')
+    const state = padState(Number(bits[bit % bits.length]))
     if (state !== previous) transitions.push({ time: start + bit * interval, state })
     previous = state
   }
   const value = { initialState, transitions, duration }
-  return { ...value, sha256: sha256(JSON.stringify(value)), explicitRepeatedBits: /00|11/.test(stimulus.pattern.bits) }
+  return { ...value, sha256: sha256(JSON.stringify(value)), explicitRepeatedBits: /00|11/.test(bits) }
 }

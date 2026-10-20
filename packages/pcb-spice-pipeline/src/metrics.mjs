@@ -72,7 +72,8 @@ export function foldProbeEye(rows,eye,pointsPerWindow=1200) {
   const start=Math.max(rows[0][0],eye.startTimeSeconds),end=Math.min(rows.at(-1)[0],eye.endTimeSeconds)
   // timeOrigin is the stimulus start/bit-edge origin, not a recovered receive clock.
   // For b_k=origin+k*UI, [b_k-UI/2,b_k+3*UI/2] centers at b_k+UI/2 (mid-bit).
-  const first=Math.ceil((start+ui/2-origin)/ui),last=Math.floor((end-3*ui/2-origin)/ui)
+  const epsilon=1e-9 // Boundary tolerance in UI units, independent of the time scale.
+  const first=Math.ceil((start+ui/2-origin)/ui-epsilon),last=Math.floor((end-3*ui/2-origin)/ui+epsilon)
   if(!Number.isFinite(first)||!Number.isFinite(last)||first>last) fail('eye_windows',`${eye.name}: no complete two-UI windows within measurement gate [${eye.startTimeSeconds}, ${eye.endTimeSeconds}] s; UI ${ui} s; skip ${(eye.startTimeSeconds-origin)/ui} UI from timeOrigin ${origin} s; recorded timestamps [${rows[0][0]}, ${rows.at(-1)[0]}] s`)
   const samples=[],windowOriginsSeconds=[],boundaryIndices=[]
   let index=1
