@@ -16,6 +16,7 @@ import {extractChannel} from './extraction.js'
 import {probeWaveformRows,foldProbeEye} from './metrics.mjs'
 import {command,json,sha256,hashes} from './io.mjs'
 import {fail} from './matrices.mjs'
+import {downloadIbisAsset,type AssetFetchOptions} from './asset-download.js'
 import {packageRoot} from './runtime.mjs'
 import {installedArtifacts} from './setup.js'
 import {writeViewer} from './viewer.js'
@@ -51,6 +52,7 @@ export interface GeneralPipelineOptions {
   originalSourceCircuitJsonSha256?: string
   project?: PipelineProject
   vendorCache?: string
+  assetFetch?: AssetFetchOptions
   onProgress?: (message: string) => void
 }
 
@@ -61,7 +63,7 @@ const safeId=(id: string): string=>{
   if(typeof id!=='string'||!/^[a-zA-Z0-9_-]+$/.test(id)) fail('simulation_id','Serialized simulation IDs must be safe stable identifiers')
   return id
 }
-export async function loadModelSource(model: Pick<SimulationIbisModel,'ibis_model_asset'> & {pipelineId: string},baseDir: string,cache: string) {
+export async function loadModelSource(model: Pick<SimulationIbisModel,'ibis_model_asset'> & {pipelineId: string},baseDir: string,cache: string,fetchOptions: AssetFetchOptions={}) {
   const asset=model.ibis_model_asset,path=asset.project_relative_path
   const parts=path.split(/[\\/]/)
   if(!path||isAbsolute(path)||path.startsWith('\\')||/^[a-z]:/i.test(path)||parts.includes('..')) fail('ibis_asset_path','IBIS project_relative_path must stay inside the circuit project')
@@ -75,10 +77,7 @@ export async function loadModelSource(model: Pick<SimulationIbisModel,'ibis_mode
   } catch(error) {if(!missingFile(error)) throw error}
   if(!bytes) {
     if(!/^https?:\/\//i.test(asset.url)) fail('ibis_asset_missing',`IBIS asset not found at ${path}; provide the file or an HTTP(S) IBIS URL. For repository examples, run pnpm simulate:models`)
-    const response=await fetch(asset.url)
-    if(!response.ok) fail('vendor_download',`IBIS asset HTTP ${response.status}: ${asset.url}`)
-    if(/text\/html/i.test(response.headers.get('content-type')??'')) fail('ibis_asset','IBIS asset URL returned HTML instead of model data')
-    bytes=Buffer.from(await response.arrayBuffer());resolvedFrom='url';resolvedPath=undefined
+    bytes=await downloadIbisAsset(asset.url,fetchOptions);resolvedFrom='url';resolvedPath=undefined
   }
   if(bytes.length>64*1024*1024) fail('ibis_asset','IBIS asset exceeds 64 MiB')
   if(bytes[0]===0x50&&bytes[1]===0x4b) fail('ibis_asset','IBIS asset must be a plain .ibs file; extract ZIP archives before declaring ibisModelAsset')
@@ -123,7 +122,7 @@ export async function nativeToolEvidence(tools: NativeTools) {
   return {...evidence,setup}
 }
 
-export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,baseDir=process.cwd(),entryBytes,entryPath,circuitBytes,originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256,project,vendorCache=join(packageRoot,'.cache/vendors'),onProgress=()=>{}}: GeneralPipelineOptions) {
+export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,baseDir=process.cwd(),entryBytes,entryPath,circuitBytes,originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256,project,vendorCache=join(packageRoot,'.cache/vendors'),assetFetch,onProgress=()=>{}}: GeneralPipelineOptions) {
   const out=resolve(outputDir)
   try {await stat(out);fail('output_exists',`Use a fresh output directory: ${out}`)} catch(error) {if(!missingFile(error)) throw error}
   validateCircuitRecords(circuitJson)
@@ -145,7 +144,7 @@ export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,b
       expected=expectedHashes[path]
       if(typeof expected!=='string'||!/^[a-f0-9]{64}$/i.test(expected)) fail('vendor_hash',`${path}: modeling.ibisModelAssetSha256 requires an expected 64-digit SHA-256 hash for each used IBIS asset`)
     }
-    const source=await loadModelSource(model,project?.root??baseDir,vendorCache)
+    const source=await loadModelSource(model,project?.root??baseDir,vendorCache,assetFetch)
     if(expected!==undefined&&source.evidence.sourceSha256!==expected.toLowerCase()) fail('vendor_hash',`${path}: IBIS asset bytes differ from modeling.ibisModelAssetSha256`)
     loaded.push(source)
   }

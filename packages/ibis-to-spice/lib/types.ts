@@ -24,6 +24,7 @@ export interface IbisBuffer {
   pulldownReference?: IbisRange
   powerClampReference?: IbisRange
   groundClampReference?: IbisRange
+  externalReference?: IbisRange
   waveforms: IbisWaveform[]
 }
 
@@ -145,7 +146,7 @@ export interface IbisConversionMetadata {
   omissions: string[]
   packageData: { coupledModel?: string; mappedPins: Array<{ physicalPin: string; port: string; role: "signal" | "reference"; resistanceOhms: number | null; inductanceHenries: number | null; capacitanceFarads: number | null }> }
   differentialPins: IbisComponent["differentialPins"]
-  pins: Array<{ physicalPin: string; port: string; model: string; selector: string; selectorChoices: string[]; modelType: string; polarity: string; polarityDeclared: boolean; enable?: string; enableControlLevel?: 0 | 1; runState: IbisPinRunState; references: Required<Omit<IbisReferencePorts, "external">>; stimulusHash?: string }>
+  pins: Array<{ physicalPin: string; port: string; model: string; selector: string; selectorChoices: string[]; modelType: string; polarity: string; polarityDeclared: boolean; enable?: string; enableControlLevel?: 0 | 1; runState: IbisPinRunState; references: Required<Omit<IbisReferencePorts, "external">> & Pick<IbisReferencePorts, "external">; stimulusHash?: string }>
 }
 export interface ConvertedGeneralIbisComponent extends ConvertedIbisComponent {
   metadata: IbisConversionMetadata

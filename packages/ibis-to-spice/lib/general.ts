@@ -24,7 +24,7 @@ export function logicalBitSchedule(stimulus: IbisBitsStimulus, durationInput: Ib
   if (startTime >= duration) throw new IbisError("invalid_stimulus", "Stimulus startTime must precede simulation duration")
   const intervals = (duration - startTime) / unitInterval
   const count = Math.max(1, Math.ceil(intervals - Math.max(1, intervals) * Number.EPSILON * 8))
-  if (count > 100000) throw new IbisError("stimulus_too_long", "Stimulus exceeds 100000 bit intervals")
+  if (!Number.isFinite(intervals) || count > 100000) throw new IbisError("stimulus_too_long", "Stimulus exceeds 100000 bit intervals")
   if (!stimulus.pattern.repeat && count > stimulus.pattern.bits.length)
     throw new IbisError("uncovered_stimulus", "Nonrepeating bits must cover the simulation duration")
   const invert = Number(Boolean(stimulus.inverted)) ^ Number(polarity === "inverting")
@@ -74,24 +74,18 @@ export function bitWeights(converted: ConvertedBuffer, schedule: LogicalSchedule
   return samples
 }
 
-function resolveReferences(component: IbisComponent, definition: IbisModelDefinition, physicalPin: string, buffer: IbisBuffer): Required<Omit<IbisReferencePorts, "external">> {
+function resolveReferences(component: IbisComponent, definition: IbisModelDefinition, physicalPin: string, buffer: IbisBuffer): Required<Omit<IbisReferencePorts, "external">> & Pick<IbisReferencePorts, "external"> {
   const explicit = definition.references?.[physicalPin] ?? {}, vendor = component.pinMapping[physicalPin]
   for (const [key, value] of Object.entries(explicit)) if (value !== undefined && (typeof value !== "string" || !value))
     throw new IbisError("invalid_reference", `${physicalPin}: ${key} reference must name a local TSX port`)
-  if (explicit.external || vendor?.external)
-    throw new IbisError("unsupported_reference", `${physicalPin}: external reference control is unsupported`)
-  const mappedPorts = new Set(Object.values(definition.pinMap))
-  const infer = (key: "pullup" | "pulldown" | "powerClamp" | "groundClamp"): string => {
-    if (explicit[key]) {
-      if (!mappedPorts.has(explicit[key]!)) throw new IbisError("invalid_reference", `${physicalPin}: reference ${explicit[key]} is absent from pinMap`)
-      return explicit[key]!
-    }
-    const kind = key === "pullup" || key === "powerClamp" ? "power" : "gnd"
+  const infer = (key: "pullup" | "pulldown" | "powerClamp" | "groundClamp" | "external"): string => {
+    if (explicit[key]) return explicit[key]!
+    const kind = key === "pullup" || key === "powerClamp" || key === "external" ? "power" : "gnd"
     const network = vendor?.[key]
     const candidates = Object.entries(definition.pinMap).filter(([pin]) => {
       const candidate = component.pins[pin]
       if (candidate?.model.toLowerCase() !== kind) return false
-      return !network || component.pinMapping[pin]?.[key] === network || candidate.signal === network || pin === network
+      return !network || component.pinMapping[pin]?.[key === "external" ? "pullup" : key] === network || candidate.signal === network || pin === network
     }).map(([, port]) => port)
     const unique = [...new Set(candidates)]
     if (unique.length !== 1) throw new IbisError("ambiguous_reference", `${physicalPin}: explicit ${key} reference required; vendor data does not identify exactly one mapped ${kind} port`)
@@ -109,7 +103,8 @@ function resolveReferences(component: IbisComponent, definition: IbisModelDefini
   const powerClamp = explicit.powerClamp || vendor?.powerClamp ? infer("powerClamp") : pullup
   const groundClamp = explicit.groundClamp || vendor?.groundClamp ? infer("groundClamp") : pulldown
   if (pullup === pulldown) throw new IbisError("invalid_reference", `${physicalPin}: pullup and pulldown references must differ`)
-  return { pullup, pulldown, powerClamp, groundClamp }
+  const external = explicit.external || vendor?.external ? infer("external") : undefined
+  return { pullup, pulldown, powerClamp, groundClamp, ...(external ? { external } : {}) }
 }
 
 function pinPackage(component: IbisComponent, physicalPin: string, corner: IbisCorner): [number, number, number] {
@@ -165,7 +160,7 @@ export function convertIbisModelToSpice(input: string | Uint8Array, definition: 
       const delay = pair.delay[{ typical: 0, minimum: 1, maximum: 2 }[definition.corner]]
       if (delay !== null && delay !== 0) throw new IbisError("unsupported_diff_delay", `${physicalPin}: nonzero vendor differential pair delay is unsupported`)
     }
-    convertedBuffers.push(convertIbisBuffer(document, model, { corner: definition.corner, mode: enabled ? "output" : "input", separateReferences: true, skipSwitchingWeights: schedule?.transitions.length === 0 }))
+    convertedBuffers.push(convertIbisBuffer(document, model, { corner: definition.corner, mode: enabled ? "output" : "input", separateReferences: true, externalReference: Boolean(references.external), skipSwitchingWeights: schedule?.transitions.length === 0 }))
     schedules.push(schedule)
     const enableControlLevel = state.mode === "output" && buffer.enable ? (Number(state.enabled) ^ Number(buffer.enable === "active-low")) as 0 | 1 : undefined
     pins.push({ physicalPin, port, model, selector: pin.model, selectorChoices: choices, modelType: buffer.type, polarity: buffer.polarity ?? "non-inverting", polarityDeclared: buffer.polarity !== undefined, enable: buffer.enable, enableControlLevel, runState: state, references, stimulusHash: schedule?.sha256 })
@@ -209,7 +204,7 @@ export function convertIbisModelToSpice(input: string | Uint8Array, definition: 
       const weights = bitWeights(converted, schedule)
       for (const [label, column] of [["KU", 1], ["KD", 2]] as const) lines.push(`V${label}${i} ${label}${i} ${ground} PWL(${weights.map((sample) => `${spiceNumber(sample[0])} ${spiceNumber(sample[column])}`).join(" ")})`)
     }
-    lines.push(`XBUF${i} ${die} ${[pin.references.pullup, pin.references.pulldown, pin.references.powerClamp, pin.references.groundClamp].map(refNode).join(" ")}${schedule ? ` KU${i} KD${i}` : ""} ${bufferName}`)
+    lines.push(`XBUF${i} ${die} ${[pin.references.pullup, pin.references.pulldown, pin.references.powerClamp, pin.references.groundClamp, ...(pin.references.external ? [pin.references.external] : [])].map(refNode).join(" ")}${schedule ? ` KU${i} KD${i}` : ""} ${bufferName}`)
   }
   lines.push(`.ends ${name}`)
   return { source: [...lines, ...buffers].join("\n") + "\n", spicePinMapping: mapping, sourceSha256: hash, warnings: omissions, metadata }

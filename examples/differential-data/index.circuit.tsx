@@ -37,10 +37,10 @@ export default function Board() {
       ".TX > .A": { isOutput: true, isOutputEnabled: true }, ".TX > .B": { isOutput: true, isOutputEnabled: true },
       ".RX > .A": { isOutput: false }, ".RX > .B": { isOutput: false },
     }} />
-    <analog.digitalstimulus name="DATA_A" simulationRef=".SI" drives=".TX > .A"
-      unitInterval="4us" startTime="0us" initialState={0} pattern={{ type: "bits", bits, repeat: true }} />
-    <analog.digitalstimulus name="DATA_B" simulationRef=".SI" drives=".TX > .B"
-      unitInterval="4us" startTime="0us" initialState={0} inverted pattern={{ type: "bits", bits, repeat: true }} />
+    <analog.digitalstimulus name="DATA_A" simulationRef=".SI" sourcePinRef=".TX > .A"
+      bitDuration="4us" startTime="0us" initialState={0} transmittedData={{ transmissionType: "bits", bits, repeat: true }} />
+    <analog.digitalstimulus name="DATA_B" simulationRef=".SI" sourcePinRef=".TX > .B"
+      bitDuration="4us" startTime="0us" initialState={0} inverted transmittedData={{ transmissionType: "bits", bits, repeat: true }} />
     <voltageprobe name="BUS_RX" connectsTo=".RX > .A" referenceTo=".RX > .B" />
     <analog.eyediagram name="RS485_DATA" simulationRef=".SI" probeRef=".BUS_RX"
       unitInterval="4us" timeOrigin="0us" startTime="16us" endTime="128us" />

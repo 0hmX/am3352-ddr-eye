@@ -1,3 +1,4 @@
+import {transmittedBits} from './stimulus.js'
 import {fail} from './matrices.mjs'
 import {selectPort} from './geometry.js'
 
@@ -40,7 +41,7 @@ export interface SimulationPlan {
   maxStepSeconds: number
   experiment: SimulationExperiment
   states: SimulationIbisPinState[]
-  stimuli: SimulationDigitalStimulus[]
+  stimuli: (SimulationDigitalStimulus & {transmission_pattern: {bits: string}})[]
   probes: VoltageProbePlan[]
   eyes: EyePlan[]
   models: PipelineIbisModel[]
@@ -89,7 +90,7 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Geometry,mode
       seen.add(id)
     }
   }
-  const errors=circuit.filter(e=>e.type==='source_invalid_component_property_error').filter(e=>['ibisModel','ibisPinStates','probeRef','simulationRef','drives'].includes(e.property_name))
+  const errors=circuit.filter(e=>e.type==='source_invalid_component_property_error').filter(e=>['ibisModel','ibisPinStates','probeRef','simulationRef','sourcePinRef','bitDuration','transmittedData'].includes(e.property_name))
   if(errors.length) fail('native_declaration',errors.map(e=>e.message).join('; '))
   const models=circuit.filter(e=>e.type==='simulation_ibis_model').map((model,i)=>({...model,pipelineId:model.simulation_ibis_model_id??`model-${i}`}))
   if(!models.length) fail('ibis_model','At least one serialized native IBIS model required')
@@ -114,6 +115,8 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Geometry,mode
   }
   for(const model of models) {
     const sourceComponent=exactly(components.filter(e=>e.source_component_id===model.source_component_id),`${model.pipelineId} component`)
+    for(const refs of Object.values(model.ibis_pin_name_to_reference_source_port_ids??{}))
+      for(const id of Object.values(refs)) if(id!==undefined&&(!ports.has(id)||ports.get(id)?.source_component_id!==sourceComponent.source_component_id)) fail('ibis_mapping',`${sourceComponent.name}: reference port points outside its chip`)
     for(const id of Object.values(model.ibis_pin_name_to_source_port_id??{})) if(!ports.has(id)||ports.get(id)?.source_component_id!==sourceComponent.source_component_id) fail('ibis_mapping',`${sourceComponent.name}: physical pin mapping points outside its chip`)
   }
   const declaredExperiments=circuit.filter(e=>e.type==='simulation_experiment')
@@ -140,7 +143,7 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Geometry,mode
     const durationSeconds=milliseconds(experiment.end_time_ms,`${id} end_time_ms`,{positive:true}),startTimeSeconds=milliseconds(experiment.start_time_ms??0,`${id} start_time_ms`),maxStepSeconds=milliseconds(experiment.time_per_step,`${id} time_per_step`,{positive:true})
     if(startTimeSeconds>=durationSeconds||maxStepSeconds>=durationSeconds-startTimeSeconds) fail('simulation_timing',`${experiment.name}: recording must have positive duration and a smaller maximum timestep`)
     const states=circuit.filter(e=>e.type==='simulation_ibis_pin_state').filter(e=>e.simulation_experiment_id===id)
-    const stimuli=circuit.filter(e=>e.type==='simulation_digital_stimulus').filter(e=>e.simulation_experiment_id===id)
+    const stimuli=circuit.filter(e=>e.type==='simulation_digital_stimulus').filter(e=>e.simulation_experiment_id===id).map(stimulus=>({...stimulus,transmission_pattern:{...stimulus.transmission_pattern,bits:transmittedBits(stimulus.transmission_pattern?.bits)}}))
     const stateIds=new Set<string>(),stimulusIds=new Set<string>()
     for(const state of states) {
       if(stateIds.has(state.source_port_id)) fail('ibis_state',`${experiment.name}: duplicate run state for ${state.source_port_id}`)
@@ -158,11 +161,11 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Geometry,mode
       stimulusIds.add(stimulus.source_port_id)
       const state=states.find(s=>s.source_port_id===stimulus.source_port_id)
       if(state?.is_output!==true||state.is_output_enabled!==true) fail('stimulus_state',`${stimulus.name}: stimulus requires an enabled IBIS output in this experiment`)
-      milliseconds(stimulus.unit_interval_ms,`${stimulus.name} unit_interval_ms`,{positive:true})
+      milliseconds(stimulus.bit_duration_ms,`${stimulus.name} bit_duration_ms`,{positive:true})
       milliseconds(stimulus.start_time_ms,`${stimulus.name} start_time_ms`)
-      if(![0,1].includes(stimulus.initial_state)||(stimulus.inverted!==undefined&&typeof stimulus.inverted!=='boolean')||stimulus.pattern?.type!=='bits'||!/^[01]+$/.test(stimulus.pattern.bits)||typeof stimulus.pattern.repeat!=='boolean') fail('stimulus_pattern',`${stimulus.name}: explicit binary bits, inversion/repeat booleans and initial state required`)
+      if(![0,1].includes(stimulus.initial_state)||(stimulus.inverted!==undefined&&typeof stimulus.inverted!=='boolean')||stimulus.transmission_pattern?.transmission_type!=='bits'||typeof stimulus.transmission_pattern.repeat!=='boolean') fail('stimulus_pattern',`${stimulus.name}: explicit binary bits, inversion/repeat booleans and initial state required`)
       if(stimulus.start_time_ms/1000>=durationSeconds) fail('stimulus_coverage',`${stimulus.name}: stimulus starts after the experiment ends`)
-      if(!stimulus.pattern.repeat&&(stimulus.start_time_ms+stimulus.pattern.bits.length*stimulus.unit_interval_ms)/1000<durationSeconds-1e-12*durationSeconds) fail('stimulus_coverage',`${stimulus.name}: nonrepeating bits do not cover the complete run`)
+      if(!stimulus.transmission_pattern.repeat&&(stimulus.start_time_ms+stimulus.transmission_pattern.bits.length*stimulus.bit_duration_ms)/1000<durationSeconds-1e-12*durationSeconds) fail('stimulus_coverage',`${stimulus.name}: nonrepeating bits do not cover the complete run`)
     }
     for(const state of states) if(state.is_output&&state.is_output_enabled&&!stimulusIds.has(state.source_port_id)) fail('stimulus_missing',`${experiment.name}: enabled output requires one explicit digital stimulus`)
     const eyeRecords=circuit.filter(e=>e.type==='simulation_eye_diagram').filter(e=>e.simulation_experiment_id===id)
@@ -194,7 +197,7 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Geometry,mode
 
 export function modelRunDefinition(model: PipelineIbisModel,plan: SimulationPlan): ModelRunDefinition {
   const pinMap=model.ibis_pin_name_to_source_port_id,selected=new Set(Object.values(pinMap))
-  const pinStates: IbisRunConfig['pinStates']={},stimuli: IbisRunConfig['stimuli']={}
+  const pinStates: IbisRunConfig['pinStates']=Object.create(null),stimuli: IbisRunConfig['stimuli']=Object.create(null)
   for(const state of plan.states) if(selected.has(state.source_port_id)) {
     if(!state.is_output) pinStates[state.source_port_id]={mode:'input'}
     else {
@@ -202,7 +205,7 @@ export function modelRunDefinition(model: PipelineIbisModel,plan: SimulationPlan
       pinStates[state.source_port_id]={mode:'output',enabled:state.is_output_enabled}
     }
   }
-  for(const stimulus of plan.stimuli) if(selected.has(stimulus.source_port_id)) stimuli[stimulus.source_port_id]={unitInterval:stimulus.unit_interval_ms,startTime:stimulus.start_time_ms,initialState:stimulus.initial_state,inverted:stimulus.inverted??false,pattern:stimulus.pattern}
+  for(const stimulus of plan.stimuli) if(selected.has(stimulus.source_port_id)) stimuli[stimulus.source_port_id]={unitInterval:stimulus.bit_duration_ms,startTime:stimulus.start_time_ms,initialState:stimulus.initial_state,inverted:stimulus.inverted??false,pattern:{type:'bits',bits:stimulus.transmission_pattern.bits,repeat:stimulus.transmission_pattern.repeat}}
   const references: Record<string,IbisReferencePorts>=Object.fromEntries(Object.entries(model.ibis_pin_name_to_reference_source_port_ids??{}).map(([pin,refs])=>[pin,{pullup:refs.pullup_reference_source_port_id,pulldown:refs.pulldown_reference_source_port_id,powerClamp:refs.power_clamp_reference_source_port_id,groundClamp:refs.ground_clamp_reference_source_port_id,external:refs.external_reference_source_port_id}]))
   let packagePolicy: IbisModelDefinition['packagePolicy']='omit'
   if(model.include_package_parasitics) packagePolicy='vendor'

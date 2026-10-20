@@ -161,6 +161,7 @@ function parseBuffer(name: string, text: string): IbisBuffer {
     "pulldown reference": "pulldownReference",
     "power clamp reference": "powerClampReference",
     "gnd clamp reference": "groundClampReference",
+    "external reference": "externalReference",
   }
   const tables: Record<string, keyof IbisBuffer> = {
     pullup: "pullup",
@@ -178,6 +179,7 @@ function parseBuffer(name: string, text: string): IbisBuffer {
       "pulldown reference",
       "power clamp reference",
       "gnd clamp reference",
+      "external reference",
       "pullup",
       "pulldown",
       "power clamp",

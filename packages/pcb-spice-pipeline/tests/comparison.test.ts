@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { assertComparable, compareRuns, comparisonIdentity, comparisonPairs, stimulusActivity, waveformDifference,
   type ComparisonInput } from '../src/comparison.js'
@@ -13,8 +14,8 @@ const fixture = (): ComparisonInput => {
     network: { geometry: 'same-network', circuit: 'same-circuit', modeling: 'same-modeling' },
     geometry: { mappings: [{ from: 'tx0', to: 'rx0' }, { from: 'tx1', to: 'rx1' }] },
     plan: { startTimeSeconds: 0, durationSeconds: 10, maxStepSeconds: .01, experiment: {},
-      stimuli: ['tx0', 'tx1'].map((port, index) => ({ source_port_id: port, unit_interval_ms: 1000,
-        start_time_ms: 0, initial_state: 0, pattern: { type: 'bits', bits: index ? '0' : '00101101', repeat: true } })) },
+      stimuli: ['tx0', 'tx1'].map((port, index) => ({ source_port_id: port, bit_duration_ms: 1000,
+        start_time_ms: 0, initial_state: 0, transmission_pattern: { transmission_type: 'bits', bits: index ? '0' : '00101101', repeat: true } })) },
     assembly: [{ sourceSha256: 'same-vendor-model', definition: { source: { content: 'vendor' }, component: 'chip',
       pinMap: { '1': 'tx0', '2': 'tx1', '3': 'rx0', '4': 'rx1' }, corner: 'typical', packagePolicy: 'vendor' },
       spicePinMapping: { P1: 'tx0', P2: 'tx1', P3: 'rx0', P4: 'rx1' }, metadata: {
@@ -33,12 +34,12 @@ const fixture = (): ComparisonInput => {
 
 test('comparison permits only selected neighbor traffic changes', () => {
   const quiet = fixture(), active = structuredClone(quiet)
-  active.plan.stimuli[1].pattern.bits = '01'
+  active.plan.stimuli[1].transmission_pattern.bits = '01'
   active.assembly[0].metadata.pins[1].stimulusHash = 'different-neighbor-schedule'
   assert.doesNotThrow(() => assertComparable([comparisonIdentity(quiet), comparisonIdentity(active)]))
   for (const mutate of [
     (input: ComparisonInput) => { input.network.geometry = 'different-route' },
-    (input: ComparisonInput) => { input.plan.stimuli[0].pattern.bits = '0101' },
+    (input: ComparisonInput) => { input.plan.stimuli[0].transmission_pattern.bits = '0101' },
     (input: ComparisonInput) => { input.plan.maxStepSeconds *= 2 },
     (input: ComparisonInput) => { input.plan.experiment.spice_options = { method: 'trap' } },
     (input: ComparisonInput) => { input.plan.experiment.spice_options = { reltol: 1e-3 } },
@@ -65,20 +66,30 @@ test('comparison permits only selected neighbor traffic changes', () => {
   assert.throws(() => comparisonIdentity(differential), /ground-referenced/)
 })
 
+test('comparison treats binary arrays and strings as identical declared traffic', () => {
+  const strings = fixture(), arrays = structuredClone(strings)
+  for (const stimulus of arrays.plan.stimuli) stimulus.transmission_pattern.bits = [0, 1]
+  for (const stimulus of strings.plan.stimuli) stimulus.transmission_pattern.bits = '01'
+  assert.deepEqual(stimulusActivity(arrays.plan.stimuli[0], 0, 10), stimulusActivity(strings.plan.stimuli[0], 0, 10))
+  assert.deepEqual(comparisonIdentity(arrays), comparisonIdentity(strings))
+  assert.throws(() => stimulusActivity({ ...arrays.plan.stimuli[0], transmission_pattern: {
+    transmission_type: 'bits', bits: [], repeat: true } }, 0, 10), /comparison_traffic/)
+})
+
 test('quiet includes startup and pairing follows declared activity, not ordering or names', () => {
-  const quiet = fixture().plan.stimuli[1], switching = { ...quiet, pattern: { ...quiet.pattern, bits: '01' } }
+  const quiet = fixture().plan.stimuli[1], switching = { ...quiet, transmission_pattern: { ...quiet.transmission_pattern, bits: '01' } }
   const neighbor = (stimulus: typeof quiet) => ({ from: 'tx1', to: 'rx1',
     wholeRun: stimulusActivity(stimulus, 0, 10), gate: stimulusActivity(stimulus, 2, 10) })
   const runs = [{ label: 'arbitrary active name', neighbors: [neighbor(switching)] },
     { label: 'arbitrary quiet name', neighbors: [neighbor(quiet)] }]
   assert.deepEqual(comparisonPairs(runs), [{ quietIndex: 1, activeIndex: 0, quiet: 'arbitrary quiet name', active: 'arbitrary active name' }])
-  const startup = { ...quiet, pattern: { ...quiet.pattern, bits: '1' } }
+  const startup = { ...quiet, transmission_pattern: { ...quiet.transmission_pattern, bits: '1' } }
   assert.equal(neighbor(startup).wholeRun.behavior, 'switching')
   assert.equal(neighbor(startup).gate.behavior, 'constant')
   assert.throws(() => comparisonPairs([runs[1], { label: 'startup-only', neighbors: [neighbor(startup)] }]), /measurement gate/)
   assert.throws(() => comparisonPairs([]), /comparison_case/)
   assert.throws(() => comparisonPairs([runs[0], runs[0]]), /comparison_case/)
-  assert.throws(() => stimulusActivity({ ...quiet, pattern: { ...quiet.pattern, repeat: false } }, 2, 10), /cover/)
+  assert.throws(() => stimulusActivity({ ...quiet, transmission_pattern: { ...quiet.transmission_pattern, repeat: false } }, 2, 10), /cover/)
 })
 
 test('waveform difference integrates a triangle exactly across different adaptive time axes', () => {
@@ -125,7 +136,7 @@ test('saved-run comparison binds artifacts and computes pairs before shared rend
   const experiments = []
   for (const [name, bits, values] of [['quiet', '0', '0'], ['switching', '01', '.2']]) {
     const folder = `experiments/${name}`, waveform = `time_s,probe_v\n0,${values}\n5,${values}\n10,${values}\n`
-    const plan = structuredClone(input.plan); plan.stimuli[1].pattern.bits = bits
+    const plan = structuredClone(input.plan); plan.stimuli[1].transmission_pattern.bits = bits
     const eye = { ...input.eye, sourceSha256: hash(waveform) }
     await save(`${folder}/waveform.csv`, waveform)
     await save(`${folder}/experiment.json`, plan)
@@ -151,4 +162,16 @@ test('saved-run comparison binds artifacts and computes pairs before shared rend
   await assert.rejects(compareRuns({ directories: [directory], outputDir, probeName: 'DQ_RX' }), /EEXIST/)
   await writeFile(join(directory, 'experiments/quiet/waveform.csv'), 'changed after receipt')
   await assert.rejects(compareRuns({ directories: [directory], outputDir: join(directory, 'rejected'), probeName: 'DQ_RX' }), /comparison_provenance/)
+})
+
+test('unsafe traffic indices fail promptly instead of stalling the loop', () => {
+  const stimulus = { ...fixture().plan.stimuli[1], bit_duration_ms: 1e-13,
+    transmission_pattern: { transmission_type: 'bits', bits: '01', repeat: true } }
+  const result = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', `
+    import assert from 'node:assert/strict'
+    import { stimulusActivity } from ${JSON.stringify(new URL('../src/comparison.ts', import.meta.url).href)}
+    assert.throws(() => stimulusActivity(${JSON.stringify(stimulus)}, 1, 2), /comparison_traffic.*safe/)
+  `], { timeout: 5000, encoding: 'utf8' })
+  assert.ifError(result.error)
+  assert.equal(result.status, 0, result.stderr)
 })

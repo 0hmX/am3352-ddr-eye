@@ -33,8 +33,8 @@ test('report maps physical traces and probes, exports every recorded sample and 
         timeOriginSeconds:0,windows:1,metrics:{voltageRangeV:[-.1,5]},csv:eyeCsv}],
       test:{startTimeSeconds:0,durationSeconds:1,maxStepSeconds:.01,models:[],states:[],stimuli:[{
         type:'simulation_digital_stimulus',simulation_digital_stimulus_id:'s',name:'DATA',simulation_experiment_id:'e',
-        source_port_id:'tx',unit_interval_ms:100,start_time_ms:0,initial_state:0,inverted:true,
-        pattern:{type:'bits',bits:'0011',repeat:true},
+        source_port_id:'tx',bit_duration_ms:100,start_time_ms:0,initial_state:0,inverted:true,
+        transmission_pattern:{transmission_type:'bits',bits:'0011',repeat:true},
       }]}}, {name:'A?B',rows:[[0,1],[1,2]],probes:[{name:'RX',column:1}],eyes:[]}],limitations:['Finite observations']}
   await writeViewerData(join(directory,'results.html'),data)
   const html=await readFile(join(directory,'results.html'),'utf8')

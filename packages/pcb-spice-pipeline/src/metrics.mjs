@@ -36,12 +36,26 @@ export function measureWaveform(rows,s,eye={endpoint:'receiver',differentialColu
   return {kind:'deterministic alternating DQS clock eye; no random data or injected jitter',name:eye.name,probeEndpoint:eye.endpoint,probePolarity:eye.polarity,samples:rows.length,receiverTransitions:out.length,eyeTransitions:eyeCrossings.length,steadyStateStartSeconds:s.excludeSeconds,uiSeconds:s.uiSeconds,eyePhaseSeconds:phase,differentialRangeV:[Math.min(...valid.map(r=>r[eye.differentialColumn]*eye.polarity)),Math.max(...valid.map(r=>r[eye.differentialColumn]*eye.polarity))],eyeHeightAtCenterV:Math.min(...high)-Math.max(...low),propagationMedianSeconds:delays[Math.floor(delays.length/2)],propagationRangeSeconds:[delays[0],delays.at(-1)],crossingIntervalRangeSeconds:[Math.min(...spacing),Math.max(...spacing)],simulatedDurationSeconds:rows.at(-1)[0],limitations:['Clock eye only; not data BER, jitter-tolerance or JEDEC compliance','Propagation measured at external pads; excluded TI coupled package and surrounding board structures']}
 }
 
-export function foldEye(rows,metrics,eye,pointsPerWindow=1200) {
+// Validate counts before allocating folded samples or per-window metadata.
+function eyeWindowBudget(first,last,pointsPerWindow,{maxWindows=10000,maxSamples=1000000}={}) {
+  const windows=last-first+1
+  if(![maxWindows,maxSamples].every(value=>Number.isSafeInteger(value)&&value>0)) fail('eye_budget','Eye limits must be positive safe integers')
+  if(!Number.isSafeInteger(first)||!Number.isSafeInteger(last)||!Number.isSafeInteger(windows)||windows>maxWindows)
+    fail('eye_budget',`Eye windows exceed the limit of ${maxWindows} or have unsafe boundary indices`)
+  if(!Number.isSafeInteger(pointsPerWindow)||windows>Math.floor(maxSamples/pointsPerWindow))
+    fail('eye_budget',`Eye plotted samples exceed the limit of ${maxSamples}`)
+  return windows
+}
+
+export function foldEye(rows,metrics,eye,pointsPerWindow=1200,limits={}) {
   if(!Number.isInteger(pointsPerWindow)||pointsPerWindow<2) fail('eye','At least two samples per folded window required')
-  const samples=[],ui=metrics.uiSeconds,last=rows.at(-1)[0]
+  const ui=metrics.uiSeconds,origin=metrics.eyePhaseSeconds-ui/2,lastTime=rows.at(-1)[0]
+  if(!Number.isFinite(ui)||ui<=0||!Number.isFinite(origin)||!Number.isFinite(metrics.steadyStateStartSeconds)) fail('eye_timing','Positive UI and finite eye timing required')
+  const first=Math.max(0,Math.ceil((metrics.steadyStateStartSeconds-origin)/ui)),last=Math.floor((lastTime-origin-2*ui)/ui)
+  const count=eyeWindowBudget(first,last,pointsPerWindow,limits),samples=[]
   let windows=0
-  for(let start=metrics.eyePhaseSeconds-ui/2;start+2*ui<=last;start+=ui) {
-    if(start<metrics.steadyStateStartSeconds) continue
+  for(;windows<count;windows++) {
+    const start=origin+(first+windows)*ui
     let index=1
     for(let point=0;point<pointsPerWindow;point++) {
       const offset=2*ui*point/(pointsPerWindow-1),target=start+offset
@@ -50,7 +64,6 @@ export function foldEye(rows,metrics,eye,pointsPerWindow=1200) {
       const value=(a[column]+(b[column]-a[column])*(target-a[0])/(b[0]-a[0]))*eye.polarity
       samples.push([windows,offset,value])
     }
-    windows++
   }
   if(!windows) fail('eye','No complete executed two-UI windows after startTime')
   return {samples,windows,pointsPerWindow}
@@ -64,16 +77,22 @@ export function probeWaveformRows(text,probes) {
   return rows
 }
 
-export function foldProbeEye(rows,eye,pointsPerWindow=1200) {
+export function foldProbeEye(rows,eye,pointsPerWindow=1200,limits={}) {
   const ui=eye.unitIntervalSeconds,origin=eye.timeOriginSeconds,column=eye.column
   if(!Number.isInteger(pointsPerWindow)||pointsPerWindow<2) fail('eye_resolution','At least two plotting points per window required')
   if(!Number.isFinite(ui)||ui<=0||!Number.isFinite(origin)) fail('eye_timing',`${eye.name}: positive UI and finite timeOrigin required`)
   if(!Number.isInteger(column)||column<1||rows.some(row=>column>=row.length)) fail('eye_probe',`${eye.name}: missing recorded probe column`)
   const start=Math.max(rows[0][0],eye.startTimeSeconds),end=Math.min(rows.at(-1)[0],eye.endTimeSeconds)
-  const first=Math.ceil((start+ui/2-origin)/ui),last=Math.floor((end-3*ui/2-origin)/ui)
+  // timeOrigin is the stimulus start/bit-edge origin, not a recovered receive clock.
+  // For b_k=origin+k*UI, [b_k-UI/2,b_k+3*UI/2] centers at b_k+UI/2 (mid-bit).
+  const epsilon=1e-9 // Boundary tolerance in UI units, independent of the time scale.
+  const first=Math.ceil((start+ui/2-origin)/ui-epsilon),last=Math.floor((end-3*ui/2-origin)/ui+epsilon)
+  if(!Number.isFinite(first)||!Number.isFinite(last)||first>last) fail('eye_windows',`${eye.name}: no complete two-UI windows within measurement gate [${eye.startTimeSeconds}, ${eye.endTimeSeconds}] s; UI ${ui} s; skip ${(eye.startTimeSeconds-origin)/ui} UI from timeOrigin ${origin} s; recorded timestamps [${rows[0][0]}, ${rows.at(-1)[0]}] s`)
+  const count=eyeWindowBudget(first,last,pointsPerWindow,limits)
   const samples=[],windowOriginsSeconds=[],boundaryIndices=[]
   let index=1
-  for(let k=first;k<=last;k++) {
+  for(let offsetIndex=0;offsetIndex<count;offsetIndex++) {
+    const k=first+offsetIndex
     const windowStart=origin+k*ui-ui/2,window=windowOriginsSeconds.length
     windowOriginsSeconds.push(windowStart);boundaryIndices.push(k)
     index=1
@@ -85,7 +104,6 @@ export function foldProbeEye(rows,eye,pointsPerWindow=1200) {
       samples.push([window,offset,time,a[column]+(b[column]-a[column])*(time-a[0])/(b[0]-a[0])])
     }
   }
-  if(!windowOriginsSeconds.length) fail('eye_windows',`${eye.name}: no complete two-UI windows within the measurement gate and actual recorded timestamps`)
   const values=rows.filter(row=>row[0]>=start&&row[0]<=end).map(row=>row[column])
   const range=values.reduce(([low,high],value)=>[Math.min(low,value),Math.max(high,value)],[Infinity,-Infinity])
   return {samples,windows:windowOriginsSeconds.length,pointsPerWindow,windowOriginsSeconds,boundaryIndices,

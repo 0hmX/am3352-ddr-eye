@@ -53,7 +53,6 @@ test("ambiguous rails and unsupported package/control features fail explicitly",
   expect(() => convertIbisModelToSpice(lvcSource(), base, { ...run, stimuli: {} })).toThrow("explicit bit")
   expect(() => convertIbisModelToSpice(lvcSource(), base, { ...run, pinStates: { Y: { mode: "input" } } })).toThrow("output-only")
   expect(() => convertIbisModelToSpice(lvcSource(), base, { ...run, pinStates: { Y: { mode: "output", enabled: false } }, stimuli: {} })).toThrow("no drive-enable")
-  expect(() => convertIbisModelToSpice(lvcSource(), { ...base, references: { "4": { external: "VCC" } } }, run)).toThrow("external")
   expect(() => convertIbisModelToSpice(lvcSource(), { ...base, packagePolicy: "vendor" }, run)).toThrow("nonzero vendor reference/supply-pin")
   const hvd = hvdDefinition()
   expect(() => convertIbisModelToSpice(hvd.source.content!, { ...hvd, packagePolicy: "vendor" }, { duration: "12us", pinStates: { A: { mode: "input" }, B: { mode: "input" } }, stimuli: {} })).toThrow("nonzero vendor reference/supply-pin")
@@ -69,6 +68,9 @@ test("declared separate rail references survive serialization and remain indepen
   expect(converted.metadata.pins[0].references).toEqual({ pullup: "VDD", pulldown: "VSS", powerClamp: "PC", groundClamp: "GC" })
   expect(Object.values(converted.spicePinMapping)).toContain("PC")
   expect(converted.source).toContain("PU_REF PD_REF PC_REF GC_REF")
+  const explicit = convertIbisModelToSpice(text, { ...definition, pinMap: { "1": "D" }, references: { "1": converted.metadata.pins[0].references } }, { duration: "1ns", pinStates: { D: { mode: "input" } }, stimuli: {} })
+  expect(explicit.spicePinMapping).toEqual(converted.spicePinMapping)
+  expect(explicit.metadata.pins[0].references).toEqual(converted.metadata.pins[0].references)
 })
 
 test("general source hashes verify original bytes before extraction and member hashes verify extracted bytes", async () => {
@@ -197,17 +199,64 @@ test("constant enabled output and disabled output require no switching events an
   expect(graph(json, "a").voltage_levels.at(-1)!).toBeGreaterThan(2)
 }, 60000)
 
-test("four distinct actual reference rails do not double-apply vendor scalar reference offsets", async () => {
-  const text = `[IBIS Ver] 4.2\n[Component] C\n[Pin] signal_name model_name\n1 D IN\n2 VDD POWER\n3 VSS GND\n4 PC POWER\n5 GC GND\n[Model] IN\nModel_type Input\nC_comp 1p 1p 1p\n[Voltage Range] 3.3 3.3 3.3\n[Power Clamp Reference] 1.8 1.8 1.8\n[Gnd Clamp Reference] 0.5 0.5 0.5\n[Power Clamp]\n-10 -0.1 -0.1 -0.1\n10 0.1 0.1 0.1\n[Gnd Clamp]\n-10 -0.2 -0.2 -0.2\n10 0.2 0.2 0.2\n[End]`
-  const definition: IbisModelDefinition = { source: { content: text }, component: "C", pinMap: { "1": "D", "2": "VDD", "3": "VSS", "4": "PC", "5": "GC" }, references: { "1": { pullup: "VDD", pulldown: "VSS", powerClamp: "PC", groundClamp: "GC" } }, corner: "typical", packagePolicy: "omit" }
+test("five actual reference rails preserve clamp currents with a high-impedance external reference", async () => {
+  const text = `[IBIS Ver] 4.2\n[Component] C\n[Pin] signal_name model_name\n1 D IN\n2 VDD POWER\n3 VSS GND\n4 PC POWER\n5 GC GND\n[Model] IN\nModel_type Input\nC_comp 1p 1p 1p\n[Voltage Range] 3.3 3.3 3.3\n[External Reference] 1.0 0.95 1.05\n[Power Clamp Reference] 1.8 1.8 1.8\n[Gnd Clamp Reference] 0.5 0.5 0.5\n[Power Clamp]\n-10 -0.1 -0.1 -0.1\n10 0.1 0.1 0.1\n[Gnd Clamp]\n-10 -0.2 -0.2 -0.2\n10 0.2 0.2 0.2\n[End]`
+  const definition: IbisModelDefinition = { source: { content: text }, component: "C", pinMap: { "1": "D" }, references: { "1": { pullup: "VDD", pulldown: "VSS", powerClamp: "PC", groundClamp: "GC", external: "VREF" } }, corner: "typical", packagePolicy: "omit" }
   const run = { duration: "1ns", pinStates: { D: { mode: "input" as const } }, stimuli: {} }
   expect(() => convertIbisModelToSpice(text, { ...definition, references: { "1": { pullup: "VDD", pulldown: "VSS" } } }, run)).toThrow("explicit powerClamp reference required")
   expect(() => convertIbisModelToSpice(text, { ...definition, references: { "1": { pullup: "VDD", pulldown: "VSS", powerClamp: "PC" } } }, run)).toThrow("explicit groundClamp reference required")
   const converted = convertIbisModelToSpice(text, definition, { duration: "1ns", pinStates: { D: { mode: "input" } }, stimuli: {} }), name = converted.source.match(/\.subckt (\S+)/)![1]
-  const referenceVoltages: Record<string, number> = { VDD: 3.3, VSS: 0, PC: 1.8, GC: 0.5 }
+  const referenceVoltages: Record<string, number> = { VDD: 3.3, VSS: 0, PC: 1.8, GC: 0.5, VREF: 5 }
   const terminals = Object.entries(converted.spicePinMapping).map(([terminal, port]) => terminal.startsWith("PAD") ? "pad" : port.toLowerCase()).join(" ")
   const source = `Independent multiple reference rails\n${converted.source}\n${Object.entries(referenceVoltages).map(([port, value]) => `V${port} ${port.toLowerCase()} 0 ${value}`).join("\n")}\nVforce force 0 1.2\nRforce force pad 0.1\nXbuf ${terminals} ${name}\n.options reltol=1e-8 abstol=1e-12\n.tran 1p 1n\n.end`
   const engine = await createEngine(), { simulationResultCircuitJson: json } = await engine.simulate(source), voltage = graph(json, "pad").voltage_levels.at(-1)!
   const expected = 0.01 * (1.8 - voltage) + 0.02 * (voltage - 0.5)
   expect(Math.abs((1.2 - voltage) / 0.1 - expected)).toBeLessThan(1e-7)
 }, 60000)
+
+test("bit interval ratio overflow cannot bypass the expansion limit", () => {
+  expect(() => logicalBitSchedule(bits("01", { unitInterval: "1e-300s", startTime: 0 }), "1e300s")).toThrow("100000 bit intervals")
+})
+
+test("signal-only pin maps accept independent supplies and the external threshold reference", () => {
+  const text = `[IBIS Ver] 4.2
+[Component] C
+[Pin] signal_name model_name
+1 D IN
+2 VDD POWER
+3 VSS GND
+4 VREF POWER
+[Pin Mapping] pulldown_ref pullup_ref gnd_clamp_ref power_clamp_ref ext_ref
+1 G P NC NC E
+2 NC P NC NC NC
+3 G NC NC NC NC
+4 NC E NC NC NC
+[Model] IN
+Model_type Input
+C_comp 1p 1p 1p
+[Voltage Range] 3.3 3 3.6
+[External Reference] 1.0 0.95 1.05
+[Power Clamp]
+-10 -0.1 -0.1 -0.1
+10 0.1 0.1 0.1
+[Gnd Clamp]
+-10 -0.2 -0.2 -0.2
+10 0.2 0.2 0.2
+[End]`
+  const definition: IbisModelDefinition = { source: { content: text }, component: "C", pinMap: { "1": "D" },
+    references: { "1": { pullup: "VDD", pulldown: "VSS", powerClamp: "PC", groundClamp: "GC", external: "VREF" } }, corner: "typical", packagePolicy: "omit" }
+  const run = { duration: "1ns", pinStates: { D: { mode: "input" as const } }, stimuli: {} }
+  const result = convertIbisModelToSpice(text, definition, run)
+  expect(parseIbis(text).getBuffer("IN").externalReference).toEqual([1, .95, 1.05])
+  expect(result.metadata.pins[0].references).toEqual({ pullup: "VDD", pulldown: "VSS", powerClamp: "PC", groundClamp: "GC", external: "VREF" })
+  expect(result.spicePinMapping).toEqual({ PAD0: "D", REF0: "GC", REF1: "PC", REF2: "VDD", REF3: "VREF", REF4: "VSS" })
+  expect(result.source).toContain("PU_REF PD_REF PC_REF GC_REF EXT_REF")
+  expect(result.source).toContain("XBUF0 PAD0 REF2 REF4 REF1 REF0 REF3 ")
+  expect(result.source).toContain("Bpc PAD PC_REF")
+  expect(result.source).toContain("Bgc PAD GC_REF")
+  const inferred = convertIbisModelToSpice(text, { ...definition, references: undefined, pinMap: { "1": "D", "2": "VDD", "3": "VSS", "4": "VREF" } }, run)
+  expect(inferred.metadata.pins[0].references.external).toBe("VREF")
+  expect(Object.values(inferred.spicePinMapping)).toContain("VREF")
+  expect(() => convertIbisModelToSpice(text, { ...definition, references: { "1": { pullup: "VDD", pulldown: "VSS" } } }, run)).toThrow("explicit external reference")
+  expect(() => convertIbisModelToSpice(text, { ...definition, references: { "1": { ...definition.references!["1"], external: "D" } } }, run)).toThrow("signal port cannot also serve")
+})

@@ -179,19 +179,19 @@ This is the switching experiment from [examples/ddr-dq/index.circuit.tsx](exampl
     }}
   />
   <analog.digitalstimulus
-    name="DQ0_SWITCHING" simulationRef=".DDR_SWITCHING" drives=".U1 > .M3"
-    unitInterval="2.5ns" startTime="0ns" initialState={0}
-    pattern={{ type: "bits", bits: "00010111", repeat: true }}
+    name="DQ0_SWITCHING" simulationRef=".DDR_SWITCHING" sourcePinRef=".U1 > .M3"
+    bitDuration="2.5ns" startTime="0ns" initialState={0}
+    transmittedData={{ transmissionType: "bits", bits: "00010111", repeat: true }}
   />
   <analog.digitalstimulus
-    name="DQS_P_SWITCHING" simulationRef=".DDR_SWITCHING" drives=".U1 > .P1"
-    unitInterval="2.5ns" startTime="1.25ns" initialState={0}
-    pattern={{ type: "bits", bits: "01", repeat: true }}
+    name="DQS_P_SWITCHING" simulationRef=".DDR_SWITCHING" sourcePinRef=".U1 > .P1"
+    bitDuration="2.5ns" startTime="1.25ns" initialState={0}
+    transmittedData={{ transmissionType: "bits", bits: "01", repeat: true }}
   />
   <analog.digitalstimulus
-    name="DQS_N_SWITCHING" simulationRef=".DDR_SWITCHING" drives=".U1 > .P2"
-    unitInterval="2.5ns" startTime="1.25ns" initialState={0} inverted
-    pattern={{ type: "bits", bits: "01", repeat: true }}
+    name="DQS_N_SWITCHING" simulationRef=".DDR_SWITCHING" sourcePinRef=".U1 > .P2"
+    bitDuration="2.5ns" startTime="1.25ns" initialState={0} inverted
+    transmittedData={{ transmissionType: "bits", bits: "01", repeat: true }}
   />
 
   <voltageprobe name="DQ0_RX" connectsTo=".U3 > .E3" referenceTo=".U3 > .B1" />
@@ -208,9 +208,18 @@ This is the switching experiment from [examples/ddr-dq/index.circuit.tsx](exampl
 </ImportedBoard>
 ```
 
-`ibismodel` attaches pad behavior to each chip. `transientsimulation` sets the engine, timing, and six pad states. The three stimuli drive DQ0 and opposite DQS/DQSn patterns; the strobes are offset by half a bit. Probes name the measured voltages. The eye folds DQ0 at the receiver into two-bit windows after the first 40 ns.
+`ibismodel` attaches pad behavior to each chip. `transientsimulation` sets the engine, timing, and six pad states. DQ0 repeats the fixed `00010111` pattern (not PRBS) at 2.5 ns per bit, or **400 MT/s**. DQS/DQSn use opposite patterns offset by half a bit. Probes name the measured voltages. The eye skips the first **16 UIs (40 ns)** and retains only complete two-UI windows inside the 40–160 ns gate.
+
+Folding uses the declared stimulus origin (`timeOrigin`, matching the stimulus start), with bit boundaries `b_k = timeOrigin + k * UI`. Each two-UI window spans `[b_k - UI/2, b_k + 3*UI/2]`, so its center is `b_k + UI/2`: half a UI after a bit edge, at mid-bit. For DQ0, the first retained window is 41.25–46.25 ns, centered at 43.75 ns. A gate that contains no complete aligned window fails with its start/end, UI and skipped-UI count; even a 40–45 ns gate is too short at this alignment.
 
 Run the [complete circuit](examples/ddr-dq/index.circuit.tsx), which also declares the DQS receiver eye and the quiet-neighbor experiment. In the quiet experiment, the DQ0 bits stay identical while DQS/DQSn are held low/high. Its exported `modeling` selects the three routes and defines the supply, stackup, ground reference, and routed-copper extraction assumptions. `chip.U1` and `chip.U3` disambiguate the chip bindings from similarly named BGA pins.
+
+### Known gaps
+
+- DQ folds on the stimulus clock, without alignment to received DQS crossings.
+- No VREF, AC/DC input thresholds, or setup/hold mask is applied yet. Winbond `Vinl = 0.6 V` / `Vinh = 0.9 V` are reference values only.
+- No per-experiment IBIS model selection (`ODT_60` / `ODT_off` / `DATA_40`) is available yet.
+- Stackup, extraction assumptions, and channel selection live in the separate modeling config.
 
 ## 3. Run it and inspect the output
 
@@ -354,5 +363,7 @@ DDR extraction includes only the driver and receiver ground leads/vias. Other gr
 The whole routed network's extracted R/L/C is distributed uniformly into pi sections, with constant R/L at the configured 100 MHz model frequency; spatially varying line parameters and broadband dispersion are not fitted. Reference rails use ideal supplies; package-parasitic omissions are recorded in the receipt. DDR experiments assume continuous write-direction pad activity. Controller logic, commands, bursts, training, and clock recovery are not modeled. The source board is an incomplete routing checkpoint; preview shows saved footprints as generic chips.
 
 Eyes show finite observed transients, without BER extrapolation, protocol compliance, or a hardware accuracy claim. IBIS currents outside characterized voltage ranges hold the endpoint current, with that approximation recorded.
+
+Eye folding helpers `foldProbeEye(rows, eye, pointsPerWindow, limits)` and `foldEye(rows, metrics, eye, pointsPerWindow, limits)` accept `{ maxWindows, maxSamples }` as their final argument. Defaults are 10,000 windows and 1,000,000 total plotted samples per eye. Both limits are checked before allocating folded data; oversized requests fail with `eye_budget`. The pipeline uses these defaults.
 
 </details>

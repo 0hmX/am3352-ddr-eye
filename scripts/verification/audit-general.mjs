@@ -4,7 +4,7 @@ import { resolve, join, dirname } from 'node:path'
 import { hostname, platform, arch } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
-import { sha256, json, close, inventory, parseCsv, strictTimes, interpolate, completeWindows, boardGeometry } from './independent-helpers.mjs'
+import { sha256, json, close, inventory, parseCsv, strictTimes, interpolate, completeWindows, boardGeometry, bitSchedule } from './independent-helpers.mjs'
 import { auditMatrices } from './audit-matrices.mjs'
 import { auditIbis } from './audit-ibis.mjs'
 import { auditStartup } from './audit-startup.mjs'
@@ -246,7 +246,7 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
       const observedLanes = geometry.mappings.filter(lane => [lane.from, lane.to].some(port => port === probe.signalSourceId || port === probe.referenceSourceId))
       const switching = circuit.filter(element => element.type === 'simulation_digital_stimulus' && element.simulation_experiment_id === run.simulationExperimentId)
         .some(stimulus => observedLanes.some(lane => [lane.from, lane.to].includes(stimulus.source_port_id)) &&
-          new Set([stimulus.initial_state, ...stimulus.pattern.bits.slice(0, Math.ceil((run.durationSeconds * 1000 - stimulus.start_time_ms) / stimulus.unit_interval_ms)).split('').map(Number)]).size > 1)
+          bitSchedule(stimulus, run.durationSeconds * 1000).transitions.length > 0)
       if (switching) assert.ok(maximumV - minimumV > 0.5, 'Declared active data/clock produces a voltage swing, not a flat placeholder')
       const signalEndpoints = new Set(geometry.mappings.flatMap(mapping => [mapping.from, mapping.to]))
       const differential = signalEndpoints.has(probe.signalSourceId) && signalEndpoints.has(probe.referenceSourceId)

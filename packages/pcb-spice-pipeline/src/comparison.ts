@@ -2,6 +2,7 @@ import { mkdir, readFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import type { IbisConversionMetadata, IbisModelDefinition } from '@tscircuit/ibis-to-spice'
 import { json, sha256 } from './io.mjs'
+import { transmittedBits } from './stimulus.js'
 import { fail } from './matrices.mjs'
 import { writeViewerData } from './viewer.js'
 import { simulationSpiceOptions } from './general-spice.js'
@@ -11,11 +12,11 @@ import type { Geometry as ChannelGeometry, Modeling } from './geometry.js'
 
 interface Stimulus {
   source_port_id: string
-  unit_interval_ms: number
+  bit_duration_ms: number
   start_time_ms: number
   initial_state: 0 | 1
   inverted?: boolean
-  pattern: { type: 'bits'; bits: string; repeat: boolean }
+  transmission_pattern: { transmission_type: 'bits'; bits: string | (0 | 1)[]; repeat: boolean }
 }
 interface Probe {
   name: string
@@ -60,23 +61,25 @@ export interface ComparisonInput {
 const canonical = (value: unknown): string => JSON.stringify(value, (_key, item) =>
   item && typeof item === 'object' && !Array.isArray(item)
     ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item)
-const traffic = ({ source_port_id, unit_interval_ms, start_time_ms, initial_state, inverted = false, pattern }: Stimulus) =>
-  ({ source_port_id, unit_interval_ms, start_time_ms, initial_state, inverted, pattern })
+const traffic = ({ source_port_id, bit_duration_ms, start_time_ms, initial_state, inverted = false, transmission_pattern }: Stimulus) =>
+  ({ source_port_id, bit_duration_ms, start_time_ms, initial_state, inverted, transmission_pattern: { ...transmission_pattern, bits: transmittedBits(transmission_pattern?.bits, 'comparison_traffic') } })
 
 /** Actual declared levels in the gate; quiet cases also include their initial level. */
 export function stimulusActivity(stimulus: Stimulus, startSeconds: number, endSeconds: number) {
-  const { pattern, initial_state, inverted } = stimulus
-  const ui = stimulus.unit_interval_ms / 1000, start = stimulus.start_time_ms / 1000
+  const { transmission_pattern, initial_state, inverted } = stimulus
+  const bits = transmittedBits(transmission_pattern?.bits, 'comparison_traffic')
+  const ui = stimulus.bit_duration_ms / 1000, start = stimulus.start_time_ms / 1000
   if (!Number.isFinite(ui) || ui <= 0 || !Number.isFinite(start) || start < 0 ||
       !Number.isFinite(startSeconds) || !Number.isFinite(endSeconds) || endSeconds <= startSeconds ||
-      pattern.type !== 'bits' || !/^[01]+$/.test(pattern.bits) || ![0, 1].includes(initial_state))
+      transmission_pattern.transmission_type !== 'bits' || typeof transmission_pattern.repeat !== 'boolean' || ![0, 1].includes(initial_state))
     fail('comparison_traffic', 'Finite timing and explicit binary neighbor traffic required')
   const levels = new Set<number>()
   if (startSeconds <= start) levels.add(initial_state ^ Number(inverted ?? false))
   const first = Math.max(0, Math.floor((startSeconds - start) / ui)), last = Math.ceil((endSeconds - start) / ui) - 1
-  if (!pattern.repeat && last >= pattern.bits.length) fail('comparison_traffic', 'Neighbor traffic does not cover the gate')
-  for (let i = first; i <= Math.min(last, first + pattern.bits.length - 1); i++)
-    levels.add(Number(pattern.bits[i % pattern.bits.length]) ^ Number(inverted ?? false))
+  if (!Number.isSafeInteger(first) || !Number.isSafeInteger(last)) fail('comparison_traffic', 'Gate bit indices must be safe integers')
+  if (!transmission_pattern.repeat && last >= bits.length) fail('comparison_traffic', 'Neighbor traffic does not cover the gate')
+  for (let offset = 0; offset < Math.min(bits.length, last - first + 1); offset++)
+    levels.add(Number(bits[(first % bits.length + offset) % bits.length]) ^ Number(inverted ?? false))
   return { behavior: levels.size > 1 ? 'switching' : 'constant', levels: [...levels].sort() }
 }
 
