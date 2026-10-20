@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { assertComparable, compareRuns, comparisonIdentity, comparisonPairs, stimulusActivity, waveformDifference,
   type ComparisonInput } from '../src/comparison.js'
@@ -161,4 +162,16 @@ test('saved-run comparison binds artifacts and computes pairs before shared rend
   await assert.rejects(compareRuns({ directories: [directory], outputDir, probeName: 'DQ_RX' }), /EEXIST/)
   await writeFile(join(directory, 'experiments/quiet/waveform.csv'), 'changed after receipt')
   await assert.rejects(compareRuns({ directories: [directory], outputDir: join(directory, 'rejected'), probeName: 'DQ_RX' }), /comparison_provenance/)
+})
+
+test('unsafe traffic indices fail promptly instead of stalling the loop', () => {
+  const stimulus = { ...fixture().plan.stimuli[1], bit_duration_ms: 1e-13,
+    transmission_pattern: { transmission_type: 'bits', bits: '01', repeat: true } }
+  const result = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', `
+    import assert from 'node:assert/strict'
+    import { stimulusActivity } from ${JSON.stringify(new URL('../src/comparison.ts', import.meta.url).href)}
+    assert.throws(() => stimulusActivity(${JSON.stringify(stimulus)}, 1, 2), /comparison_traffic.*safe/)
+  `], { timeout: 5000, encoding: 'utf8' })
+  assert.ifError(result.error)
+  assert.equal(result.status, 0, result.stderr)
 })

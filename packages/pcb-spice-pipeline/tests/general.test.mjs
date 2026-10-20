@@ -10,6 +10,7 @@ import {loopImpedance,referenceCapacitance} from '../src/matrices.mjs'
 import {generalSimulationSpice,electricalSources,validateProbeScope} from '../src/general-spice.js'
 import {runGeneralPipeline} from '../src/general-pipeline.js'
 import {sha256} from '../src/io.mjs'
+import {transmittedBits} from '../src/stimulus.js'
 
 const read=async path=>JSON.parse(await readFile(new URL(path,import.meta.url),'utf8'))
 const circuit=await read('./fixtures/straight.circuit.json'),physical=await read('./fixtures/straight.modeling.json')
@@ -241,4 +242,40 @@ test('pipeline verifies optional expected IBIS asset hashes before conversion, o
   await run('mutated',locked,/vendor_hash.*test\.ibs.*bytes differ/)
   for(const ibisModelAssetSha256 of [{},{[path]:'bad-hash'},null,[]])
     await run('missing-or-invalid', {...m,ibisModelAssetSha256}, /vendor_hash.*(?:expected|must map)/)
+})
+
+test('bits normalization enforces the schema limit before reading array entries',()=>{
+  for(const bits of ['0'.repeat(65536),Array(65536).fill(1)]) assert.equal(transmittedBits(bits).length,65536)
+  const oversized=Array(65537).fill(0)
+  Object.defineProperty(oversized,0,{get(){throw new Error('must reject length before copying')}})
+  for(const bits of ['0'.repeat(65537),oversized]) assert.throws(()=>transmittedBits(bits),/stimulus_pattern.*65536/)
+  assert.throws(()=>transmittedBits(Array(2)),/stimulus_pattern/)
+})
+
+test('run dictionaries preserve special port names as own entries without prototypes',()=>{
+  for(const port of ['__proto__','constructor','toString']) {
+    const {cj,m,g}=fixture(),{models,plans:[plan]}=generalDeclarations(cj,g,m)
+    models[0].ibis_pin_name_to_source_port_id['1']=port
+    plan.states[0].source_port_id=port
+    plan.stimuli[0].source_port_id=port
+    const {run}=modelRunDefinition(models[0],plan)
+    assert.equal(Object.getPrototypeOf(run.pinStates),null)
+    assert.equal(Object.getPrototypeOf(run.stimuli),null)
+    assert.ok(Object.hasOwn(run.pinStates,port))
+    assert.ok(Object.hasOwn(run.stimuli,port))
+    assert.equal(run.pinStates[port].mode,'output')
+    assert.equal(run.stimuli[port].pattern.bits,'001110100')
+  }
+})
+
+test('explicit references resolve same-chip ports outside the physical pin map',()=>{
+  const {cj,m,g}=fixture(),model=cj.find(record=>record.type==='simulation_ibis_model')
+  model.ibis_pin_name_to_reference_source_port_ids={'1':{pullup_reference_source_port_id:'v0',pulldown_reference_source_port_id:'g0',external_reference_source_port_id:'v0'}}
+  const {models,plans:[plan]}=generalDeclarations(cj,g,m),{definition}=modelRunDefinition(models[0],plan)
+  assert.deepEqual(definition.pinMap,{'1':'p0','2':'p1'})
+  assert.equal(definition.references['1'].pullup,'v0')
+  for(const port of ['p2','missing']) {
+    model.ibis_pin_name_to_reference_source_port_ids['1'].pullup_reference_source_port_id=port
+    assert.throws(()=>generalDeclarations(cj,g,m),/ibis_mapping.*reference.*outside its chip/)
+  }
 })

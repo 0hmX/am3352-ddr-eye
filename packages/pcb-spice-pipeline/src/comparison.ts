@@ -76,9 +76,10 @@ export function stimulusActivity(stimulus: Stimulus, startSeconds: number, endSe
   const levels = new Set<number>()
   if (startSeconds <= start) levels.add(initial_state ^ Number(inverted ?? false))
   const first = Math.max(0, Math.floor((startSeconds - start) / ui)), last = Math.ceil((endSeconds - start) / ui) - 1
+  if (!Number.isSafeInteger(first) || !Number.isSafeInteger(last)) fail('comparison_traffic', 'Gate bit indices must be safe integers')
   if (!transmission_pattern.repeat && last >= bits.length) fail('comparison_traffic', 'Neighbor traffic does not cover the gate')
-  for (let i = first; i <= Math.min(last, first + bits.length - 1); i++)
-    levels.add(Number(bits[i % bits.length]) ^ Number(inverted ?? false))
+  for (let offset = 0; offset < Math.min(bits.length, last - first + 1); offset++)
+    levels.add(Number(bits[(first % bits.length + offset) % bits.length]) ^ Number(inverted ?? false))
   return { behavior: levels.size > 1 ? 'switching' : 'constant', levels: [...levels].sort() }
 }
 

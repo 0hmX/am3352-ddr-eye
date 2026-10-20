@@ -115,6 +115,8 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Geometry,mode
   }
   for(const model of models) {
     const sourceComponent=exactly(components.filter(e=>e.source_component_id===model.source_component_id),`${model.pipelineId} component`)
+    for(const refs of Object.values(model.ibis_pin_name_to_reference_source_port_ids??{}))
+      for(const id of Object.values(refs)) if(id!==undefined&&(!ports.has(id)||ports.get(id)?.source_component_id!==sourceComponent.source_component_id)) fail('ibis_mapping',`${sourceComponent.name}: reference port points outside its chip`)
     for(const id of Object.values(model.ibis_pin_name_to_source_port_id??{})) if(!ports.has(id)||ports.get(id)?.source_component_id!==sourceComponent.source_component_id) fail('ibis_mapping',`${sourceComponent.name}: physical pin mapping points outside its chip`)
   }
   const declaredExperiments=circuit.filter(e=>e.type==='simulation_experiment')
@@ -195,7 +197,7 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Geometry,mode
 
 export function modelRunDefinition(model: PipelineIbisModel,plan: SimulationPlan): ModelRunDefinition {
   const pinMap=model.ibis_pin_name_to_source_port_id,selected=new Set(Object.values(pinMap))
-  const pinStates: IbisRunConfig['pinStates']={},stimuli: IbisRunConfig['stimuli']={}
+  const pinStates: IbisRunConfig['pinStates']=Object.create(null),stimuli: IbisRunConfig['stimuli']=Object.create(null)
   for(const state of plan.states) if(selected.has(state.source_port_id)) {
     if(!state.is_output) pinStates[state.source_port_id]={mode:'input'}
     else {

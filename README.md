@@ -364,4 +364,6 @@ The whole routed network's extracted R/L/C is distributed uniformly into pi sect
 
 Eyes show finite observed transients, without BER extrapolation, protocol compliance, or a hardware accuracy claim. IBIS currents outside characterized voltage ranges hold the endpoint current, with that approximation recorded.
 
+Eye folding helpers `foldProbeEye(rows, eye, pointsPerWindow, limits)` and `foldEye(rows, metrics, eye, pointsPerWindow, limits)` accept `{ maxWindows, maxSamples }` as their final argument. Defaults are 10,000 windows and 1,000,000 total plotted samples per eye. Both limits are checked before allocating folded data; oversized requests fail with `eye_budget`. The pipeline uses these defaults.
+
 </details>

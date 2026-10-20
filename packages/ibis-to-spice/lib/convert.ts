@@ -186,7 +186,7 @@ export function switchingWeights(
 export function convertIbisBuffer(
   document: IbisDocument,
   model: string,
-  options: { corner?: IbisCorner; mode: "input" | "output"; name?: string; separateReferences?: boolean; skipSwitchingWeights?: boolean },
+  options: { corner?: IbisCorner; mode: "input" | "output"; name?: string; separateReferences?: boolean; externalReference?: boolean; skipSwitchingWeights?: boolean },
 ): ConvertedBuffer {
   const corner = options.corner ?? "typical",
     buffer = document.getBuffer(model)
@@ -231,9 +231,10 @@ export function convertIbisBuffer(
     ? ({ pu: "PU_REF", pd: "PD_REF", pc: "PC_REF", gc: "GC_REF" }[key])
     : key === "pu" || key === "pc" ? "VDD" : "VSS"
   const groundNode = options.separateReferences ? "PD_REF" : "VSS"
+  // EXT_REF supplies receiver thresholds; it is not an analog current return.
   const lines = [
     `* IBIS ${model}; ${corner}; converter ${CONVERTER_VERSION}; package excluded`,
-    `.subckt ${name} PAD ${options.separateReferences ? "PU_REF PD_REF PC_REF GC_REF" : "VDD VSS"}${options.mode === "output" ? " KU KD" : ""}`,
+    `.subckt ${name} PAD ${options.separateReferences ? "PU_REF PD_REF PC_REF GC_REF" : "VDD VSS"}${options.externalReference ? " EXT_REF" : ""}${options.mode === "output" ? " KU KD" : ""}`,
     `Ccomp PAD ${groundNode} ${spiceNumber(cornerValue(buffer.capacitance, corner, "C_comp"))}`,
   ]
   for (const key of ["pu", "pd", "pc", "gc"] as const) {
