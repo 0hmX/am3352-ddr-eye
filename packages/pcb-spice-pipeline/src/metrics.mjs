@@ -70,7 +70,10 @@ export function foldProbeEye(rows,eye,pointsPerWindow=1200) {
   if(!Number.isFinite(ui)||ui<=0||!Number.isFinite(origin)) fail('eye_timing',`${eye.name}: positive UI and finite timeOrigin required`)
   if(!Number.isInteger(column)||column<1||rows.some(row=>column>=row.length)) fail('eye_probe',`${eye.name}: missing recorded probe column`)
   const start=Math.max(rows[0][0],eye.startTimeSeconds),end=Math.min(rows.at(-1)[0],eye.endTimeSeconds)
+  // timeOrigin is the stimulus start/bit-edge origin, not a recovered receive clock.
+  // For b_k=origin+k*UI, [b_k-UI/2,b_k+3*UI/2] centers at b_k+UI/2 (mid-bit).
   const first=Math.ceil((start+ui/2-origin)/ui),last=Math.floor((end-3*ui/2-origin)/ui)
+  if(!Number.isFinite(first)||!Number.isFinite(last)||first>last) fail('eye_windows',`${eye.name}: no complete two-UI windows within measurement gate [${eye.startTimeSeconds}, ${eye.endTimeSeconds}] s; UI ${ui} s; skip ${(eye.startTimeSeconds-origin)/ui} UI from timeOrigin ${origin} s; recorded timestamps [${rows[0][0]}, ${rows.at(-1)[0]}] s`)
   const samples=[],windowOriginsSeconds=[],boundaryIndices=[]
   let index=1
   for(let k=first;k<=last;k++) {
@@ -85,7 +88,6 @@ export function foldProbeEye(rows,eye,pointsPerWindow=1200) {
       samples.push([window,offset,time,a[column]+(b[column]-a[column])*(time-a[0])/(b[0]-a[0])])
     }
   }
-  if(!windowOriginsSeconds.length) fail('eye_windows',`${eye.name}: no complete two-UI windows within the measurement gate and actual recorded timestamps`)
   const values=rows.filter(row=>row[0]>=start&&row[0]<=end).map(row=>row[column])
   const range=values.reduce(([low,high],value)=>[Math.min(low,value),Math.max(high,value)],[Infinity,-Infinity])
   return {samples,windows:windowOriginsSeconds.length,pointsPerWindow,windowOriginsSeconds,boundaryIndices,
