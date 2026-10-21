@@ -6,7 +6,7 @@ Write the board and simulation in TSX, run the local solvers, then inspect the b
 
 ## HTML report and eye diagram
 
-**[Download the historical DDR report: HTML + CSV](assets/simulation-api/ddr-report.zip?raw=1).** This report and all recorded DDR plots and numeric results below use the earlier straightened traces and artificial return strip. They do not validate the current routed-copper model. Unzip it and open `results.html` in your browser, keeping `csv/` beside it. It contains the DQ0 + DQS + DQSn simulation with quiet and switching experiments, six probes per experiment, and four eyes. To create a new run with the actual ground copper, use `pnpm simulate:ddr-dq --open` after [setup](#set-up-once).
+**[Download the historical DDR report: HTML + CSV](assets/simulation-api/ddr-report.zip?raw=1).** This report and all recorded DDR plots and numeric results below use the earlier straightened traces and artificial return strip. Unzip it and open `results.html` in your browser, keeping `csv/` beside it. It contains the DQ0 + DQS + DQSn simulation with quiet and switching experiments, six probes per experiment, and four eyes. To rerun that experiment, use the [historical strip example](examples/ddr-dq-strip/index.circuit.tsx) with `pnpm simulate:ddr-dq-strip --open` after [setup](#set-up-once). Use `pnpm simulate:ddr-dq --open` for the separate routed-copper experiment.
 
 | HTML report interface — historical strip model | DDR DQ0 receiver eye — historical strip model |
 | --- | --- |

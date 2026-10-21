@@ -7,8 +7,12 @@ export { default } from "../ddr-dq/index.circuit"
 
 export const modeling = {
   ...routedModeling,
+  circuitJsonUnits: "mm",
   description: "Historical AM3352 DQ0 receiver eye: straightened stages, assumed 0.75mm spacing and artificial return strips",
   reduction: "straightened-stages",
+  extraction: Object.fromEntries(
+    Object.entries(routedModeling.extraction).filter(([key]) => key !== "groundMeshMm"),
+  ),
   profiles,
   boardConstruction: {
     ...routedModeling.boardConstruction,
