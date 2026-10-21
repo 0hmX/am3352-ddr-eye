@@ -1,0 +1,174 @@
+{
+  "oldMainCommit": "569889663a70810cac0dfea885f99dda1ee1c01e",
+  "originalPipelineCommit": "06a2377f2c12173a5edb49a8d340aeedd66d77d8",
+  "oldAndNewGeometryIdentical": true,
+  "comparisonNormalization": "Remove only explicit sigma=58000000 fields; every remaining byte is identical",
+  "normalizedDeckSha256": "7a5c549e4ede3ba6f737eca02dda39f61f068efc90d8398654f34fb917e9fcf8",
+  "segmentCount": 16388,
+  "nodeCount": 10381,
+  "minimumSegmentLengthM": 5.719758138955644e-06,
+  "zeroLengthSegments": 0,
+  "groundPours": 3,
+  "units": "m",
+  "copperZRangesMm": {
+    "bottom": [
+      -0.035,
+      0
+    ],
+    "inner2": [
+      0.0994,
+      0.1146
+    ],
+    "inner1": [
+      1.3796,
+      1.3948
+    ],
+    "top": [
+      1.4942,
+      1.5292
+    ]
+  },
+  "nativeVersion": "FastHenry 3.0.1 (28May12)",
+  "nativeBinarySha256": "1f9a4965f8e1ebacb5931a8aa5599a7f1791e04e7a212278f1f419fac37536ca",
+  "minimalReproducer": "https://github.com/tscircuit/pcb-spice-pipeline/blob/feat/latest-pipeline-pcb-stackup/tests/fixtures/fasthenry-short-bars.inp",
+  "minimalReproducerExitCode": 1,
+  "minimalReproducerStderr": "Huh?  filament not expected length",
+  "failureCheck": "src/fasthenry/joelself.c:266, fabs(fabs(l3-l3_1)-l2)/l2 > EPS; EPS=1e-13",
+  "geometryUnchanged": true,
+  "solverRebuilt": false,
+  "attempts": [
+    {
+      "change": "Remove explicit width directions",
+      "result": "Full deck still reports mutual inductance = infinity and internal numerical warning"
+    },
+    {
+      "change": "Round native coordinates to 1 nm and remove explicit width directions",
+      "result": "Full deck still reports mutual inductance = infinity; 258-edge reduced reproducer still exits 1"
+    },
+    {
+      "change": "Trial bounded 1 um Douglas-Peucker simplification, preserving layer/via transitions",
+      "result": "Full deck still reports internal realcos numerical warning; not adopted"
+    },
+    {
+      "change": "Translate native nodes to local frame and quantize to 2^-40 m binary grid",
+      "result": "Full deck repeatedly reports uh oh, segs don't seem parallel; not adopted"
+    }
+  ],
+  "pipelineCommit": "dda5a5833d5fdd629953aa26ed47c533b042093b",
+  "oldMainNativeRun": {
+    "directory": "/tmp/pcbsim/fh-old-main",
+    "command": "/tmp/pcbsim/tools/fasthenry-build/bin/fasthenry -p seg channel.inp",
+    "exitCode": 1,
+    "lastDiagnostic": "Huh?  filament not expected length"
+  },
+  "routedDq": {
+    "entry": "examples/ddr-dq/index.circuit.tsx",
+    "directory": "/tmp/pcbsim/runs/ddr-dq-3",
+    "command": "PCB_SPICE_TOOLS=/tmp/pcbsim/tools/tools.json pnpm exec pcb-spice-pipeline examples/ddr-dq/index.circuit.tsx --out /tmp/pcbsim/runs/ddr-dq-3",
+    "fasthenry": {
+      "executable": "/tmp/pcbsim/tools/fasthenry-build/bin/fasthenry",
+      "args": [
+        "-p",
+        "seg",
+        "channel.inp"
+      ],
+      "cwd": "/tmp/pcbsim/runs/ddr-dq-3/stage-0",
+      "exitCode": 1,
+      "signal": null,
+      "elapsedMs": 156840,
+      "timeoutMs": 900000,
+      "environment": {
+        "OMP_NUM_THREADS": "1"
+      }
+    },
+    "diagnostics": [
+      "Internal Warning: realcos = -1.60124e-13,  cose = 0",
+      "Severe warning: mutual inductance = infinity for two filaments:",
+      "Huh?  filament not expected length"
+    ],
+    "deckSha256": "203bbad8e21ded8125784c1775bed412fb86f96dd7373e191ae6b9016de19147",
+    "completed": false,
+    "eyeWindows": null,
+    "eyeVoltageRangeV": null,
+    "latestAndOriginalDecksByteIdentical": true,
+    "pipelineCommit": "dda5a5833d5fdd629953aa26ed47c533b042093b",
+    "status": "Failed at FastHenry stage 0 with native filament length diagnostic"
+  },
+  "routedDqs": {
+    "entry": "index.circuit.tsx",
+    "directory": "/tmp/pcbsim/runs/dqs-2",
+    "command": "PCB_SPICE_TOOLS=/tmp/pcbsim/tools/tools.json pnpm simulate --out /tmp/pcbsim/runs/dqs-2",
+    "fasthenry": {
+      "executable": "/tmp/pcbsim/tools/fasthenry-build/bin/fasthenry",
+      "args": [
+        "-p",
+        "seg",
+        "channel.inp"
+      ],
+      "cwd": "/tmp/pcbsim/runs/dqs-2/stage-0",
+      "exitCode": null,
+      "signal": "SIGINT",
+      "elapsedMs": 326029,
+      "timeoutMs": 900000,
+      "environment": {
+        "OMP_NUM_THREADS": "1"
+      }
+    },
+    "diagnostics": [
+      "Internal Warning: realcos = 2.68618e-13,  cose = 0"
+    ],
+    "deckSha256": "15fb81f83a09e96e65d075184575259c24a3a980f4eeba7e35c69f36c4d16fd9",
+    "completed": false,
+    "eyeWindows": null,
+    "eyeVoltageRangeV": null,
+    "pipelineCommit": "07cf7f5e4d5ff76affadc11eac5ab3d2db736a0b",
+    "status": "Optional extraction stopped with SIGINT after 326029 ms; native realcos warning present; no result"
+  },
+  "strip": {
+    "entry": "examples/ddr-dq-strip/index.circuit.tsx",
+    "directory": "/tmp/pcbsim/runs/ddr-dq-strip-3",
+    "status": "executed",
+    "model": "historical straightened stages with artificial finite return strips; distinct from routed copper",
+    "solverResultCache": false,
+    "dq0Eyes": [
+      {
+        "experiment": "DDR_QUIET",
+        "complete_windows": "46",
+        "minimum_v": "0.21982064357038958",
+        "maximum_v": "1.2961737584717314"
+      },
+      {
+        "experiment": "DDR_SWITCHING",
+        "complete_windows": "46",
+        "minimum_v": "0.21939993248038786",
+        "maximum_v": "1.2970271364993355"
+      }
+    ],
+    "historicalCsvComparison": {
+      "csv/02-ddr_switching-eye-1.csv": {
+        "identical": true,
+        "sha256": "d18e4998165c8c523ed8302f2230988427f6fe3df0c5234266f09e8b46a7ae77"
+      },
+      "csv/02-ddr_switching-waveforms.csv": {
+        "identical": true,
+        "sha256": "79c630c613d32e95fde126e16639bf2d7590830ce2f31658e6e16c89ed161704"
+      }
+    }
+  },
+  "ciEnvironmentFix": "Removed actions/setup-python: its injected LD_LIBRARY_PATH conflicted with native solver provenance. Simulation code unchanged.",
+  "status": "Native routed-copper numerical failure unresolved; diagnostic guard regression fixed; historical strip reproduced",
+  "validation": {
+    "pipeline": {
+      "typecheck": "pass",
+      "build": "pass",
+      "unit": "141 pass, 0 fail",
+      "native": "2 pass, 0 fail"
+    },
+    "consumer": {
+      "install": "pass",
+      "frozenLockfileInstall": "pass",
+      "typecheck": "pass",
+      "test": "1 pass, 0 fail (all five examples)"
+    }
+  }
+}

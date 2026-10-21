@@ -18,3 +18,5 @@ RTERM is a routed 120-ohm receiver termination; SPICE attaches it ideally at RX 
 Package parasitics are explicitly omitted for both chips: the files declare nonzero supply-pin package impedance that this backend cannot preserve. Real vendor I/V, clamp, die-capacitance and switching tables remain in use; the emitted provenance records package exclusion.
 
 Unselected functional/control pins are outside this pad/channel fixture. The PCB routes selected signals, supply/reference rails and the stated termination; it is not a complete functional product circuit.
+
+Construction now uses a four-layer, 1.6 mm JLCPCB fixture via `fabricatorPreset="jlcpcb_standard"`. Routes still use top and bottom; core emits the supported JLC04161H-3313 `pcb_stackup`. Earlier hand-entered two-layer z coordinates are superseded.

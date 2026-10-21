@@ -4,8 +4,6 @@ import sourceProvenance from "../vendor-models.lock.json"
 export const modeling = {
   ibisModelAssetSha256: { [`models/${sourceProvenance.models.rs485.file}`]: sourceProvenance.models.rs485.sha256 },
   reduction: "straightened-stages",
-  conductivitySm: boardConstruction.copperConductivitySm,
-  stackup: boardConstruction.copperLayers,
   lanes: [
     { port: "A", from: { component: "TX", port: "A" }, to: { component: "RX", port: "A" } },
     { port: "B", from: { component: "TX", port: "B" }, to: { component: "RX", port: "B" } },
@@ -15,7 +13,7 @@ export const modeling = {
   profiles: { top: {
     spacingMm: 6, relativePermittivity: 4.1,
     return: { widthMm: 0.35, thicknessMm: 0.035, lengthFactor: 1,
-      centerYMm: -6, centerZMm: -1.565 },
+      centerYMm: -6, centerZMm: -1.5292 },
   } },
   extraction: { minimumHz: 1, maximumHz: 100000000, modelHz: 1000000,
     filaments: 7, refinementFilaments: 11, convergenceTolerance: 0.05,

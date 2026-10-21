@@ -3,50 +3,7 @@
   "source": "https://raw.githubusercontent.com/tscircuit/am3352-sbc/837245bceb6ac898fd5451507d6b2b8024095fe7/design/fabrication-stackup.json",
   "stackupCode": "JLC04161H-3313",
   "nominalBoardThicknessMm": 1.6,
-  "copperAndDielectricThicknessMm": 1.5642,
   "frame": "Copper/dielectric z in mm, positive toward top; z=0 at the upper face of bottom copper. PCB XY is the original board world frame in mm.",
-  "copperLayers": [
-    {
-      "name": "bottom",
-      "zMinMm": -0.035,
-      "zMaxMm": 0
-    },
-    {
-      "name": "inner2",
-      "zMinMm": 0.0994,
-      "zMaxMm": 0.1146
-    },
-    {
-      "name": "inner1",
-      "zMinMm": 1.3796,
-      "zMaxMm": 1.3948
-    },
-    {
-      "name": "top",
-      "zMinMm": 1.4942,
-      "zMaxMm": 1.5292
-    }
-  ],
-  "dielectrics": [
-    {
-      "material": "3313 RC57%",
-      "zMinMm": 0,
-      "zMaxMm": 0.0994,
-      "relativePermittivity": 4.1
-    },
-    {
-      "material": "NP-155F core",
-      "zMinMm": 0.1146,
-      "zMaxMm": 1.3796,
-      "relativePermittivity": 4.42
-    },
-    {
-      "material": "3313 RC57%",
-      "zMinMm": 1.3948,
-      "zMaxMm": 1.4942,
-      "relativePermittivity": 4.1
-    }
-  ],
   "extractionAssumptions": {
     "conductivitySm": 58000000,
     "viaPlatingMm": 0.025,
@@ -68,5 +25,6 @@
       "Winbond signal and reference-rail package R/L/C (explicit packagePolicy=omit)",
       "Power/ground reference-rail package impedance for all vendor models"
     ]
-  }
+  },
+  "stackupSource": "Circuit JSON pcb_stackup emitted by core for fabricatorPreset=jlcpcb_standard; copper z is resolved by pcb-spice-pipeline. Earlier hand-entered copper z ranges are no longer simulation inputs."
 }

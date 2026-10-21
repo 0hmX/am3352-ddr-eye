@@ -14,9 +14,6 @@
     "paths": {
       "@tscircuit/fanout-solver": [
         "./node_modules/.cache/tscircuit-declarations/fanout/index.d.ts"
-      ],
-      "pcb-spice-pipeline/tsx": [
-        "./packages/pcb-spice-pipeline/src/tsx.ts"
       ]
     }
   },

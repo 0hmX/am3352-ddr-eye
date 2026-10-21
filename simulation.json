@@ -1,6 +1,5 @@
 {
   "reduction": "routed-copper",
-  "conductivitySm": 58000000,
   "sections": 12,
   "extraction": {
     "minimumHz": 1,

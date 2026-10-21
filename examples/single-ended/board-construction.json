@@ -4,18 +4,6 @@
   "widthMm": 52,
   "heightMm": 22,
   "thicknessMm": 1.6,
-  "copperLayers": [
-    {
-      "name": "top",
-      "zMinMm": 0.765,
-      "zMaxMm": 0.8
-    },
-    {
-      "name": "bottom",
-      "zMinMm": -0.8,
-      "zMaxMm": -0.765
-    }
-  ],
   "dielectric": {
     "name": "FR-4",
     "thicknessMm": 1.53,
@@ -31,5 +19,6 @@
     "Extraction straightens each routed stage and replaces return geometry with an explicit finite strip",
     "Ideal source is a bench supply connected at the two-pad PWR footprint; supply distribution is ideal in SPICE",
     "Unselected functional/control pins are outside the electrical pad/channel fixture and have no functional simulation model."
-  ]
+  ],
+  "stackupSource": "Circuit JSON pcb_stackup from fabricatorPreset=jlcpcb_standard: four-layer, 1.6mm FR4 JLC04161H-3313 fixture. Signal/return routes use top and bottom only; the previous hand-authored two-layer construction is superseded."
 }

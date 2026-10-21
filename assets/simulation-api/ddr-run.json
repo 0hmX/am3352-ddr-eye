@@ -1,0 +1,79 @@
+{
+  "entry": "examples/ddr-dq-strip/index.circuit.tsx",
+  "runDirectory": "/tmp/pcbsim/runs/ddr-dq-strip-1",
+  "timestampUtc": "2026-10-21T14:52:45.592Z",
+  "pipeline": "github:tscircuit/pcb-spice-pipeline#4c633a3ba59465bc87d0cb94aca827ff019971a0",
+  "core": {
+    "sourcePullRequest": "https://github.com/tscircuit/core/pull/4826",
+    "sourceCommit": "4e95d068b6cb9148fd740a1d4866908032fb2f7b",
+    "artifact": "tscircuit-core-4e95d06.tgz",
+    "sha256": "964af72b8a9016fc89a3bb0f8ac78c0692c21180f59068bac4c8cb8b76dc485c",
+    "status": "Temporary packed core build provided by the core implementation agent; pkg.pr.new publication and direct expected-preview URLs returned HTTP 404. Replace the dependency and workspace override with the verified PR preview when publication recovers."
+  },
+  "probe": "DQ0_RX = U3.E3 - U3.B1",
+  "durationNs": 160,
+  "maximumStepPs": 10,
+  "unitIntervalNs": 2.5,
+  "eyeGateNs": [
+    40,
+    160
+  ],
+  "signalSpacingMm": 0.75,
+  "supplyVoltageV": 1.5,
+  "solverResultCache": false,
+  "experiments": [
+    {
+      "name": "DDR_QUIET",
+      "waveformSamples": 45786,
+      "eyeWindows": 46,
+      "eyeVoltageRangeV": [
+        0.21982064357038958,
+        1.2961737584717314
+      ]
+    },
+    {
+      "name": "DDR_SWITCHING",
+      "waveformSamples": 163305,
+      "eyeWindows": 46,
+      "eyeVoltageRangeV": [
+        0.21939993248038786,
+        1.2970271364993355
+      ]
+    }
+  ],
+  "copperZMatchesHistoricalInputs": true,
+  "historicalComparison": {
+    "csv/02-ddr_switching-eye-1.csv": {
+      "historicalSha256": "d18e4998165c8c523ed8302f2230988427f6fe3df0c5234266f09e8b46a7ae77",
+      "freshSha256": "d18e4998165c8c523ed8302f2230988427f6fe3df0c5234266f09e8b46a7ae77",
+      "identical": true
+    },
+    "csv/02-ddr_switching-waveforms.csv": {
+      "historicalSha256": "79c630c613d32e95fde126e16639bf2d7590830ce2f31658e6e16c89ed161704",
+      "freshSha256": "79c630c613d32e95fde126e16639bf2d7590830ce2f31658e6e16c89ed161704",
+      "identical": true
+    }
+  },
+  "inputCircuitSha256": "86eb7096a1a499bcd2d0569679aecb25196e63bb836928aaabded920a0e28523",
+  "routedCopperAttempt": {
+    "directory": "/tmp/pcbsim/runs/ddr-dq-1",
+    "status": "failed",
+    "command": "pnpm simulate:ddr-dq --out /tmp/pcbsim/runs/ddr-dq-1",
+    "error": "native_solver: fasthenry exited 1 after 158523ms; stderr ends with Huh?  filament not expected length and reports mutual inductance = infinity",
+    "stderrLog": "/tmp/pcbsim/runs/ddr-dq-1/stage-0/fasthenry.stderr.log"
+  },
+  "quietSwitchingComparison": {
+    "quietIndex": 0,
+    "activeIndex": 1,
+    "quiet": "DDR_QUIET",
+    "active": "DDR_SWITCHING",
+    "startSeconds": 3.9999999999999994e-08,
+    "endSeconds": 1.5999999999999998e-07,
+    "peakAbsoluteV": 0.006054231954052025,
+    "peakTimeSeconds": 1.5195028899999992e-07,
+    "minimumV": -0.006054231954052025,
+    "maximumV": 0.004564697911136006,
+    "timeRmsV": 0.001594923614456081,
+    "samples": 140352
+  }
+}

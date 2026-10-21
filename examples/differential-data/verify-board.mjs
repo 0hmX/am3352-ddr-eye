@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 import { readFile } from "node:fs/promises"
-import { transmittedBits } from "../../packages/pcb-spice-pipeline/dist/stimulus.js"
+const { transmittedBits } = await import(new URL("./stimulus.js", import.meta.resolve("pcb-spice-pipeline")))
 
 const [file, scenario] = process.argv.slice(2)
 assert.ok(file && ["rs485", "cmos"].includes(scenario), "Usage: node verify-board.mjs CIRCUIT_JSON rs485|cmos")

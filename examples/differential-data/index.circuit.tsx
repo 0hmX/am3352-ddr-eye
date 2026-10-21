@@ -10,7 +10,7 @@ const bits = "0011101001010110"
 /** Designed routed RS-485 pad/channel experiment; no receiver/core logic model. */
 export default function Board() {
   return <board width={construction.widthMm} height={construction.heightMm}
-    thickness={construction.thicknessMm} layers={2} routingDisabled schematicDisabled>
+    thickness={construction.thicknessMm} layers={4} fabricatorPreset="jlcpcb_standard" routingDisabled schematicDisabled>
     <chip name="TX" manufacturerPartNumber="SN65HVD72D" pcbX={-15} pcbY={0}
       pinLabels={pins} footprint={<Soic8Pads />}  />
     <chip name="RX" manufacturerPartNumber="SN65HVD72D" pcbX={15} pcbY={0}
