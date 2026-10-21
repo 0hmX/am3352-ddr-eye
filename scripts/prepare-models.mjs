@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { basename, dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { vendorSource } from "../packages/pcb-spice-pipeline/src/io.mjs"
+import { vendorSource } from "../node_modules/pcb-spice-pipeline/dist/io.mjs"
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const ddrModels = JSON.parse(await readFile(join(projectRoot, "vendor-models.json"), "utf8"))
@@ -13,7 +13,7 @@ for (const lock of locks) {
     throw new Error(`Vendor models require unique file names: ${lock.file}`)
   filenames.add(lock.file)
 }
-const cache = join(projectRoot, "packages/pcb-spice-pipeline/.cache/vendors")
+const cache = join(projectRoot, "node_modules/.cache/pcb-spice-pipeline/vendors")
 const modelsDirectory = join(projectRoot, "models")
 await mkdir(modelsDirectory, { recursive: true })
 for (const lock of locks) {

@@ -3,6 +3,7 @@
   "includeBoardFiles": [
     "index.circuit.tsx",
     "examples/ddr-dq/index.circuit.tsx",
+    "examples/ddr-dq-strip/index.circuit.tsx",
     "examples/differential-data/index.circuit.tsx",
     "examples/single-ended/index.circuit.tsx"
   ],

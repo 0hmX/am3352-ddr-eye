@@ -4,25 +4,6 @@
   "widthMm": 52,
   "heightMm": 22,
   "thicknessMm": 1.6,
-  "copperLayers": [
-    {
-      "name": "top",
-      "zMinMm": 0.765,
-      "zMaxMm": 0.8
-    },
-    {
-      "name": "bottom",
-      "zMinMm": -0.8,
-      "zMaxMm": -0.765
-    }
-  ],
-  "dielectric": {
-    "name": "FR-4",
-    "thicknessMm": 1.53,
-    "relativePermittivityAssumed": 4.1,
-    "lossTangentModeled": false
-  },
-  "copperConductivitySm": 58000000,
   "routing": "All electrical traces are explicit native TSX pcbPath routes; no generated snapshot or synthetic channel replaces the board.",
   "footprints": "Explicit package-pin pads, with SOIC-8 pitch 1.27 mm and SC70-5 pitch 0.65 mm. Pad dimensions are designed demonstration assumptions, not vendor land-pattern approval.",
   "assumptions": [

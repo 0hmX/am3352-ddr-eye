@@ -7,7 +7,7 @@ export { modeling } from "./simulation.config"
 
 export default function Board() {
   return (
-    <ImportedBoard circuitJson={routedBoard}>
+    <ImportedBoard circuitJson={routedBoard} stackupPreset="JLC04161H-3313">
       <ibismodel componentRef="chip.U1" {...driver} />
       <ibismodel componentRef="chip.U3" {...receiver} />
       <analog.transientsimulation

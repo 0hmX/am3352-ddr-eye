@@ -1,17 +1,17 @@
 packages:
   - .
-  - packages/*
-# Overrides inject pkg.pr.new previews into tscircuit's transitive dependencies.
-# A fresh install with true fails ERR_PNPM_EXOTIC_SUBDEP on @tscircuit/core.
-# Enable this once the core/props/circuit-json PRs are published to the registry.
+  - packages/ibis-to-spice
+# Overrides inject the core/props PR previews into tscircuit's transitive dependencies.
+# Exotic subdependencies remain enabled until those previews are published.
 blockExoticSubdeps: false
 allowBuilds:
   esbuild: true
   '@resvg/resvg-js': true
   sharp: false
+  pcb-spice-pipeline@https://codeload.github.com/tscircuit/pcb-spice-pipeline/tar.gz/b8c2755295cd0be7845cb488ce65a6ccaca36893: true
 overrides:
-  '@tscircuit/core': https://pkg.pr.new/tscircuit/core/@tscircuit/core@e20386d
-  '@tscircuit/props': https://pkg.pr.new/@tscircuit/props@ba70063
+  '@tscircuit/core': https://pkg.pr.new/tscircuit/core/@tscircuit/core@898e8cf
+  '@tscircuit/props': https://pkg.pr.new/@tscircuit/props@4566b91
   '@tscircuit/ibis-to-spice': workspace:*
   '@tscircuit/cli': 0.1.2237
   '@tscircuit/eval': 0.0.1538
@@ -28,7 +28,7 @@ overrides:
   "@tscircuit/modelprinter": "0.0.34"
   "@tscircuit/schematic-match-adapt": "0.0.22"
   "bpc-graph": "0.0.67"
-  "circuit-json": https://pkg.pr.new/circuit-json@6b5a674
+  "circuit-json": 0.0.531
   "circuit-json-to-bpc": "0.0.14"
   "circuit-json-to-connectivity-map": "0.0.33"
   "circuit-json-to-spice": "0.0.46"
@@ -38,3 +38,4 @@ overrides:
 minimumReleaseAgeExclude:
   - '@tscircuit/runframe@0.0.3012'
   - tscircuit@0.0.2940
+  - circuit-json@0.0.531

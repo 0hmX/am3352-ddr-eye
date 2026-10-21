@@ -9,7 +9,7 @@ const pins = { pin1: "NC", pin2: "A", pin3: "GND", pin4: "Y", pin5: "VCC" }
 /** Explicit CMOS output-pad data; this does not simulate the inverter core. */
 export default function Board() {
   return <board width={construction.widthMm} height={construction.heightMm}
-    thickness={construction.thicknessMm} layers={2} routingDisabled schematicDisabled>
+    thickness={construction.thicknessMm} layers={4} stackupPreset="JLC04161H-3313" routingDisabled schematicDisabled>
     <chip name="TX" manufacturerPartNumber="SN74LVC1G04DCK" pcbX={-15} pcbY={0}
       pinLabels={pins} footprint={<Sc70Pads />}  />
     <chip name="RX" manufacturerPartNumber="SN74LVC1G04DCK" pcbX={15} pcbY={0}
