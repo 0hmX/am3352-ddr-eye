@@ -54,7 +54,7 @@
       "result": "Full deck repeatedly reports uh oh, segs don't seem parallel; not adopted"
     }
   ],
-  "pipelineCommit": "07cf7f5e4d5ff76affadc11eac5ab3d2db736a0b",
+  "pipelineCommit": "dda5a5833d5fdd629953aa26ed47c533b042093b",
   "oldMainNativeRun": {
     "directory": "/tmp/pcbsim/fh-old-main",
     "command": "/tmp/pcbsim/tools/fasthenry-build/bin/fasthenry -p seg channel.inp",
@@ -63,8 +63,8 @@
   },
   "routedDq": {
     "entry": "examples/ddr-dq/index.circuit.tsx",
-    "directory": "/tmp/pcbsim/runs/ddr-dq-2",
-    "command": "PCB_SPICE_TOOLS=/tmp/pcbsim/tools/tools.json pnpm exec pcb-spice-pipeline examples/ddr-dq/index.circuit.tsx --out /tmp/pcbsim/runs/ddr-dq-2",
+    "directory": "/tmp/pcbsim/runs/ddr-dq-3",
+    "command": "PCB_SPICE_TOOLS=/tmp/pcbsim/tools/tools.json pnpm exec pcb-spice-pipeline examples/ddr-dq/index.circuit.tsx --out /tmp/pcbsim/runs/ddr-dq-3",
     "fasthenry": {
       "executable": "/tmp/pcbsim/tools/fasthenry-build/bin/fasthenry",
       "args": [
@@ -72,10 +72,10 @@
         "seg",
         "channel.inp"
       ],
-      "cwd": "/tmp/pcbsim/runs/ddr-dq-2/stage-0",
+      "cwd": "/tmp/pcbsim/runs/ddr-dq-3/stage-0",
       "exitCode": 1,
       "signal": null,
-      "elapsedMs": 169237,
+      "elapsedMs": 156840,
       "timeoutMs": 900000,
       "environment": {
         "OMP_NUM_THREADS": "1"
@@ -91,7 +91,8 @@
     "eyeWindows": null,
     "eyeVoltageRangeV": null,
     "latestAndOriginalDecksByteIdentical": true,
-    "status": "Failed at FastHenry stage 0: exit 1 after 169237 ms; Huh? filament not expected length"
+    "pipelineCommit": "dda5a5833d5fdd629953aa26ed47c533b042093b",
+    "status": "Failed at FastHenry stage 0 with native filament length diagnostic"
   },
   "routedDqs": {
     "entry": "index.circuit.tsx",
@@ -120,11 +121,12 @@
     "completed": false,
     "eyeWindows": null,
     "eyeVoltageRangeV": null,
-    "status": "Optional run interrupted after 326029 ms at FastHenry stage 0; captured Internal Warning: realcos = 2.68618e-13, cose = 0"
+    "pipelineCommit": "07cf7f5e4d5ff76affadc11eac5ab3d2db736a0b",
+    "status": "Optional extraction stopped with SIGINT after 326029 ms; native realcos warning present; no result"
   },
   "strip": {
     "entry": "examples/ddr-dq-strip/index.circuit.tsx",
-    "directory": "/tmp/pcbsim/runs/ddr-dq-strip-2",
+    "directory": "/tmp/pcbsim/runs/ddr-dq-strip-3",
     "status": "executed",
     "model": "historical straightened stages with artificial finite return strips; distinct from routed copper",
     "solverResultCache": false,
@@ -153,6 +155,7 @@
       }
     }
   },
+  "ciEnvironmentFix": "Removed actions/setup-python: its injected LD_LIBRARY_PATH conflicted with native solver provenance. Simulation code unchanged.",
   "status": "Native routed-copper numerical failure unresolved; diagnostic guard regression fixed; historical strip reproduced",
   "validation": {
     "pipeline": {
