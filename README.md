@@ -327,7 +327,7 @@ The first command saves both DDR experiments. `--out` chooses a folder that must
 
 These observed voltage differences come from the fresh historical-strip run. They are finite waveform differences, with no eye-opening or BER estimation. Comparison requires a ground-referenced single-ended victim and uses linear interpolation on the union of recorded timestamps, with RMS integrated over time.
 
-The separate routed-copper validation (`pnpm simulate:ddr-dq`) reached FastHenry stage 0 but exited 1 after 158.5 s: `Huh?  filament not expected length`. Its native log also reports `mutual inductance = infinity` for filament pairs. The strip simulation and report above completed successfully.
+The separate routed-copper validation (`pnpm simulate:ddr-dq`) still fails at FastHenry stage 0 with `Huh?  filament not expected length` and `mutual inductance = infinity`. This is pre-existing: the former in-repo pipeline and the `pcb_stackup` pipeline emit byte-identical geometry, with unchanged positive thicknesses, copper z ranges, and inner-layer assignments. Two 10.469 µm rounded-route edges reproduce a floating-point failure in FastHenry’s `1e-13` projected-length check. The pipeline now rejects additional numerical diagnostics, but the native failure remains unresolved; no routed-copper DQ0_RX eye windows or voltage range are available. [Investigation and rerun evidence](assets/simulation-api/ddr-routed-validation.json) records the comparison and exact blocker. The successful historical strip measurements above describe a different model.
 
 <details>
 <summary>Troubleshooting and validation commands</summary>

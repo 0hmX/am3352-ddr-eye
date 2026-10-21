@@ -36,7 +36,7 @@
     "@tscircuit/eval": "0.0.1538",
     "@types/react": "19.3.0",
     "typescript": "5.9.3",
-    "pcb-spice-pipeline": "github:tscircuit/pcb-spice-pipeline#4c633a3ba59465bc87d0cb94aca827ff019971a0"
+    "pcb-spice-pipeline": "github:tscircuit/pcb-spice-pipeline#07cf7f5e4d5ff76affadc11eac5ab3d2db736a0b"
   },
   "description": "Normal tscircuit examples with reusable IBIS conversion and PCB SPICE eye simulation"
 }

@@ -5,7 +5,7 @@ packages:
 # Pinned upstream Git dependencies must be allowed to prepare their dist files.
 blockExoticSubdeps: false
 allowBuilds:
-  pcb-spice-pipeline@https://codeload.github.com/tscircuit/pcb-spice-pipeline/tar.gz/4c633a3ba59465bc87d0cb94aca827ff019971a0: true
+  pcb-spice-pipeline@https://codeload.github.com/tscircuit/pcb-spice-pipeline/tar.gz/07cf7f5e4d5ff76affadc11eac5ab3d2db736a0b: true
   esbuild: true
   '@resvg/resvg-js': true
   sharp: false
