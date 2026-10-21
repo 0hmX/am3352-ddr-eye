@@ -22,7 +22,8 @@
     "simulate:prove": "node scripts/prove-all.mjs",
     "simulate:ddr-dq": "pcb-spice-pipeline examples/ddr-dq/index.circuit.tsx",
     "simulate:compare": "pcb-spice-pipeline --compare",
-    "simulate:models": "node scripts/prepare-models.mjs"
+    "simulate:models": "node scripts/prepare-models.mjs",
+    "simulate:ddr-dq-strip": "pcb-spice-pipeline examples/ddr-dq-strip/index.circuit.tsx"
   },
   "dependencies": {
     "tscircuit": "0.0.2940",

@@ -1,0 +1,35 @@
+{
+  "top": {
+    "spacingMm": 0.75,
+    "relativePermittivity": 2.55,
+    "return": {
+      "widthMm": 2.0,
+      "thicknessMm": 0.035,
+      "lengthFactor": 1.0,
+      "centerYMm": 0,
+      "centerZMm": -0.2
+    }
+  },
+  "inner1": {
+    "spacingMm": 0.75,
+    "relativePermittivity": 4.1,
+    "return": {
+      "widthMm": 2.0,
+      "thicknessMm": 0.035,
+      "lengthFactor": 1.0,
+      "centerYMm": 0,
+      "centerZMm": 0.1245
+    }
+  },
+  "via": {
+    "spacingMm": 0.75,
+    "relativePermittivity": 4.1,
+    "return": {
+      "widthMm": 2.0,
+      "thicknessMm": 0.035,
+      "lengthFactor": 1.0,
+      "centerYMm": 0,
+      "centerZMm": -0.2
+    }
+  }
+}
