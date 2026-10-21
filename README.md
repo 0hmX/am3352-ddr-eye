@@ -6,13 +6,13 @@ Write the board and simulation in TSX, run the local solvers, then inspect the b
 
 ## HTML report and eye diagram
 
-**[Download the historical DDR report: HTML + CSV](assets/simulation-api/ddr-report.zip?raw=1).** This report and all recorded DDR plots and numeric results below use the earlier straightened traces and artificial return strip. Unzip it and open `results.html` in your browser, keeping `csv/` beside it. It contains the DQ0 + DQS + DQSn simulation with quiet and switching experiments, six probes per experiment, and four eyes. To rerun that experiment, use the [historical strip example](examples/ddr-dq-strip/index.circuit.tsx) with `pnpm simulate:ddr-dq-strip` after [setup](#set-up-once). Use `pnpm simulate:ddr-dq --open` for the separate routed-copper experiment.
+**[Download the historical DDR report: HTML + CSV](assets/simulation-api/ddr-report.zip?raw=1).** This report, its screenshots, and the DDR measurements below were regenerated on 2026-10-21 using the historical straightened stages and finite return strips, with JLC construction emitted as Circuit JSON `pcb_stackup`. Unzip it and open `results.html` in your browser, keeping `csv/` beside it. It contains the DQ0 + DQS + DQSn simulation with quiet and switching experiments, six probes per experiment, and four eyes. To rerun that experiment, use the [historical strip example](examples/ddr-dq-strip/index.circuit.tsx) with `pnpm simulate:ddr-dq-strip` after [setup](#set-up-once). Use `pnpm simulate:ddr-dq --open` for the separate routed-copper experiment.
 
 | HTML report interface — historical strip model | DDR DQ0 receiver eye — historical strip model |
 | --- | --- |
 | [![HTML report showing the board and highlighted simulation traces](assets/simulation-api/html-report.png)](assets/simulation-api/html-report.png) | [![DDR DQ0 receiver eye with 46 complete windows and 2.5 ns UI](assets/simulation-api/ddr-eye.png)](assets/simulation-api/ddr-eye.png) |
 
-Click either preview to enlarge it. To reproduce the eye view, choose **Plots → DDR_SWITCHING → DQ0_RX → Eye** in the downloaded report. It measures `U3.E3 − U3.B1` over 40–160 ns: 46 complete windows, 2.5 ns UI, and approximately 0.219–1.297 V. The folds use recorded samples with linear interpolation; no artificial jitter is added. **Board**, **Tests**, **Results**, and **CSV files** show the circuit, test settings, measurements, and exports.
+Click either preview to enlarge it. To reproduce the eye view, choose **Plots → DDR_SWITCHING → DQ0_RX → Eye** in the downloaded report. It measures `U3.E3 − U3.B1` over 40–160 ns: 46 complete windows, 2.5 ns UI, and 0.219400–1.297027 V. The folds use recorded samples with linear interpolation; no artificial jitter is added. **Board**, **Tests**, **Results**, and **CSV files** show the circuit, test settings, measurements, and exports.
 
 ## Start here: the upstream CLI
 
@@ -234,20 +234,21 @@ pnpm exec pcb-spice-pipeline examples/ddr-dq-strip/index.circuit.tsx --out /tmp/
 
 **`--open` opens the generated HTML report in your browser after the solve finishes.** Leave it off to save results without opening a browser. Each run creates a fresh folder and prints its location.
 
-![Recorded DDR DQ0 transmitter and receiver waveforms, with the receiver eye under switching DQS/DQSn neighbors](assets/simulation-api/ddr-output.png)
+![Regenerated DQ0 receiver waveform overlay with quiet and switching DQS/DQSn neighbors](assets/simulation-api/ddr-output.png)
 
-These historical plots use the same straightened-trace/return-strip DDR run as the downloadable report above. The interactive HTML adds the board view, experiment/probe selection, plot overlays, zoom/pan, and CSV downloads. Unused traces and components are gray; the three simulated traces and their chips are highlighted.
+These plots were captured from the fresh run's `results.html`; the waveform view overlays quiet and switching DQ0_RX over 40–80 ns. The interactive HTML adds the board view, experiment/probe selection, plot overlays, zoom/pan, and CSV downloads. Unused traces and components are gray; the three simulated traces and their chips are highlighted.
 
-| Historical DDR strip-model result | Value |
+| Regenerated historical DDR strip-model result (2026-10-21) | Value |
 | --- | --- |
 | Selected routes | DQ0 `U1.M3 → U3.E3`; DQS `U1.P1 → U3.F3`; DQSn `U1.P2 → U3.G3` |
 | Routed lengths | 45.044, 45.046, and 45.168 mm respectively; two vias each |
 | Experiments | `DDR_QUIET` and `DDR_SWITCHING`; 160 ns each; 10 ps maximum integration step |
 | Waveform data | Six probes; 45,786 quiet / 163,305 switching adaptive timestamps |
 | DQ0 receiver eye | 46 complete windows per experiment; 2.5 ns UI; 40–160 ns gate |
-| DQ0 receiver range, switching | 0.219–1.297 V |
+| DQ0 receiver range, quiet | 0.219821–1.296174 V |
+| DQ0 receiver range, switching | 0.219400–1.297027 V |
 
-This historical run used assumed 0.75 mm signal spacing, an artificial return strip, and 1.5 V supplies. Current DDR runs use routed-copper extraction and require new solver results; these historical values do not describe that model. The recorded eye does not establish DDR compliance or BER.
+This fresh run retains assumed 0.75 mm signal spacing, finite 2 mm × 35 µm return strips, and 1.5 V supplies. The JLC `pcb_stackup` resolves to the same copper z ranges as the former hand-entered construction: switching waveform and DQ0 eye CSVs are byte-identical to the historical report. [Measured values, dependency pins, input hash, and CSV hashes](assets/simulation-api/ddr-run.json) record the regeneration. These values describe the strip model; the routed-copper example is a separate experiment. The recorded eye does not establish DDR compliance or BER.
 
 The saved run contains:
 
@@ -316,15 +317,17 @@ pnpm simulate:compare .tscircuit/ddr-strip --probe DQ0_RX --open
 
 The first command saves both DDR experiments. `--out` chooses a folder that must not already exist; choose a new name for another run. The second opens their DQ0 receiver comparison and exports `comparison.csv`.
 
-| Historical DQ0 strip-model comparison | Value |
+| Regenerated DQ0 strip-model comparison (2026-10-21) | Value |
 | --- | --- |
 | Simulated traces | DQ0 victim, DQS and DQSn neighbors |
 | Conditions | Same victim traffic, models, rails, and geometry; neighbor traffic changes |
 | Measurement gate | 40–160 ns |
-| Peak absolute switching − quiet difference | 6.054 mV |
-| Time RMS difference | 1.595 mV |
+| Peak absolute switching − quiet difference | 6.054232 mV |
+| Time RMS difference | 1.594924 mV |
 
-These are historical observed voltage differences for the earlier strip model, not results from the current routed-copper model, eye-opening measurements, or BER measurements. Comparison requires a ground-referenced single-ended victim and uses linear interpolation on the union of recorded timestamps, with RMS integrated over time.
+These observed voltage differences come from the fresh historical-strip run. They are finite waveform differences, with no eye-opening or BER estimation. Comparison requires a ground-referenced single-ended victim and uses linear interpolation on the union of recorded timestamps, with RMS integrated over time.
+
+The separate routed-copper validation (`pnpm simulate:ddr-dq`) reached FastHenry stage 0 but exited 1 after 158.5 s: `Huh?  filament not expected length`. Its native log also reports `mutual inductance = infinity` for filament pairs. The strip simulation and report above completed successfully.
 
 <details>
 <summary>Troubleshooting and validation commands</summary>
