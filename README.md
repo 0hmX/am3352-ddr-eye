@@ -2,11 +2,11 @@
 
 Write the board and simulation in TSX, run the local solvers, then inspect the board, waveforms, eyes, and CSV data in a browser. This README walks through the API using a real TI IBIS model and recorded simulation output.
 
-**Integration status:** the examples use the [pipeline PR](https://github.com/tscircuit/pcb-spice-pipeline/pull/2) at a pinned Git commit, [core PR #4826](https://github.com/tscircuit/core/pull/4826) and [props PR #950](https://github.com/tscircuit/props/pull/950) through previews, and published Circuit JSON 0.0.531. Use the checked-in lockfile.
+**Integration status:** the examples run locally against the packed build of [core PR #4826](https://github.com/tscircuit/core/pull/4826) in `vendor/`, published props/Circuit JSON, and a commit of the [upstream pipeline PR](https://github.com/tscircuit/pcb-spice-pipeline/pull/2). Core preview publication is currently blocked by pkg.pr.new returning HTTP 404; the checked-in tarball and [hash/provenance](vendor/core-build.json) keep fresh installs runnable. Replace the core dependency and workspace override with its verified preview when publication recovers. Use the checked-in lockfile.
 
 ## HTML report and eye diagram
 
-**[Download the historical DDR report: HTML + CSV](assets/simulation-api/ddr-report.zip?raw=1).** This report and all recorded DDR plots and numeric results below use the earlier straightened traces and artificial return strip. Unzip it and open `results.html` in your browser, keeping `csv/` beside it. It contains the DQ0 + DQS + DQSn simulation with quiet and switching experiments, six probes per experiment, and four eyes. To rerun that experiment, use the [historical strip example](examples/ddr-dq-strip/index.circuit.tsx) with `pnpm simulate:ddr-dq-strip --open` after [setup](#set-up-once). Use `pnpm simulate:ddr-dq --open` for the separate routed-copper experiment.
+**[Download the historical DDR report: HTML + CSV](assets/simulation-api/ddr-report.zip?raw=1).** This report and all recorded DDR plots and numeric results below use the earlier straightened traces and artificial return strip. Unzip it and open `results.html` in your browser, keeping `csv/` beside it. It contains the DQ0 + DQS + DQSn simulation with quiet and switching experiments, six probes per experiment, and four eyes. To rerun that experiment, use the [historical strip example](examples/ddr-dq-strip/index.circuit.tsx) with `pnpm simulate:ddr-dq-strip` after [setup](#set-up-once). Use `pnpm simulate:ddr-dq --open` for the separate routed-copper experiment.
 
 | HTML report interface — historical strip model | DDR DQ0 receiver eye — historical strip model |
 | --- | --- |
@@ -14,7 +14,7 @@ Write the board and simulation in TSX, run the local solvers, then inspect the b
 
 Click either preview to enlarge it. To reproduce the eye view, choose **Plots → DDR_SWITCHING → DQ0_RX → Eye** in the downloaded report. It measures `U3.E3 − U3.B1` over 40–160 ns: 46 complete windows, 2.5 ns UI, and approximately 0.219–1.297 V. The folds use recorded samples with linear interpolation; no artificial jitter is added. **Board**, **Tests**, **Results**, and **CSV files** show the circuit, test settings, measurements, and exports.
 
-## Start here: the CLI and the converter
+## Start here: the upstream CLI
 
 **`pcb-spice-pipeline` is the CLI that runs the whole simulation.** After [setup](#set-up-once), run the three-trace DDR example directly:
 
@@ -39,12 +39,10 @@ flowchart TD
 
 | Folder | Used here as | Responsibility |
 | --- | --- | --- |
-| [pcb-spice-pipeline](https://github.com/tscircuit/pcb-spice-pipeline/pull/2) | `pcb-spice-pipeline` CLI | Loads TSX and modeling settings, calls the converter and solvers, and writes the results. |
-| [packages/ibis-to-spice](packages/ibis-to-spice) | `@tscircuit/ibis-to-spice` library | Converts the selected IBIS pads into SPICE models for the runner. |
+| [tscircuit/pcb-spice-pipeline](https://github.com/tscircuit/pcb-spice-pipeline/pull/2) | `pcb-spice-pipeline` CLI | Loads TSX and modeling settings, calls the converter and solvers, and writes the results. |
+| [tscircuit/ibis-to-spice](https://github.com/tscircuit/ibis-to-spice) | `@tscircuit/ibis-to-spice` library | Converts the selected IBIS pads into SPICE models for the runner. |
 
-The runner calls the converter's TypeScript API, `convertIbisModelToSpice`. You do not need to run its standalone `ibis-to-spice` command for a circuit simulation. FastHenry, FasterCap, and ngspice are installed separately; neither package bundles them.
-
-All board examples specify `stackupPreset="JLC04161H-3313"`. The imported DDR board retains its saved four-layer routing. The designed CMOS and RS-485 boards now use four-layer JLC construction while routing signals only on their top and bottom layers.
+The pipeline is pinned to an upstream Git commit in `package.json`; its `prepare` builds `dist`. The converter is the pipeline's own dependency; neither package is copied into this workspace. The runner calls the converter's TypeScript API, `convertIbisModelToSpice`. You do not need to run its standalone `ibis-to-spice` command for a circuit simulation. FastHenry, FasterCap, and ngspice are installed separately; neither package bundles them.
 
 **Recommended tscircuit command:** extend the existing `tsci simulate analog` command to use this backend when the TSX declares `spiceEngine="pcb_spice"`. The proposed invocation is:
 
@@ -62,7 +60,7 @@ flowchart TD
     IBIS["Vendor IBIS file<br/>Pad behavior"] --> PADS["TypeScript IBIS → SPICE<br/>TX / RX pad models"]
     CJ -->|Pin bindings| PADS
     CJ -->|Routed traces + ground copper| EXTRACT["PCB channel extraction<br/>FastHenry: R / L<br/>FasterCap: C"]
-    CONFIG["JLC stackup preset + modeling<br/>extraction assumptions"] --> EXTRACT
+    CONFIG["pcb_stackup + modeling<br/>Construction + dielectric assumptions"] --> EXTRACT
     PADS --> DECK["SPICE circuit<br/>Pads + PCB + supplies"]
     EXTRACT -->|R / L / C matrices| DECK
     CJ -->|Stimulus + probes| DECK
@@ -88,8 +86,8 @@ flowchart TD
 | --- | --- | --- |
 | [index.circuit.tsx](index.circuit.tsx) | Circuit and experiment | Board design/reference, IBIS attachments, buffer states, stimulus bits, timing, probes, and eye settings. |
 | [simulation.config.ts](simulation.config.ts) | Physical simulation configuration | Assembles and exports `modeling`. The default DDR example also defines its `driver` and `receiver` IBIS bindings here. |
-| [simulation.json](simulation.json) | Optional split of the physical settings | Selected lane endpoints, extraction mode/controls, effective dielectric and via assumptions. Imported by `simulation.config.ts`; **not a complete standalone CLI input**. |
-| [board-construction.json](board-construction.json) | Non-stackup modeling assumptions | Via equivalents, extraction limits and omissions. Copper layer dimensions and material properties come from `stackupPreset` on the board. |
+| [simulation.json](simulation.json) | Optional split of the physical settings | Selected lane endpoints, extraction mode/controls, dielectric and via assumptions. Imported by `simulation.config.ts`; **not a complete standalone CLI input**. |
+| [board-construction.json](board-construction.json) | Construction facts and assumptions | Provenance and extraction assumptions. Core emits `pcb_stackup` from the existing `fabricatorPreset="jlcpcb_standard"` board prop; the pipeline derives copper heights/thicknesses from that record. The saved four-layer, 1.6 mm FR-4 board selects JLC04161H-3313. |
 | [models.ts](examples/single-ended/models.ts) | IBIS model bindings | Asset paths/URLs, component/model names, pin/rail mappings, corner, and package policy. The CMOS/RS-485 examples keep these in a separate module. |
 
 Optional source notes belong in [source-provenance.json](source-provenance.json): chosen board origin/revision, attribution, evidence URLs, assumptions, and limitations. It documents those choices rather than configuring the solver. Calculated hashes/counts in the existing file are evidence, not values a person needs to author.
@@ -105,13 +103,13 @@ These choices remain explicit; routed-copper extraction infers ground-net member
 | Which pads/models to use, pin-to-port and rail mappings, corner, package policy | `ibismodel` definitions in `models.ts` or `simulation.config.ts` |
 | Output/input states, traffic, duration, maximum time step, measured voltages, eye UI/origin/gates | Native simulation elements in the circuit TSX |
 | Which one to three channels to simulate and their electrical reference | `modeling.lanes` (`port`, `from`, `to`; optional `sourceTraceId`) and `channelReference` |
-| Board construction and effective dielectric approximation | `stackupPreset="JLC04161H-3313"` on the board emits Circuit JSON `pcb_stackup`. `modeling.relativePermittivity` is the routed solver's homogeneous approximation; strip examples use `profiles` for assumed spacing and finite returns. |
+| Fabrication construction, conductivity, dielectric approximation | `fabricatorPreset="jlcpcb_standard"` → Circuit JSON `pcb_stackup`; copper conductivity comes from `pcb_stackup`; homogeneous `relativePermittivity` remains an extraction assumption; strip examples use `profiles` for assumed spacing and return strips |
 | Frequency range/model frequency, mesh/refinement, tolerances, lumped-section count | `modeling.extraction` (including `groundMeshMm` for routed copper) and `sections` |
 | Via plating/equivalent-width/stub assumptions, when routes include vias | `viaPlatingMm`, `viaEquivalentWidthMm`, `omitThroughViaStubs` |
 | Supply voltages and included passive components | Physical TSX voltage sources or `modeling.supplies`; explicit `modeling.passiveComponents` selection |
 | Which manufacturer's model source to use | IBIS asset path/URL in the model bindings; the repository examples pin their sources in vendor locks |
 
-For both [index.circuit.tsx](index.circuit.tsx) and [examples/ddr-dq/index.circuit.tsx](examples/ddr-dq/index.circuit.tsx), the shared `simulation.json` selects `reduction: "routed-copper"`. `simulation.config.ts` adds IBIS bindings, a supply/reference, non-stackup assumptions, and source evidence. The board's `stackupPreset` resolves the JLC template into Circuit JSON `pcb_stackup`. The TSX declares the **experiment and timing**. The [CMOS configuration](examples/single-ended/simulation.config.ts) keeps its physical settings directly in TypeScript and retains `straightened-stages`.
+For both [index.circuit.tsx](index.circuit.tsx) and [examples/ddr-dq/index.circuit.tsx](examples/ddr-dq/index.circuit.tsx), the shared `simulation.json` selects `reduction: "routed-copper"`. `simulation.config.ts` adds construction data, IBIS bindings, a supply/reference, and source evidence. The TSX declares the **experiment and timing**. The CMOS/RS-485 fixtures also select the supported four-layer, 1.6 mm JLC preset; their routes remain on top/bottom. This supersedes their earlier manually specified two-layer construction. The [CMOS configuration](examples/single-ended/simulation.config.ts) keeps its physical settings directly in TypeScript and retains `straightened-stages`.
 
 Route measurements, model conversion, and solver results are computed automatically. They are not additional input files to write.
 
@@ -119,7 +117,7 @@ Route measurements, model conversion, and solver results are computed automatica
 
 The extractor follows `channelReference` (`U1.A1`) through source-trace connectivity to one `source_net` marked `is_ground`, then selects the `pcb_copper_pour` records on that connected net. It infers the receiver ground pin (`U3.B1`) from the receiver's IBIS pulldown/ground-clamp reference mappings; `groundReturn` can select it explicitly when those mappings are ambiguous. Missing or ambiguous ground geometry produces an error, rather than substituting a return strip.
 
-The saved DDR board supplies three ground pours with their polygon boundaries and 392 cutouts. Original signal XYZ coordinates, bends, widths, and the two physical reference leads/vias are retained; the JLC template supplies copper height and thickness through Circuit JSON `pcb_stackup`. There is no manually chosen return width, length, or sideways offset in this mode. See [copper.ts](https://github.com/tscircuit/pcb-spice-pipeline/blob/feat/latest-pipeline-pcb-stackup/src/copper.ts) for selection and solver geometry.
+The saved DDR board supplies three ground pours with their polygon boundaries and 392 cutouts. Original signal XYZ coordinates, bends, widths, and the two physical reference leads/vias are retained; `pcb_stackup` supplies copper height and thickness. There is no manually chosen return width, length, or sideways offset in this mode. See [copper.ts](https://github.com/tscircuit/pcb-spice-pipeline/blob/feat/latest-pipeline-pcb-stackup/src/copper.ts) for selection and solver geometry.
 
 FastHenry discretizes the ground polygons into an adaptive rectangular conductor mesh with finite contact areas at the reference connections. Cutout boundaries and edge-strip extents are mesh approximations. `extraction.groundMeshMm` controls the base mesh spacing, which is halved for the convergence check alongside filament refinement. FasterCap uses closed Boolean unions of copper solids and preserves the polygon holes; duplicate/collinear Boolean artifacts below the saved coordinate precision are removed before triangulation. The capacitance calculation uses the explicit homogeneous `relativePermittivity: 4.1` assumption; dielectric layers are not solved separately.
 
@@ -162,7 +160,7 @@ The runner reads the local `.ibs` first. If it is missing, an HTTP(S) `ibisModel
 This is the switching experiment from [examples/ddr-dq/index.circuit.tsx](examples/ddr-dq/index.circuit.tsx), expanded from its quiet/switching loop. The file imports `analog` from `@tscircuit/core`, `ImportedBoard` from `pcb-spice-pipeline/tsx`, the saved board, and the bindings above:
 
 ```tsx
-<ImportedBoard circuitJson={routedBoard} stackupPreset="JLC04161H-3313">
+<ImportedBoard circuitJson={routedBoard} fabricatorPreset="jlcpcb_standard">
   <ibismodel componentRef="chip.U1" {...driver} />
   <ibismodel componentRef="chip.U3" {...receiver} />
 
@@ -214,22 +212,25 @@ This is the switching experiment from [examples/ddr-dq/index.circuit.tsx](exampl
 
 Folding uses the declared stimulus origin (`timeOrigin`, matching the stimulus start), with bit boundaries `b_k = timeOrigin + k * UI`. Each two-UI window spans `[b_k - UI/2, b_k + 3*UI/2]`, so its center is `b_k + UI/2`: half a UI after a bit edge, at mid-bit. For DQ0, the first retained window is 41.25–46.25 ns, centered at 43.75 ns. A gate that contains no complete aligned window fails with its start/end, UI and skipped-UI count; even a 40–45 ns gate is too short at this alignment.
 
-Run the [complete circuit](examples/ddr-dq/index.circuit.tsx), which also declares the DQS receiver eye and the quiet-neighbor experiment. In the quiet experiment, the DQ0 bits stay identical while DQS/DQSn are held low/high. Its exported `modeling` selects the three routes and defines the supply, ground reference, and routed-copper extraction assumptions. The JLC stackup comes from `stackupPreset` on `ImportedBoard`. `chip.U1` and `chip.U3` disambiguate the chip bindings from similarly named BGA pins.
+Run the [complete circuit](examples/ddr-dq/index.circuit.tsx), which also declares the DQS receiver eye and the quiet-neighbor experiment. In the quiet experiment, the DQ0 bits stay identical while DQS/DQSn are held low/high. Its exported `modeling` selects the three routes and defines the supply, stackup, ground reference, and routed-copper extraction assumptions. `chip.U1` and `chip.U3` disambiguate the chip bindings from similarly named BGA pins.
 
 ### Known gaps
 
 - DQ folds on the stimulus clock, without alignment to received DQS crossings.
 - No VREF, AC/DC input thresholds, or setup/hold mask is applied yet. Winbond `Vinl = 0.6 V` / `Vinh = 0.9 V` are reference values only.
 - No per-experiment IBIS model selection (`ODT_60` / `ODT_off` / `DATA_40`) is available yet.
-- Stackup, extraction assumptions, and channel selection live in the separate modeling config.
+- Fabrication construction comes from `pcb_stackup`; extraction assumptions and channel selection live in the modeling config.
 
 ## 3. Run it and inspect the output
 
-After [setup](#set-up-once), run the complete DDR example:
+After [setup](#set-up-once), regenerate the historical strip experiment in a fresh directory (leave off `--open` for unattended runs):
 
 ```sh
-pnpm simulate:ddr-dq --open
+export PCB_SPICE_TOOLS=/tmp/pcbsim/tools/tools.json
+pnpm exec pcb-spice-pipeline examples/ddr-dq-strip/index.circuit.tsx --out /tmp/pcbsim/runs/ddr-dq-strip-1
 ```
+
+`pnpm simulate:ddr-dq` runs the separate routed-copper experiment.
 
 **`--open` opens the generated HTML report in your browser after the solve finishes.** Leave it off to save results without opening a browser. Each run creates a fresh folder and prints its location.
 
@@ -246,7 +247,7 @@ These historical plots use the same straightened-trace/return-strip DDR run as t
 | DQ0 receiver eye | 46 complete windows per experiment; 2.5 ns UI; 40–160 ns gate |
 | DQ0 receiver range, switching | 0.219–1.297 V |
 
-This historical run used assumed 0.75 mm signal spacing, an artificial return strip, and 1.5 V supplies. The [strip example](examples/ddr-dq-strip/index.circuit.tsx) retains those assumptions; the routed-copper example is a separate run. The recorded eye does not establish DDR compliance or BER.
+This historical run used assumed 0.75 mm signal spacing, an artificial return strip, and 1.5 V supplies. Current DDR runs use routed-copper extraction and require new solver results; these historical values do not describe that model. The recorded eye does not establish DDR compliance or BER.
 
 The saved run contains:
 
@@ -285,10 +286,12 @@ git clone https://github.com/0hmX/am3352-ddr-eye.git
 cd am3352-ddr-eye
 npm install --global pnpm@11.25.0
 pnpm install --frozen-lockfile
-pnpm simulate:setup --install-deps
+pnpm simulate:models
+pnpm exec pcb-spice-pipeline --setup --install-deps --tools-dir /tmp/pcbsim/tools
+export PCB_SPICE_TOOLS=/tmp/pcbsim/tools/tools.json
 ```
 
-The last command downloads vendor models and builds FastHenry, FasterCap, and ngspice locally. `--install-deps` installs their compiler/build dependencies; omit it if those are already installed. External solvers are not bundled. Setup and solves can take several minutes. macOS Apple Silicon is validated; Linux setup is implemented but not validated end to end. The installer does not support Windows.
+The model command downloads and verifies vendor files; setup builds FastHenry, FasterCap, and ngspice locally. Keep the checkout and tools paths free of spaces for native builds. `--install-deps` installs their compiler/build dependencies; omit it if those are already installed. External solvers are not bundled. Setup and solves can take several minutes. macOS Apple Silicon is validated; Linux setup is implemented but not validated end to end. The installer does not support Windows.
 
 ## Run each example
 
@@ -297,8 +300,8 @@ Run from the repository folder. Every command opens that example's **simulation 
 | Circuit file | Command | What opens |
 | --- | --- | --- |
 | [index.circuit.tsx](index.circuit.tsx) | `pnpm simulate --open` | AM3352 DDR strobe: DQS/DQSn, two selected traces; TX/RX waveforms and eyes |
-| [examples/ddr-dq/index.circuit.tsx](examples/ddr-dq/index.circuit.tsx) | `pnpm simulate:ddr-dq --open` | DQ0 + DQS + DQSn, routed ground-copper extraction |
-| [examples/ddr-dq-strip/index.circuit.tsx](examples/ddr-dq-strip/index.circuit.tsx) | `pnpm simulate:ddr-dq-strip --open` | Historical DQ0 + DQS + DQSn finite-strip extraction; quiet and switching eyes |
+| [examples/ddr-dq/index.circuit.tsx](examples/ddr-dq/index.circuit.tsx) | `pnpm simulate:ddr-dq --open` | Routed-copper DQ0 + DQS + DQSn; quiet and switching experiments |
+| [examples/ddr-dq-strip/index.circuit.tsx](examples/ddr-dq-strip/index.circuit.tsx) | `pnpm simulate:ddr-dq-strip --open` | Historical straightened stages and finite return strips; regenerated report shown above |
 | [examples/single-ended/index.circuit.tsx](examples/single-ended/index.circuit.tsx) | `pnpm simulate:single-ended --open` | SN74LVC1G04 CMOS pad/channel; TX/RX waveforms and eyes |
 | [examples/differential-data/index.circuit.tsx](examples/differential-data/index.circuit.tsx) | `pnpm simulate:non-ddr --open` | SN65HVD72 RS-485 pair, termination, differential and A-to-ground results |
 
@@ -321,7 +324,7 @@ The first command saves both DDR experiments. `--out` chooses a folder that must
 | Peak absolute switching − quiet difference | 6.054 mV |
 | Time RMS difference | 1.595 mV |
 
-These are historical observed voltage differences for the strip model, not eye-opening measurements or BER measurements. Comparison requires a ground-referenced single-ended victim and uses linear interpolation on the union of recorded timestamps, with RMS integrated over time.
+These are historical observed voltage differences for the earlier strip model, not results from the current routed-copper model, eye-opening measurements, or BER measurements. Comparison requires a ground-referenced single-ended victim and uses linear interpolation on the union of recorded timestamps, with RMS integrated over time.
 
 <details>
 <summary>Troubleshooting and validation commands</summary>
@@ -337,9 +340,11 @@ These are historical observed voltage differences for the strip model, not eye-o
 ```sh
 pnpm typecheck
 pnpm build
+pnpm test:native
+pnpm exec pcb-spice-pipeline --repeat examples/ddr-dq-strip/index.circuit.tsx
 ```
 
-Unit tests use `pnpm test` and additionally require Bun; normal simulation does not.
+`test:native` runs the strip example and requires prepared models and installed solvers. The explicit `--repeat` command runs the strip example twice and audits its results. Integration tests use `pnpm test` to render all five examples through the installed upstream loader and additionally require Bun; normal simulation does not.
 
 Tools live under `node_modules/.cache/pcb-spice-pipeline/tools`. `PCB_SPICE_CACHE` changes the runtime cache location. For an explicit tools installation:
 
@@ -355,11 +360,11 @@ Setup verifies pinned sources, binaries, and installed runtime libraries. Local/
 <details>
 <summary>Saved boards and current modeling limits</summary>
 
-For saved boards, place simulation declarations inside `<ImportedBoard circuitJson={savedBoard} stackupPreset="JLC04161H-3313">`, imported from `pcb-spice-pipeline/tsx`; see the [DDR example](examples/ddr-dq/index.circuit.tsx). It preserves physical records and verifies referenced pin/net mappings. Additional physical children, ambiguous bindings, and existing saved simulation declarations/results are rejected. Use selectors such as `chip.U1` when BGA pin names could also match `.U1`.
+For saved boards, place simulation declarations inside `<ImportedBoard circuitJson={savedBoard} fabricatorPreset="jlcpcb_standard">`, imported from `pcb-spice-pipeline/tsx`; see the [DDR example](examples/ddr-dq/index.circuit.tsx). It preserves physical records and verifies referenced pin/net mappings. Additional physical children, ambiguous bindings, and existing saved simulation declarations/results are rejected. Use selectors such as `chip.U1` when BGA pin names could also match `.U1`.
 
-The backend supports **one to three selected coupled channels**, unswept transient experiments, and mutual R/L/C coupling. The default DDR entrypoint and routed DQ0 example use original routed signals and inferred ground copper; the historical DQ0 and non-DDR examples use straightened stages, assumed spacing, and finite return strips. Gray traces remain visible but are excluded from the electrical solve.
+The backend supports **one to three selected coupled channels**, unswept transient experiments, and mutual R/L/C coupling. Both DDR entrypoints use original routed signals and inferred ground copper; the non-DDR examples retain straightened stages, assumed spacing, and finite return strips. Gray traces remain visible but are excluded from the electrical solve.
 
-DDR extraction includes only the driver and receiver ground leads/vias. Other ground routing and stitching, power planes, unselected nets, and the board PDN are omitted; both reference leads must reach one connected pour. FastHenry resolves ground-current distribution through a mesh approximation, while FasterCap treats the selected ground islands as equipotential. Via rectangular equivalents preserve plated barrel metal area; complete pads and unused through-via stubs are omitted. Copper layer heights and thicknesses come from the JLC template; homogeneous effective permittivity remains an explicit modeling assumption; layered dielectrics, dielectric loss, and copper roughness are omitted.
+DDR extraction includes only the driver and receiver ground leads/vias. Other ground routing and stitching, power planes, unselected nets, and the board PDN are omitted; both reference leads must reach one connected pour. FastHenry resolves ground-current distribution through a mesh approximation, while FasterCap treats the selected ground islands as equipotential. Via rectangular equivalents preserve plated barrel metal area; complete pads and unused through-via stubs are omitted. Copper layer heights/thicknesses and homogeneous effective permittivity remain explicit assumptions; layered dielectrics, dielectric loss, and copper roughness are omitted.
 
 The whole routed network's extracted R/L/C is distributed uniformly into pi sections, with constant R/L at the configured 100 MHz model frequency; spatially varying line parameters and broadband dispersion are not fitted. Reference rails use ideal supplies; package-parasitic omissions are recorded in the receipt. DDR experiments assume continuous write-direction pad activity. Controller logic, commands, bursts, training, and clock recovery are not modeled. The source board is an incomplete routing checkpoint; preview shows saved footprints as generic chips.
 

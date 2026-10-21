@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { basename, dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { vendorSource } from "../node_modules/pcb-spice-pipeline/dist/io.mjs"
+const { vendorSource } = await import(new URL("./io.mjs", import.meta.resolve("pcb-spice-pipeline")))
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const ddrModels = JSON.parse(await readFile(join(projectRoot, "vendor-models.json"), "utf8"))

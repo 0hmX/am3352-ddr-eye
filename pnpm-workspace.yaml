@@ -1,18 +1,17 @@
 packages:
   - .
-  - packages/ibis-to-spice
-# Overrides inject the core/props PR previews into tscircuit's transitive dependencies.
-# Exotic subdependencies remain enabled until those previews are published.
+# Keep one core/props/Circuit JSON version throughout the tscircuit tree.
+# The relative core tarball is temporary while pkg.pr.new publication is down.
+# Pinned upstream Git dependencies must be allowed to prepare their dist files.
 blockExoticSubdeps: false
 allowBuilds:
+  pcb-spice-pipeline@https://codeload.github.com/tscircuit/pcb-spice-pipeline/tar.gz/4c633a3ba59465bc87d0cb94aca827ff019971a0: true
   esbuild: true
   '@resvg/resvg-js': true
   sharp: false
-  pcb-spice-pipeline@https://codeload.github.com/tscircuit/pcb-spice-pipeline/tar.gz/b8c2755295cd0be7845cb488ce65a6ccaca36893: true
 overrides:
-  '@tscircuit/core': https://pkg.pr.new/tscircuit/core/@tscircuit/core@898e8cf
-  '@tscircuit/props': https://pkg.pr.new/@tscircuit/props@4566b91
-  '@tscircuit/ibis-to-spice': workspace:*
+  '@tscircuit/core': file:vendor/tscircuit-core-4e95d06.tgz
+  '@tscircuit/props': 0.0.705
   '@tscircuit/cli': 0.1.2237
   '@tscircuit/eval': 0.0.1538
   tscircuit: 0.0.2940
@@ -38,4 +37,5 @@ overrides:
 minimumReleaseAgeExclude:
   - '@tscircuit/runframe@0.0.3012'
   - tscircuit@0.0.2940
-  - circuit-json@0.0.531
+  - "@tscircuit/props@0.0.705"
+  - "circuit-json@0.0.531"

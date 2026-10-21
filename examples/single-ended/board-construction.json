@@ -4,6 +4,13 @@
   "widthMm": 52,
   "heightMm": 22,
   "thicknessMm": 1.6,
+  "dielectric": {
+    "name": "FR-4",
+    "thicknessMm": 1.53,
+    "relativePermittivityAssumed": 4.1,
+    "lossTangentModeled": false
+  },
+  "copperConductivitySm": 58000000,
   "routing": "All electrical traces are explicit native TSX pcbPath routes; no generated snapshot or synthetic channel replaces the board.",
   "footprints": "Explicit package-pin pads, with SOIC-8 pitch 1.27 mm and SC70-5 pitch 0.65 mm. Pad dimensions are designed demonstration assumptions, not vendor land-pattern approval.",
   "assumptions": [
@@ -12,5 +19,6 @@
     "Extraction straightens each routed stage and replaces return geometry with an explicit finite strip",
     "Ideal source is a bench supply connected at the two-pad PWR footprint; supply distribution is ideal in SPICE",
     "Unselected functional/control pins are outside the electrical pad/channel fixture and have no functional simulation model."
-  ]
+  ],
+  "stackupSource": "Circuit JSON pcb_stackup from fabricatorPreset=jlcpcb_standard: four-layer, 1.6mm FR4 JLC04161H-3313 fixture. Signal/return routes use top and bottom only; the previous hand-authored two-layer construction is superseded."
 }

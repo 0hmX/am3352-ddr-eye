@@ -1,6 +1,11 @@
 {
-  "status": "Explicit extraction assumptions for the JLC preset; not measured or manufacturer-approved",
+  "status": "Selected working construction and explicit simulation assumptions; not measured or manufacturer-approved",
+  "source": "https://raw.githubusercontent.com/tscircuit/am3352-sbc/837245bceb6ac898fd5451507d6b2b8024095fe7/design/fabrication-stackup.json",
+  "stackupCode": "JLC04161H-3313",
+  "nominalBoardThicknessMm": 1.6,
+  "frame": "Copper/dielectric z in mm, positive toward top; z=0 at the upper face of bottom copper. PCB XY is the original board world frame in mm.",
   "extractionAssumptions": {
+    "conductivitySm": 58000000,
     "viaPlatingMm": 0.025,
     "viaEquivalentWidthMm": 0.1,
     "omitThroughViaStubs": true,
@@ -20,5 +25,6 @@
       "Winbond signal and reference-rail package R/L/C (explicit packagePolicy=omit)",
       "Power/ground reference-rail package impedance for all vendor models"
     ]
-  }
+  },
+  "stackupSource": "Circuit JSON pcb_stackup emitted by core for fabricatorPreset=jlcpcb_standard; copper z is resolved by pcb-spice-pipeline. Earlier hand-entered copper z ranges are no longer simulation inputs."
 }

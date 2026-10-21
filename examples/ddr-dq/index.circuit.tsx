@@ -44,7 +44,7 @@ export const modeling = {
 
 export default function Board() {
   return (
-    <ImportedBoard circuitJson={routedBoard} stackupPreset="JLC04161H-3313">
+    <ImportedBoard circuitJson={routedBoard} fabricatorPreset="jlcpcb_standard">
       <ibismodel componentRef="chip.U1" {...driver} />
       <ibismodel componentRef="chip.U3" {...receiver} />
       <voltageprobe name="DDR_RX" connectsTo=".U3 > .F3" referenceTo=".U3 > .G3" />
