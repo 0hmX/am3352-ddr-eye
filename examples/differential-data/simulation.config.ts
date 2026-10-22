@@ -3,7 +3,7 @@ import sourceProvenance from "../vendor-models.lock.json"
 
 export const modeling = {
   ibisModelAssetSha256: { [`models/${sourceProvenance.models.rs485.file}`]: sourceProvenance.models.rs485.sha256 },
-  reduction: "straightened-stages",
+  reduction: "straightened-stages" as const,
   lanes: [
     { port: "A", from: { component: "TX", port: "A" }, to: { component: "RX", port: "A" } },
     { port: "B", from: { component: "TX", port: "B" }, to: { component: "RX", port: "B" } },

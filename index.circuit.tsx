@@ -1,5 +1,5 @@
 import { analog } from "@tscircuit/core"
-import { ImportedBoard } from "pcb-spice-pipeline/tsx"
+import { ImportedBoard } from "@tscircuit/pcb-spice-pipeline/tsx"
 import routedBoard from "./am3352.circuit.json"
 import { driver, receiver } from "./simulation.config"
 

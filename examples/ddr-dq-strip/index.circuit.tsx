@@ -5,14 +5,14 @@ import profiles from "./profiles.json"
 // extraction reduction changes to reproduce the pre-9a4fffd strip model.
 export { default } from "../ddr-dq/index.circuit"
 
+const { groundMeshMm, ...extraction } = routedModeling.extraction
+
 export const modeling = {
   ...routedModeling,
   circuitJsonUnits: "mm",
   description: "Historical AM3352 DQ0 receiver eye: straightened stages, assumed 0.75mm spacing and artificial return strips",
-  reduction: "straightened-stages",
-  extraction: Object.fromEntries(
-    Object.entries(routedModeling.extraction).filter(([key]) => key !== "groundMeshMm"),
-  ),
+  reduction: "straightened-stages" as const,
+  extraction,
   profiles,
   boardConstruction: {
     ...routedModeling.boardConstruction,

@@ -9,7 +9,8 @@
     "strict": true,
     "skipLibCheck": true,
     "types": [
-      "@tscircuit/core"
+      "@tscircuit/core",
+      "node"
     ],
     "paths": {
       "@tscircuit/fanout-solver": [
@@ -21,6 +22,7 @@
     "index.circuit.tsx",
     "simulation.config.ts",
     "examples/**/*.tsx",
-    "examples/**/*.ts"
+    "examples/**/*.ts",
+    "tests/**/*.ts"
   ]
 }

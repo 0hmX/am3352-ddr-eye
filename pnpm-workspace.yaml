@@ -1,17 +1,15 @@
 packages:
   - .
 # Keep one core/props/Circuit JSON version throughout the tscircuit tree.
-# The relative core tarball is temporary while pkg.pr.new publication is down.
-# Pinned upstream Git dependencies must be allowed to prepare their dist files.
+# Core is an immutable preview with IBIS and pcb_stackup support.
 blockExoticSubdeps: false
 allowBuilds:
-  pcb-spice-pipeline@https://codeload.github.com/tscircuit/pcb-spice-pipeline/tar.gz/dda5a5833d5fdd629953aa26ed47c533b042093b: true
   esbuild: true
   '@resvg/resvg-js': true
   sharp: false
 overrides:
-  '@tscircuit/core': file:vendor/tscircuit-core-4e95d06.tgz
-  '@tscircuit/props': 0.0.705
+  '@tscircuit/core': https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322
+  '@tscircuit/props': 0.0.707
   '@tscircuit/cli': 0.1.2237
   '@tscircuit/eval': 0.0.1538
   tscircuit: 0.0.2940
@@ -37,5 +35,5 @@ overrides:
 minimumReleaseAgeExclude:
   - '@tscircuit/runframe@0.0.3012'
   - tscircuit@0.0.2940
-  - "@tscircuit/props@0.0.705"
+  - "@tscircuit/props@0.0.707"
   - "circuit-json@0.0.531"
