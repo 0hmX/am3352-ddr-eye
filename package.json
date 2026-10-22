@@ -29,13 +29,13 @@
     "circuit-json": "0.0.531"
   },
   "devDependencies": {
-    "@tscircuit/cli": "0.1.2237",
+    "@tscircuit/cli": "https://api.github.com/repos/tscircuit/cli/tarball/0ddc075c607d0f679e4e6af5462ef29042c3628d",
     "@tscircuit/eval": "0.0.1538",
     "@types/react": "19.3.0",
     "typescript": "5.9.3",
     "fflate": "0.8.2",
     "tsx": "4.23.15",
-    "@tscircuit/pcb-spice-pipeline": "github:tscircuit/pcb-spice-pipeline#dda5a5833d5fdd629953aa26ed47c533b042093b",
+    "@tscircuit/pcb-spice-pipeline": "https://api.github.com/repos/tscircuit/pcb-spice-pipeline/tarball/262d3a8271692c0c4d8c0e92ad67806158efc10e",
     "@tscircuit/ibis-to-spice": "https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317",
     "@types/node": "22.20.5"
   },

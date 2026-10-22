@@ -15,11 +15,13 @@ pnpm typecheck
 pnpm test
 ```
 
-The lockfile pins the coordinated CLI and pipeline builds. Core is an immutable [preview at a120fd8](https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322) containing IBIS declarations and `pcb_stackup` emission; the published release with the same version number is not interchangeable. The preview requires props `0.0.707`; the earlier `0.0.705` pin lacks a required core export. No checked-in core build or pipeline Git preparation is needed. The existing fanout-solver declaration workaround still runs during installation.
+The lockfile pins prepared builds of [pipeline #5](https://github.com/tscircuit/pcb-spice-pipeline/pull/5) and [CLI #5541](https://github.com/tscircuit/cli/pull/5541), with the CLI override applying the same build to the `tsci` executable. Core is an immutable [preview at a120fd8](https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322) containing IBIS declarations and `pcb_stackup` emission; the published release with the same version number is not interchangeable. The preview requires props `0.0.707`; the earlier `0.0.705` pin lacks a required core export. No checked-in core build or pipeline Git preparation is needed. The existing fanout-solver declaration workaround still runs during installation.
 
 `simulate:models` explicitly downloads the four vendor archives into a local cache, checks their SHA-256 hashes, extracts only the locked IBIS members, checks their hashes, and writes `models/`. [DDR vendor locks](vendor-models.json) and [CMOS/RS-485 locks](examples/vendor-models.lock.json) retain their source URLs and checksums. Vendor model bytes are not redistributed. Simulations read these prepared local assets; the library does not fetch missing models.
 
 Install **FastHenry, FasterCap, and ngspice separately** before a native run. The CLI uses installed executables; programmatic callers can supply absolute executable paths through the Node adapter shown below. Installation of compiler dependencies or solver binaries is outside this repository's simulation commands. The library never installs tools, downloads vendors, or enforces a build receipt. Native tools remain an external prerequisite; an in-process/WASM replacement has not been validated for this pipeline's coupled extraction and IBIS decks.
+
+For executables outside PATH, set `PCB_SPICE_TOOLS` to a JSON file containing their absolute `fasthenry`, `fastercap`, and `ngspice` paths. Existing tool maps can be supplied explicitly through this variable.
 
 ## Run an example
 

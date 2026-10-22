@@ -10,7 +10,7 @@ allowBuilds:
 overrides:
   '@tscircuit/core': https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322
   '@tscircuit/props': 0.0.707
-  '@tscircuit/cli': 0.1.2237
+  '@tscircuit/cli': https://api.github.com/repos/tscircuit/cli/tarball/0ddc075c607d0f679e4e6af5462ef29042c3628d
   '@tscircuit/eval': 0.0.1538
   tscircuit: 0.0.2940
   "@tscircuit/cableprinter": "0.0.6"
