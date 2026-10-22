@@ -1,7 +1,0 @@
-{
-  "sourcePullRequest": "https://github.com/tscircuit/core/pull/4826",
-  "sourceCommit": "4e95d068b6cb9148fd740a1d4866908032fb2f7b",
-  "artifact": "tscircuit-core-4e95d06.tgz",
-  "sha256": "964af72b8a9016fc89a3bb0f8ac78c0692c21180f59068bac4c8cb8b76dc485c",
-  "status": "Temporary packed core build provided by the core implementation agent; pkg.pr.new publication and direct expected-preview URLs returned HTTP 404. Replace the dependency and workspace override with the verified PR preview when publication recovers."
-}

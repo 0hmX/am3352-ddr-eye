@@ -1,3 +1,4 @@
+import type { Modeling } from "@tscircuit/pcb-spice-pipeline"
 import type { IbisModelDefinition } from "@tscircuit/props"
 import settings from "./simulation.json"
 import boardConstruction from "./board-construction.json"
@@ -42,6 +43,7 @@ export const receiver: IbisModelDefinition = {
 
 export const modeling = {
   ...settings,
+  reduction: settings.reduction as Modeling["reduction"],
   ibisModelAssetSha256: Object.fromEntries(vendorModels.map(vendor => [`models/${vendor.file}`, vendor.sha256])),
   supplies: [{ positive: { component: "U1", port: "E5" }, negative: { component: "U1", port: "A1" }, voltageV: 1.5 }],
   channelReference: { component: "U1", port: "A1" },

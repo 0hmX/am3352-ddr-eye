@@ -5,9 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@tscircuit/core': file:vendor/tscircuit-core-4e95d06.tgz
-  '@tscircuit/props': 0.0.705
-  '@tscircuit/cli': 0.1.2237
+  '@tscircuit/core': https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322
+  '@tscircuit/props': 0.0.707
+  '@tscircuit/cli': https://api.github.com/repos/tscircuit/cli/tarball/0ddc075c607d0f679e4e6af5462ef29042c3628d
   '@tscircuit/eval': 0.0.1538
   tscircuit: 0.0.2940
   '@tscircuit/cableprinter': 0.0.6
@@ -35,11 +35,11 @@ importers:
   .:
     dependencies:
       '@tscircuit/core':
-        specifier: file:vendor/tscircuit-core-4e95d06.tgz
-        version: file:vendor/tscircuit-core-4e95d06.tgz(71445a29cff8a64e15779d677f0cbd65)
+        specifier: https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322
+        version: https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(902ad919f2173e1a17e79c0c9383b2a5)
       '@tscircuit/props':
-        specifier: 0.0.705
-        version: 0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+        specifier: 0.0.707
+        version: 0.0.707(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
       circuit-json:
         specifier: 0.0.531
         version: 0.0.531(format-si-unit@0.0.12(typescript@5.9.3))
@@ -51,17 +51,29 @@ importers:
         version: 0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3)
     devDependencies:
       '@tscircuit/cli':
-        specifier: 0.1.2237
-        version: 0.1.2237(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(tscircuit@0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))
+        specifier: https://api.github.com/repos/tscircuit/cli/tarball/0ddc075c607d0f679e4e6af5462ef29042c3628d
+        version: https://api.github.com/repos/tscircuit/cli/tarball/0ddc075c607d0f679e4e6af5462ef29042c3628d(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(circuit-to-svg@0.0.447(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3))(tscircuit@0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))
       '@tscircuit/eval':
         specifier: 0.0.1538
-        version: 0.0.1538(@tscircuit/core@file:vendor/tscircuit-core-4e95d06.tgz(71445a29cff8a64e15779d677f0cbd65))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)
+        version: 0.0.1538(@tscircuit/core@https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(902ad919f2173e1a17e79c0c9383b2a5))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)
+      '@tscircuit/ibis-to-spice':
+        specifier: https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317
+        version: https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317
+      '@tscircuit/pcb-spice-pipeline':
+        specifier: https://api.github.com/repos/tscircuit/pcb-spice-pipeline/tarball/262d3a8271692c0c4d8c0e92ad67806158efc10e
+        version: https://api.github.com/repos/tscircuit/pcb-spice-pipeline/tarball/262d3a8271692c0c4d8c0e92ad67806158efc10e(@tscircuit/core@https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(902ad919f2173e1a17e79c0c9383b2a5))(@tscircuit/props@0.0.707(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(react@19.2.4)(typescript@5.9.3)
+      '@types/node':
+        specifier: 22.20.5
+        version: 22.20.5
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
-      pcb-spice-pipeline:
-        specifier: github:tscircuit/pcb-spice-pipeline#dda5a5833d5fdd629953aa26ed47c533b042093b
-        version: https://codeload.github.com/tscircuit/pcb-spice-pipeline/tar.gz/dda5a5833d5fdd629953aa26ed47c533b042093b(@tscircuit/core@file:vendor/tscircuit-core-4e95d06.tgz(71445a29cff8a64e15779d677f0cbd65))(@tscircuit/props@0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(format-si-unit@0.0.12(typescript@5.9.3))
+      fflate:
+        specifier: 0.8.2
+        version: 0.8.2
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -80,34 +92,16 @@ packages:
     resolution: {integrity: sha512-NpugTzbKgGrNe45Ui32cN8vCFFMxVtP/9rtfwv0nP5FRDAjvYBxJcLVpYA9mr1jxP6cnIT7x9LUzuDTbWYYNRA==}
     engines: {node: '>=6.9.0'}
 
-  '@esbuild/aix-ppc64@0.27.0':
-    resolution: {integrity: sha512-KuZrd2hRjz01y5JK9mEBSD3Vj3mbCvemhT466rSuJYeE/hjuBrHfjjcjMdTm/sz7au+++sdbJZJmuBwQLuw68A==}
-    engines: {node: '>=18'}
-    cpu: [ppc64]
-    os: [aix]
-
   '@esbuild/aix-ppc64@0.28.2':
     resolution: {integrity: sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==}
     engines: {node: '>=18'}
     cpu: [ppc64]
     os: [aix]
 
-  '@esbuild/android-arm64@0.27.0':
-    resolution: {integrity: sha512-CC3vt4+1xZrs97/PKDkl0yN7w8edvU2vZvAFGD16n9F0Cvniy5qvzRXjfO1l94efczkkQE6g1x0i73Qf5uthOQ==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [android]
-
   '@esbuild/android-arm64@0.28.2':
     resolution: {integrity: sha512-5YfKeeI8qWfBZIX+u2xZC3Zlb3Os/gLS2sbEKM+I4ZOcsWmHS2WLysCcQZDAFRslDUU5Oiq44gf6PYN1vGwG5A==}
     engines: {node: '>=18'}
     cpu: [arm64]
-    os: [android]
-
-  '@esbuild/android-arm@0.27.0':
-    resolution: {integrity: sha512-j67aezrPNYWJEOHUNLPj9maeJte7uSMM6gMoxfPC9hOg8N02JuQi/T7ewumf4tNvJadFkvLZMlAq73b9uwdMyQ==}
-    engines: {node: '>=18'}
-    cpu: [arm]
     os: [android]
 
   '@esbuild/android-arm@0.28.2':
@@ -116,34 +110,16 @@ packages:
     cpu: [arm]
     os: [android]
 
-  '@esbuild/android-x64@0.27.0':
-    resolution: {integrity: sha512-wurMkF1nmQajBO1+0CJmcN17U4BP6GqNSROP8t0X/Jiw2ltYGLHpEksp9MpoBqkrFR3kv2/te6Sha26k3+yZ9Q==}
-    engines: {node: '>=18'}
-    cpu: [x64]
-    os: [android]
-
   '@esbuild/android-x64@0.28.2':
     resolution: {integrity: sha512-O387ite7SzUyCcy3JQX4P4bLtEA7bLLkx+esve5JHnyYfNTxcVpXZo9jhdB0lTKN44gztELTdU7nS8Nr16Fs1Q==}
     engines: {node: '>=18'}
     cpu: [x64]
     os: [android]
 
-  '@esbuild/darwin-arm64@0.27.0':
-    resolution: {integrity: sha512-uJOQKYCcHhg07DL7i8MzjvS2LaP7W7Pn/7uA0B5S1EnqAirJtbyw4yC5jQ5qcFjHK9l6o/MX9QisBg12kNkdHg==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [darwin]
-
   '@esbuild/darwin-arm64@0.28.2':
     resolution: {integrity: sha512-n4KqkOQrraxHJcgjM1RvwbigfQKIKJVpM7xp+KsxiyUSrRdIXnt73VhrPAx0fV44hgfmIVKjxMN9J1t5jySVkw==}
     engines: {node: '>=18'}
     cpu: [arm64]
-    os: [darwin]
-
-  '@esbuild/darwin-x64@0.27.0':
-    resolution: {integrity: sha512-8mG6arH3yB/4ZXiEnXof5MK72dE6zM9cDvUcPtxhUZsDjESl9JipZYW60C3JGreKCEP+p8P/72r69m4AZGJd5g==}
-    engines: {node: '>=18'}
-    cpu: [x64]
     os: [darwin]
 
   '@esbuild/darwin-x64@0.28.2':
@@ -152,22 +128,10 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@esbuild/freebsd-arm64@0.27.0':
-    resolution: {integrity: sha512-9FHtyO988CwNMMOE3YIeci+UV+x5Zy8fI2qHNpsEtSF83YPBmE8UWmfYAQg6Ux7Gsmd4FejZqnEUZCMGaNQHQw==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [freebsd]
-
   '@esbuild/freebsd-arm64@0.28.2':
     resolution: {integrity: sha512-n+I0BTSRIoy+d6RPKnEVwql5UwBJolytvY4mAOIEJorKlqgPII8ix6slVVrfZ5Tnj7glIZvloylbB/EJPMWEXw==}
     engines: {node: '>=18'}
     cpu: [arm64]
-    os: [freebsd]
-
-  '@esbuild/freebsd-x64@0.27.0':
-    resolution: {integrity: sha512-zCMeMXI4HS/tXvJz8vWGexpZj2YVtRAihHLk1imZj4efx1BQzN76YFeKqlDr3bUWI26wHwLWPd3rwh6pe4EV7g==}
-    engines: {node: '>=18'}
-    cpu: [x64]
     os: [freebsd]
 
   '@esbuild/freebsd-x64@0.28.2':
@@ -176,22 +140,10 @@ packages:
     cpu: [x64]
     os: [freebsd]
 
-  '@esbuild/linux-arm64@0.27.0':
-    resolution: {integrity: sha512-AS18v0V+vZiLJyi/4LphvBE+OIX682Pu7ZYNsdUHyUKSoRwdnOsMf6FDekwoAFKej14WAkOef3zAORJgAtXnlQ==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [linux]
-
   '@esbuild/linux-arm64@0.28.2':
     resolution: {integrity: sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug==}
     engines: {node: '>=18'}
     cpu: [arm64]
-    os: [linux]
-
-  '@esbuild/linux-arm@0.27.0':
-    resolution: {integrity: sha512-t76XLQDpxgmq2cNXKTVEB7O7YMb42atj2Re2Haf45HkaUpjM2J0UuJZDuaGbPbamzZ7bawyGFUkodL+zcE+jvQ==}
-    engines: {node: '>=18'}
-    cpu: [arm]
     os: [linux]
 
   '@esbuild/linux-arm@0.28.2':
@@ -200,22 +152,10 @@ packages:
     cpu: [arm]
     os: [linux]
 
-  '@esbuild/linux-ia32@0.27.0':
-    resolution: {integrity: sha512-Mz1jxqm/kfgKkc/KLHC5qIujMvnnarD9ra1cEcrs7qshTUSksPihGrWHVG5+osAIQ68577Zpww7SGapmzSt4Nw==}
-    engines: {node: '>=18'}
-    cpu: [ia32]
-    os: [linux]
-
   '@esbuild/linux-ia32@0.28.2':
     resolution: {integrity: sha512-CYbnj78HsIeA+DhgUKgFCfvNsTHFhMMrinUrMZpDXJXKN8T3XViTZ/+wtHeVxEWY8ewSzTFN+nRmSwO2tZaLUQ==}
     engines: {node: '>=18'}
     cpu: [ia32]
-    os: [linux]
-
-  '@esbuild/linux-loong64@0.27.0':
-    resolution: {integrity: sha512-QbEREjdJeIreIAbdG2hLU1yXm1uu+LTdzoq1KCo4G4pFOLlvIspBm36QrQOar9LFduavoWX2msNFAAAY9j4BDg==}
-    engines: {node: '>=18'}
-    cpu: [loong64]
     os: [linux]
 
   '@esbuild/linux-loong64@0.28.2':
@@ -224,22 +164,10 @@ packages:
     cpu: [loong64]
     os: [linux]
 
-  '@esbuild/linux-mips64el@0.27.0':
-    resolution: {integrity: sha512-sJz3zRNe4tO2wxvDpH/HYJilb6+2YJxo/ZNbVdtFiKDufzWq4JmKAiHy9iGoLjAV7r/W32VgaHGkk35cUXlNOg==}
-    engines: {node: '>=18'}
-    cpu: [mips64el]
-    os: [linux]
-
   '@esbuild/linux-mips64el@0.28.2':
     resolution: {integrity: sha512-ZVykbDyk7519VwiNb9Lcj9m8XM6v5V9uKPvrEMkkEedVewf+0itkhahp4HDpgERXhwLRpWFypsGbG/J8s0QjJA==}
     engines: {node: '>=18'}
     cpu: [mips64el]
-    os: [linux]
-
-  '@esbuild/linux-ppc64@0.27.0':
-    resolution: {integrity: sha512-z9N10FBD0DCS2dmSABDBb5TLAyF1/ydVb+N4pi88T45efQ/w4ohr/F/QYCkxDPnkhkp6AIpIcQKQ8F0ANoA2JA==}
-    engines: {node: '>=18'}
-    cpu: [ppc64]
     os: [linux]
 
   '@esbuild/linux-ppc64@0.28.2':
@@ -248,22 +176,10 @@ packages:
     cpu: [ppc64]
     os: [linux]
 
-  '@esbuild/linux-riscv64@0.27.0':
-    resolution: {integrity: sha512-pQdyAIZ0BWIC5GyvVFn5awDiO14TkT/19FTmFcPdDec94KJ1uZcmFs21Fo8auMXzD4Tt+diXu1LW1gHus9fhFQ==}
-    engines: {node: '>=18'}
-    cpu: [riscv64]
-    os: [linux]
-
   '@esbuild/linux-riscv64@0.28.2':
     resolution: {integrity: sha512-GeXCej4IQtU1B+QlDV8W/RRvbzI3O/Stss+/bCXv4lZls5WGRtu2a+3JkA3i4qIUlMXpcHebWpF8AkJhATowuA==}
     engines: {node: '>=18'}
     cpu: [riscv64]
-    os: [linux]
-
-  '@esbuild/linux-s390x@0.27.0':
-    resolution: {integrity: sha512-hPlRWR4eIDDEci953RI1BLZitgi5uqcsjKMxwYfmi4LcwyWo2IcRP+lThVnKjNtk90pLS8nKdroXYOqW+QQH+w==}
-    engines: {node: '>=18'}
-    cpu: [s390x]
     os: [linux]
 
   '@esbuild/linux-s390x@0.28.2':
@@ -272,34 +188,16 @@ packages:
     cpu: [s390x]
     os: [linux]
 
-  '@esbuild/linux-x64@0.27.0':
-    resolution: {integrity: sha512-1hBWx4OUJE2cab++aVZ7pObD6s+DK4mPGpemtnAORBvb5l/g5xFGk0vc0PjSkrDs0XaXj9yyob3d14XqvnQ4gw==}
-    engines: {node: '>=18'}
-    cpu: [x64]
-    os: [linux]
-
   '@esbuild/linux-x64@0.28.2':
     resolution: {integrity: sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ==}
     engines: {node: '>=18'}
     cpu: [x64]
     os: [linux]
 
-  '@esbuild/netbsd-arm64@0.27.0':
-    resolution: {integrity: sha512-6m0sfQfxfQfy1qRuecMkJlf1cIzTOgyaeXaiVaaki8/v+WB+U4hc6ik15ZW6TAllRlg/WuQXxWj1jx6C+dfy3w==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [netbsd]
-
   '@esbuild/netbsd-arm64@0.28.2':
     resolution: {integrity: sha512-sSATRjPeDBg3pdgHoQfoYBob11Kk1FGa9lui5RIHZCoCkJa9QKlvl3/vKz2usCmYYjs7ymJR/2Nnsqe+Hjt5nw==}
     engines: {node: '>=18'}
     cpu: [arm64]
-    os: [netbsd]
-
-  '@esbuild/netbsd-x64@0.27.0':
-    resolution: {integrity: sha512-xbbOdfn06FtcJ9d0ShxxvSn2iUsGd/lgPIO2V3VZIPDbEaIj1/3nBBe1AwuEZKXVXkMmpr6LUAgMkLD/4D2PPA==}
-    engines: {node: '>=18'}
-    cpu: [x64]
     os: [netbsd]
 
   '@esbuild/netbsd-x64@0.28.2':
@@ -308,22 +206,10 @@ packages:
     cpu: [x64]
     os: [netbsd]
 
-  '@esbuild/openbsd-arm64@0.27.0':
-    resolution: {integrity: sha512-fWgqR8uNbCQ/GGv0yhzttj6sU/9Z5/Sv/VGU3F5OuXK6J6SlriONKrQ7tNlwBrJZXRYk5jUhuWvF7GYzGguBZQ==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [openbsd]
-
   '@esbuild/openbsd-arm64@0.28.2':
     resolution: {integrity: sha512-AL2qJILH7lNjrDmCQDvdxMfAUIv8KMNZOvrwAQ8i8//ntL9FflhOyMJ8OZSMBb8/AWXe3/5v5S20y3zCoZWKoQ==}
     engines: {node: '>=18'}
     cpu: [arm64]
-    os: [openbsd]
-
-  '@esbuild/openbsd-x64@0.27.0':
-    resolution: {integrity: sha512-aCwlRdSNMNxkGGqQajMUza6uXzR/U0dIl1QmLjPtRbLOx3Gy3otfFu/VjATy4yQzo9yFDGTxYDo1FfAD9oRD2A==}
-    engines: {node: '>=18'}
-    cpu: [x64]
     os: [openbsd]
 
   '@esbuild/openbsd-x64@0.28.2':
@@ -332,23 +218,11 @@ packages:
     cpu: [x64]
     os: [openbsd]
 
-  '@esbuild/openharmony-arm64@0.27.0':
-    resolution: {integrity: sha512-nyvsBccxNAsNYz2jVFYwEGuRRomqZ149A39SHWk4hV0jWxKM0hjBPm3AmdxcbHiFLbBSwG6SbpIcUbXjgyECfA==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [openharmony]
-
   '@esbuild/openharmony-arm64@0.28.2':
     resolution: {integrity: sha512-WkhYDmpTjLvGlScA1rwjRUmhl4k8oXR3cIbtqWmELgU/dFeHHlEllxDvdWcNJV9rbzCexB5vz8gtNewWLgCT7Q==}
     engines: {node: '>=18'}
     cpu: [arm64]
     os: [openharmony]
-
-  '@esbuild/sunos-x64@0.27.0':
-    resolution: {integrity: sha512-Q1KY1iJafM+UX6CFEL+F4HRTgygmEW568YMqDA5UV97AuZSm21b7SXIrRJDwXWPzr8MGr75fUZPV67FdtMHlHA==}
-    engines: {node: '>=18'}
-    cpu: [x64]
-    os: [sunos]
 
   '@esbuild/sunos-x64@0.28.2':
     resolution: {integrity: sha512-GPMSkTOtMnv2U2F8gxe4Io6qmVs+YKyp832Etqqxr0hFngmXQ3rzwytelm3GIn7T4VviRUlf3sOgBOiTdvaf7g==}
@@ -356,34 +230,16 @@ packages:
     cpu: [x64]
     os: [sunos]
 
-  '@esbuild/win32-arm64@0.27.0':
-    resolution: {integrity: sha512-W1eyGNi6d+8kOmZIwi/EDjrL9nxQIQ0MiGqe/AWc6+IaHloxHSGoeRgDRKHFISThLmsewZ5nHFvGFWdBYlgKPg==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [win32]
-
   '@esbuild/win32-arm64@0.28.2':
     resolution: {integrity: sha512-PIhhEkE9uPBleRBrQEJpUn7MBnibZzbGzYWPmY3x+YoVg/95zbjB4CxPPOQ8l5tYYM4mMaCthF8/1DIfBQQyWQ==}
     engines: {node: '>=18'}
     cpu: [arm64]
     os: [win32]
 
-  '@esbuild/win32-ia32@0.27.0':
-    resolution: {integrity: sha512-30z1aKL9h22kQhilnYkORFYt+3wp7yZsHWus+wSKAJR8JtdfI76LJ4SBdMsCopTR3z/ORqVu5L1vtnHZWVj4cQ==}
-    engines: {node: '>=18'}
-    cpu: [ia32]
-    os: [win32]
-
   '@esbuild/win32-ia32@0.28.2':
     resolution: {integrity: sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA==}
     engines: {node: '>=18'}
     cpu: [ia32]
-    os: [win32]
-
-  '@esbuild/win32-x64@0.27.0':
-    resolution: {integrity: sha512-aIitBcjQeyOhMTImhLZmtxfdOcuNRpwlPNmlFKPcHQYPhEssw75Cl1TSXJXpMkzaua9FUetx/4OQKq7eJul5Cg==}
-    engines: {node: '>=18'}
-    cpu: [x64]
     os: [win32]
 
   '@esbuild/win32-x64@0.28.2':
@@ -399,10 +255,6 @@ packages:
   '@flatten-js/interval-tree@2.0.3':
     resolution: {integrity: sha512-Lv3eaITqU20WD+5W8L7JeJdjDXC9hfTUEzY0cRLx/sXj1+P3XdK6Fig4UdxvsekakTK8XeOwnpAKEpTI728U4g==}
     engines: {node: '>=16.0.0'}
-
-  '@isaacs/fs-minipass@4.0.1':
-    resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
-    engines: {node: '>=18.0.0'}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -757,11 +609,14 @@ packages:
       transformation-matrix: '*'
       zod: '3'
 
-  '@tscircuit/cli@0.1.2237':
-    resolution: {integrity: sha512-iG8VTp8+6hNVbwFJlK+dVoTUUjmLxHbKQAzvJPa3GxI2Ioyuv0lwXamBmdm/eMUGfHVggwr7cMpFK098zIewrw==}
+  '@tscircuit/cli@https://api.github.com/repos/tscircuit/cli/tarball/0ddc075c607d0f679e4e6af5462ef29042c3628d':
+    resolution: {integrity: sha512-mEUDmjvPto+uSG7YnWbjUgHCm8stFZDBdz2ZghNc9YT5FZfUto+zCLQdoiQ8H9c2STEQPC7mzre1IRUQqP8VdQ==, tarball: https://api.github.com/repos/tscircuit/cli/tarball/0ddc075c607d0f679e4e6af5462ef29042c3628d}
+    version: 0.1.2400
     hasBin: true
     peerDependencies:
+      '@tscircuit/math-utils': 0.0.38
       circuit-json: 0.0.531
+      circuit-to-svg: ^0.0.447
       tscircuit: 0.0.2940
 
   '@tscircuit/copper-pour-solver@0.0.59':
@@ -774,9 +629,9 @@ packages:
     peerDependencies:
       typescript: ^5
 
-  '@tscircuit/core@file:vendor/tscircuit-core-4e95d06.tgz':
-    resolution: {integrity: sha512-/zZ2Sa1/c6MR9yJczNw5+WwTEDc9QOPhL0dwmtkf1fTTXi4+iYNLzkDoynclzUbr8EURAN6p2n4k8vns6poP+w==, tarball: file:vendor/tscircuit-core-4e95d06.tgz}
-    version: 0.0.2188
+  '@tscircuit/core@https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322':
+    resolution: {integrity: sha512-I2St7TJ2KPt5yZOyxfonusErE7C6XhcbqfrAf8nMMZH20w9O99/X5TXk5SkuaiyLFnfpzAXtOEG8vu5tVjtMFw==, tarball: https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322}
+    version: 0.0.2196
     peerDependencies:
       '@tscircuit/cableprinter': 0.0.6
       '@tscircuit/capacity-autorouter': 0.0.974
@@ -788,7 +643,7 @@ packages:
       '@tscircuit/matchpack': 0.0.100
       '@tscircuit/math-utils': 0.0.38
       '@tscircuit/modelprinter': 0.0.34
-      '@tscircuit/props': 0.0.705
+      '@tscircuit/props': 0.0.707
       '@tscircuit/schematic-match-adapt': 0.0.22
       bpc-graph: 0.0.67
       circuit-json: 0.0.531
@@ -823,8 +678,8 @@ packages:
     peerDependencies:
       circuit-json: 0.0.531
 
-  '@tscircuit/ibis-to-spice@https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/0945ad11d0bf4b48a059b60bb9764ead784d2748':
-    resolution: {integrity: sha512-9kgPnXU+fzuNPdiJJ3sjhrZ9O68I6K6eIZnpUdExDWsv7OtUBnBAZ+XRkl+EzYBCqETczJvy6bfeAsyznjASKQ==, tarball: https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/0945ad11d0bf4b48a059b60bb9764ead784d2748}
+  '@tscircuit/ibis-to-spice@https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317':
+    resolution: {integrity: sha512-X8zufqDdqeYwlD7eSW4v/hnbBlUEiePh+4y8IDyx02pjgvooD7jDwEnEQ6HOqcemnfn1nvvhM6RFGrxcr8Jelg==, tarball: https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317}
     version: 0.0.2
     hasBin: true
 
@@ -883,17 +738,33 @@ packages:
   '@tscircuit/ngspice-spice-engine@0.0.20':
     resolution: {integrity: sha512-dXjH51Wl95B6yEVkWCz65DpAHWTJRLHDyD/09eJUpGwLcYfd1F9m4E0XWbuiYZ8wKygYlACTozrSX9n3/LtfwA==}
     peerDependencies:
-      '@tscircuit/props': 0.0.705
+      '@tscircuit/props': 0.0.707
       circuit-json: 0.0.531
       spicets: 0.0.5
       typescript: ^5
+
+  '@tscircuit/pcb-spice-pipeline@https://api.github.com/repos/tscircuit/pcb-spice-pipeline/tarball/262d3a8271692c0c4d8c0e92ad67806158efc10e':
+    resolution: {integrity: sha512-t3ZUL7FfFokAZ40T06DzhYWNAD7ffz7qn6FfaLerRl+q/Cyj9gHEk//KzoEDo6USDFyA5Ex3q3f3c66B+3UhXg==, tarball: https://api.github.com/repos/tscircuit/pcb-spice-pipeline/tarball/262d3a8271692c0c4d8c0e92ad67806158efc10e}
+    version: 0.1.0
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@tscircuit/core': '>=0.0.2188'
+      '@tscircuit/props': 0.0.707
+      react: ^19.0.0
+    peerDependenciesMeta:
+      '@tscircuit/core':
+        optional: true
+      '@tscircuit/props':
+        optional: true
+      react:
+        optional: true
 
   '@tscircuit/pcb-trace-linter@https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123':
     resolution: {gitHosted: true, tarball: https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123}
     version: 0.0.1
 
-  '@tscircuit/props@0.0.705':
-    resolution: {integrity: sha512-RY/GyCgyae1HyHpDoRmk1WweH0Di4cEqF4rO901xQAcgslsE4G5hNvEPcqtYOvi9oIXrZ7ani8UyfQaK90+pXQ==}
+  '@tscircuit/props@0.0.707':
+    resolution: {integrity: sha512-wN5Sz4uvop6+HSC1Xuzf664fsOrvCxhX0SkpoCjhLz5Jm1/v665akdLAaOQ+UF1rghB5KCR0bSEuk8VaXoMfgw==}
     peerDependencies:
       circuit-json: 0.0.531
       react: '*'
@@ -1069,10 +940,6 @@ packages:
   chownr@1.1.4:
     resolution: {integrity: sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg==}
 
-  chownr@3.0.0:
-    resolution: {integrity: sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==}
-    engines: {node: '>=18'}
-
   circuit-json-to-bpc@0.0.14:
     resolution: {integrity: sha512-jcgWTgkFepJzSbX8LOk+ZcuZFLVun7EVslfRF1LnZK5pPFWhfSMWE+PJUTDBGIikgs3mYZ4IIZSkjpmMfXvFhA==}
     peerDependencies:
@@ -1125,6 +992,16 @@ packages:
     resolution: {integrity: sha512-W8bOGVG8XwNGqKv7X7ay/nz/CN0G6jnjc6dXOsA8dX5Dra7WxXl4JAFsS1wir9IRkWb9zqgDM3qvji7rOFrxVQ==}
     peerDependencies:
       format-si-unit: '*'
+
+  circuit-to-svg@0.0.447:
+    resolution: {integrity: sha512-CtHQ7b23lACTFg7GA2o8wlVzkWI5IGyRPC4uo3YKwOuwK3RXiY9tWFqWor5R4ZqzpcU6DsGQKQ6oZku6qafNWw==}
+    engines: {node: 24.x}
+    peerDependencies:
+      '@tscircuit/alphabet': '*'
+      '@tscircuit/circuit-json-util': 0.0.121
+      circuit-json: 0.0.531
+      circuit-json-to-connectivity-map: 0.0.33
+      schematic-symbols: 0.0.248
 
   circuit-to-svg@0.0.450:
     resolution: {integrity: sha512-MpLOY27PJIDa4DKYp/RK/iIokBU3WqmV2G/t1L5HTevgTvy3lBwKClaiUEeKgEjWNMoHMKf/YHpDu74S0rMQrw==}
@@ -1255,11 +1132,6 @@ packages:
   es-errors@1.3.0:
     resolution: {integrity: sha512-Zf5H2Kxt2xjTvbJvP2ZWLEICxA6j+hAmMzIlypy4xcBg1vKVnx89Wy0GbS+kf5cwCVFFzdCFh2XSCFNULS6csw==}
     engines: {node: '>= 0.4'}
-
-  esbuild@0.27.0:
-    resolution: {integrity: sha512-jd0f4NHbD6cALCyGElNpGAOtWxSq46l9X/sWB0Nzd5er4Kz2YTm+Vl0qKFT9KUJvD8+fiO8AvoHhFvEatfVixA==}
-    engines: {node: '>=18'}
-    hasBin: true
 
   esbuild@0.28.2:
     resolution: {integrity: sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==}
@@ -1528,14 +1400,6 @@ packages:
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
 
-  minipass@7.1.3:
-    resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
-    engines: {node: '>=16 || 14 >=14.17'}
-
-  minizlib@3.1.0:
-    resolution: {integrity: sha512-KZxYo1BUkWD2TVFLr0MQoM8vUUigWD3LlD83a/75BqC+4qE0Hb1Vo5v1FgcfaNXvfXzr+5EhQ6ing/CaBijTlw==}
-    engines: {node: '>= 18'}
-
   mkdirp-classic@0.5.3:
     resolution: {integrity: sha512-gKLcREMhtuZRwRAfqP3RFW+TK4JqApVBtOIftVgjuABpAtpxhPGaDcfvbhNvD0B8iD1oUr/txX35NjcaY6Ns/A==}
 
@@ -1599,15 +1463,6 @@ packages:
 
   path-parse@1.0.7:
     resolution: {integrity: sha512-LDJzPVEEEPR+y48z93A0Ed0yXb8pAByGWo/k5YYdYgpY2/2EsOsksJrq7lOHxryrVOn1ejG6oAp8ahvOIQD8sw==}
-
-  pcb-spice-pipeline@https://codeload.github.com/tscircuit/pcb-spice-pipeline/tar.gz/dda5a5833d5fdd629953aa26ed47c533b042093b:
-    resolution: {gitHosted: true, integrity: sha512-xP3Dvy9k1gmYQPFWK2eIvYH6uzN6OPQ2CJuw5kLMc0Oqgu/5TNMsD4xLAy4hkaxq8l6pWjSsNQPERJb7WXxE6g==, tarball: https://codeload.github.com/tscircuit/pcb-spice-pipeline/tar.gz/dda5a5833d5fdd629953aa26ed47c533b042093b}
-    version: 0.1.0
-    engines: {node: '>=22'}
-    hasBin: true
-    peerDependencies:
-      '@tscircuit/core': '>=0.0.2188'
-      '@tscircuit/props': 0.0.705
 
   performance-now@2.1.0:
     resolution: {integrity: sha512-7EAHlyLHI56VEIdK57uwHdHKIaAGbnXPiw0yWbarQZOKaKpvUIgW0jWRVLiatnM+XXlSwsanIBH/hzGMJulMow==}
@@ -1840,10 +1695,6 @@ packages:
   tar-stream@3.2.2:
     resolution: {integrity: sha512-+8NeqHRjQWH9nYlwo2gamAMImZCVzI4UoEgDpWorBt9OEfppiZn+uSkskzQKPWIZyji/C8fpWO7u69G0DX0tbg==}
 
-  tar@7.5.22:
-    resolution: {integrity: sha512-MFO/QzvtAOmJbkhOaCTvbGcFN9L9b+JunIsDwaKljSOdcLMea3NJ1k9Usz/rjdfSXTq4dfzfeS7W4p4YOAAHeA==}
-    engines: {node: '>=18'}
-
   teex@1.0.1:
     resolution: {integrity: sha512-eYE6iEI62Ni1H8oIa7KlDU6uQBtqr4Eajni3wX7rpfXD8ysFx8z0+dri+KWEPWpBsxXfxu58x/0jvTVT1ekOSg==}
 
@@ -1926,10 +1777,6 @@ packages:
   xml-reader@2.4.3:
     resolution: {integrity: sha512-xWldrIxjeAMAu6+HSf9t50ot1uL5M+BtOidRCWHXIeewvSeIpscWCsp4Zxjk8kHHhdqFBrfK8U0EJeCcnyQ/gA==}
 
-  yallist@5.0.0:
-    resolution: {integrity: sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw==}
-    engines: {node: '>=18'}
-
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
@@ -1946,157 +1793,79 @@ snapshots:
 
   '@babel/runtime@7.29.10': {}
 
-  '@esbuild/aix-ppc64@0.27.0':
-    optional: true
-
   '@esbuild/aix-ppc64@0.28.2':
-    optional: true
-
-  '@esbuild/android-arm64@0.27.0':
     optional: true
 
   '@esbuild/android-arm64@0.28.2':
     optional: true
 
-  '@esbuild/android-arm@0.27.0':
-    optional: true
-
   '@esbuild/android-arm@0.28.2':
-    optional: true
-
-  '@esbuild/android-x64@0.27.0':
     optional: true
 
   '@esbuild/android-x64@0.28.2':
     optional: true
 
-  '@esbuild/darwin-arm64@0.27.0':
-    optional: true
-
   '@esbuild/darwin-arm64@0.28.2':
-    optional: true
-
-  '@esbuild/darwin-x64@0.27.0':
     optional: true
 
   '@esbuild/darwin-x64@0.28.2':
     optional: true
 
-  '@esbuild/freebsd-arm64@0.27.0':
-    optional: true
-
   '@esbuild/freebsd-arm64@0.28.2':
-    optional: true
-
-  '@esbuild/freebsd-x64@0.27.0':
     optional: true
 
   '@esbuild/freebsd-x64@0.28.2':
     optional: true
 
-  '@esbuild/linux-arm64@0.27.0':
-    optional: true
-
   '@esbuild/linux-arm64@0.28.2':
-    optional: true
-
-  '@esbuild/linux-arm@0.27.0':
     optional: true
 
   '@esbuild/linux-arm@0.28.2':
     optional: true
 
-  '@esbuild/linux-ia32@0.27.0':
-    optional: true
-
   '@esbuild/linux-ia32@0.28.2':
-    optional: true
-
-  '@esbuild/linux-loong64@0.27.0':
     optional: true
 
   '@esbuild/linux-loong64@0.28.2':
     optional: true
 
-  '@esbuild/linux-mips64el@0.27.0':
-    optional: true
-
   '@esbuild/linux-mips64el@0.28.2':
-    optional: true
-
-  '@esbuild/linux-ppc64@0.27.0':
     optional: true
 
   '@esbuild/linux-ppc64@0.28.2':
     optional: true
 
-  '@esbuild/linux-riscv64@0.27.0':
-    optional: true
-
   '@esbuild/linux-riscv64@0.28.2':
-    optional: true
-
-  '@esbuild/linux-s390x@0.27.0':
     optional: true
 
   '@esbuild/linux-s390x@0.28.2':
     optional: true
 
-  '@esbuild/linux-x64@0.27.0':
-    optional: true
-
   '@esbuild/linux-x64@0.28.2':
-    optional: true
-
-  '@esbuild/netbsd-arm64@0.27.0':
     optional: true
 
   '@esbuild/netbsd-arm64@0.28.2':
     optional: true
 
-  '@esbuild/netbsd-x64@0.27.0':
-    optional: true
-
   '@esbuild/netbsd-x64@0.28.2':
-    optional: true
-
-  '@esbuild/openbsd-arm64@0.27.0':
     optional: true
 
   '@esbuild/openbsd-arm64@0.28.2':
     optional: true
 
-  '@esbuild/openbsd-x64@0.27.0':
-    optional: true
-
   '@esbuild/openbsd-x64@0.28.2':
-    optional: true
-
-  '@esbuild/openharmony-arm64@0.27.0':
     optional: true
 
   '@esbuild/openharmony-arm64@0.28.2':
     optional: true
 
-  '@esbuild/sunos-x64@0.27.0':
-    optional: true
-
   '@esbuild/sunos-x64@0.28.2':
-    optional: true
-
-  '@esbuild/win32-arm64@0.27.0':
     optional: true
 
   '@esbuild/win32-arm64@0.28.2':
     optional: true
 
-  '@esbuild/win32-ia32@0.27.0':
-    optional: true
-
   '@esbuild/win32-ia32@0.28.2':
-    optional: true
-
-  '@esbuild/win32-x64@0.27.0':
     optional: true
 
   '@esbuild/win32-x64@0.28.2':
@@ -2109,10 +1878,6 @@ snapshots:
   '@flatten-js/interval-tree@2.0.3':
     dependencies:
       tslib: 2.8.1
-
-  '@isaacs/fs-minipass@4.0.1':
-    dependencies:
-      minipass: 7.1.3
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -2341,9 +2106,9 @@ snapshots:
     dependencies:
       zod: 3.25.76
 
-  '@tscircuit/capacity-autorouter@0.0.974(319f7f73360cf5b40ca2758128e18edd)':
+  '@tscircuit/capacity-autorouter@0.0.974(54f6f66b31cdbbde25cbc61a13144a51)':
     dependencies:
-      '@tscircuit/pcb-trace-linter': https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(d7ba68b44000d4c65f5a5a3871af4b55)
+      '@tscircuit/pcb-trace-linter': https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(8f310baed2d810a2109d24fb43230412)
       fast-json-stable-stringify: 2.1.0
       object-hash: 3.0.0
       stack-svgs: 0.0.1(typescript@5.9.3)
@@ -2378,9 +2143,9 @@ snapshots:
       - typescript
       - zod
 
-  '@tscircuit/capacity-autorouter@0.0.974(a3dcdaa3680c6d159245539d06668275)':
+  '@tscircuit/capacity-autorouter@0.0.974(6dd87e2e8ca64e9e6ffc3d12ab6f712c)':
     dependencies:
-      '@tscircuit/pcb-trace-linter': https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(1ccb0f7a735b1222f5cb45fa02224bcc)
+      '@tscircuit/pcb-trace-linter': https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(16e06055eb0104dbf771baf53840cc8c)
       fast-json-stable-stringify: 2.1.0
       object-hash: 3.0.0
       stack-svgs: 0.0.1(typescript@5.9.3)
@@ -2433,9 +2198,18 @@ snapshots:
       transformation-matrix: 2.16.1
       zod: 3.25.76
 
-  '@tscircuit/cli@0.1.2237(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(tscircuit@0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))':
+  '@tscircuit/cli@https://api.github.com/repos/tscircuit/cli/tarball/0ddc075c607d0f679e4e6af5462ef29042c3628d(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(circuit-to-svg@0.0.447(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3))(tscircuit@0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))':
     dependencies:
+      '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
       circuit-json: 0.0.531(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-to-svg: 0.0.447(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3)
+      tscircuit: 0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3)
+
+  '@tscircuit/cli@https://api.github.com/repos/tscircuit/cli/tarball/0ddc075c607d0f679e4e6af5462ef29042c3628d(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(circuit-to-svg@0.0.450(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3))(tscircuit@0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))':
+    dependencies:
+      '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
+      circuit-json: 0.0.531(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-to-svg: 0.0.450(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3)
       tscircuit: 0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3)
 
   '@tscircuit/copper-pour-solver@0.0.59(typescript@5.9.3)':
@@ -2448,12 +2222,12 @@ snapshots:
       '@tscircuit/manifold-2d': 0.0.6
       typescript: 5.9.3
 
-  '@tscircuit/core@file:vendor/tscircuit-core-4e95d06.tgz(71445a29cff8a64e15779d677f0cbd65)':
+  '@tscircuit/core@https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(902ad919f2173e1a17e79c0c9383b2a5)':
     dependencies:
       '@flatten-js/core': 1.6.14
       '@lume/kiwi': 0.4.4
       '@tscircuit/cableprinter': 0.0.6
-      '@tscircuit/capacity-autorouter': 0.0.974(319f7f73360cf5b40ca2758128e18edd)
+      '@tscircuit/capacity-autorouter': 0.0.974(54f6f66b31cdbbde25cbc61a13144a51)
       '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
       '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
@@ -2462,7 +2236,7 @@ snapshots:
       '@tscircuit/matchpack': 0.0.100(typescript@5.9.3)
       '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
       '@tscircuit/modelprinter': 0.0.34(typescript@5.9.3)(zod@3.25.76)
-      '@tscircuit/props': 0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      '@tscircuit/props': 0.0.707(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
       '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
       bpc-graph: 0.0.67(typescript@5.9.3)
       calculate-cell-boundaries: 0.0.25(@types/react@19.3.0)(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
@@ -2493,12 +2267,12 @@ snapshots:
       - react-dom
       - three
 
-  '@tscircuit/core@file:vendor/tscircuit-core-4e95d06.tgz(cd6395b3948749f6dd6815dde951ce88)':
+  '@tscircuit/core@https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(acf7443beee565e8e7ec44aa317071fa)':
     dependencies:
       '@flatten-js/core': 1.6.14
       '@lume/kiwi': 0.4.4
       '@tscircuit/cableprinter': 0.0.6
-      '@tscircuit/capacity-autorouter': 0.0.974(319f7f73360cf5b40ca2758128e18edd)
+      '@tscircuit/capacity-autorouter': 0.0.974(54f6f66b31cdbbde25cbc61a13144a51)
       '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
       '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
@@ -2507,10 +2281,10 @@ snapshots:
       '@tscircuit/matchpack': 0.0.100(typescript@5.9.3)
       '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
       '@tscircuit/modelprinter': 0.0.34(typescript@5.9.3)(zod@3.25.76)
-      '@tscircuit/props': 0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      '@tscircuit/props': 0.0.707(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
       '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
       bpc-graph: 0.0.67(typescript@5.9.3)
-      calculate-cell-boundaries: 0.0.25(@types/react@19.3.0)(graphics-debug@0.0.95(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
+      calculate-cell-boundaries: 0.0.25(@types/react@19.3.0)(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
       calculate-packing: 0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(typescript@5.9.3)
       circuit-json: 0.0.531(format-si-unit@0.0.12(typescript@5.9.3))
       circuit-json-to-bpc: 0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
@@ -2538,12 +2312,12 @@ snapshots:
       - react-dom
       - three
 
-  '@tscircuit/core@file:vendor/tscircuit-core-4e95d06.tgz(fc42f96e9f4295f24e9b2f13906c4310)':
+  '@tscircuit/core@https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(e58d23c6cef893230e894930c4caf8f7)':
     dependencies:
       '@flatten-js/core': 1.6.14
       '@lume/kiwi': 0.4.4
       '@tscircuit/cableprinter': 0.0.6
-      '@tscircuit/capacity-autorouter': 0.0.974(319f7f73360cf5b40ca2758128e18edd)
+      '@tscircuit/capacity-autorouter': 0.0.974(54f6f66b31cdbbde25cbc61a13144a51)
       '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
       '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
@@ -2552,10 +2326,10 @@ snapshots:
       '@tscircuit/matchpack': 0.0.100(typescript@5.9.3)
       '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
       '@tscircuit/modelprinter': 0.0.34(typescript@5.9.3)(zod@3.25.76)
-      '@tscircuit/props': 0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      '@tscircuit/props': 0.0.707(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
       '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
       bpc-graph: 0.0.67(typescript@5.9.3)
-      calculate-cell-boundaries: 0.0.25(@types/react@19.3.0)(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
+      calculate-cell-boundaries: 0.0.25(@types/react@19.3.0)(graphics-debug@0.0.95(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
       calculate-packing: 0.0.90(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(typescript@5.9.3)
       circuit-json: 0.0.531(format-si-unit@0.0.12(typescript@5.9.3))
       circuit-json-to-bpc: 0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
@@ -2609,16 +2383,16 @@ snapshots:
       - react
       - react-dom
 
-  '@tscircuit/eval@0.0.1538(@tscircuit/core@file:vendor/tscircuit-core-4e95d06.tgz(71445a29cff8a64e15779d677f0cbd65))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)':
+  '@tscircuit/eval@0.0.1538(@tscircuit/core@https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(902ad919f2173e1a17e79c0c9383b2a5))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)':
     dependencies:
-      '@tscircuit/core': file:vendor/tscircuit-core-4e95d06.tgz(71445a29cff8a64e15779d677f0cbd65)
+      '@tscircuit/core': https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(902ad919f2173e1a17e79c0c9383b2a5)
       circuit-json: 0.0.531(format-si-unit@0.0.12(typescript@5.9.3))
       typescript: 5.9.3
       zod: 3.25.76
 
-  '@tscircuit/fanout-solver@0.0.81(a3dcdaa3680c6d159245539d06668275)':
+  '@tscircuit/fanout-solver@0.0.81(6dd87e2e8ca64e9e6ffc3d12ab6f712c)':
     dependencies:
-      '@tscircuit/capacity-autorouter': 0.0.974(a3dcdaa3680c6d159245539d06668275)
+      '@tscircuit/capacity-autorouter': 0.0.974(6dd87e2e8ca64e9e6ffc3d12ab6f712c)
       '@tscircuit/solver-utils': 0.0.19(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
       graphics-debug: 0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
       typescript: 5.9.3
@@ -2660,7 +2434,7 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@tscircuit/ibis-to-spice@https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/0945ad11d0bf4b48a059b60bb9764ead784d2748':
+  '@tscircuit/ibis-to-spice@https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317':
     dependencies:
       '@noble/hashes': 1.8.0
       fflate: 0.8.2
@@ -2714,17 +2488,33 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@tscircuit/ngspice-spice-engine@0.0.20(@tscircuit/props@0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)':
+  '@tscircuit/ngspice-spice-engine@0.0.20(@tscircuit/props@0.0.707(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)':
     dependencies:
-      '@tscircuit/props': 0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      '@tscircuit/props': 0.0.707(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
       circuit-json: 0.0.531(format-si-unit@0.0.12(typescript@5.9.3))
       spicets: 0.0.5(typescript@5.9.3)
       typescript: 5.9.3
 
-  '@tscircuit/pcb-trace-linter@https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(1ccb0f7a735b1222f5cb45fa02224bcc)':
+  '@tscircuit/pcb-spice-pipeline@https://api.github.com/repos/tscircuit/pcb-spice-pipeline/tarball/262d3a8271692c0c4d8c0e92ad67806158efc10e(@tscircuit/core@https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(902ad919f2173e1a17e79c0c9383b2a5))(@tscircuit/props@0.0.707(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(react@19.2.4)(typescript@5.9.3)':
+    dependencies:
+      '@noble/hashes': 1.8.0
+      '@tscircuit/ibis-to-spice': https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317
+      circuit-json: 0.0.531(format-si-unit@0.0.12(typescript@5.9.3))
+      earcut: 3.2.4
+      format-si-unit: 0.0.12(typescript@5.9.3)
+      polygon-clipping: 0.15.7
+      zod: 3.25.76
+    optionalDependencies:
+      '@tscircuit/core': https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(902ad919f2173e1a17e79c0c9383b2a5)
+      '@tscircuit/props': 0.0.707(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      react: 19.2.4
+    transitivePeerDependencies:
+      - typescript
+
+  '@tscircuit/pcb-trace-linter@https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(16e06055eb0104dbf771baf53840cc8c)':
     dependencies:
       '@tscircuit/copper-pour-solver': 0.0.59(typescript@5.9.3)
-      '@tscircuit/core': file:vendor/tscircuit-core-4e95d06.tgz(fc42f96e9f4295f24e9b2f13906c4310)
+      '@tscircuit/core': https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(acf7443beee565e8e7ec44aa317071fa)
       '@tscircuit/infer-cable-insertion-point': 0.0.4(typescript@5.9.3)
       '@tscircuit/miniflex': 0.0.4(typescript@5.9.3)
       '@tscircuit/schematic-trace-solver': 0.0.208(typescript@5.9.3)
@@ -2770,10 +2560,10 @@ snapshots:
       - typescript
       - zod
 
-  '@tscircuit/pcb-trace-linter@https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(d7ba68b44000d4c65f5a5a3871af4b55)':
+  '@tscircuit/pcb-trace-linter@https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(8f310baed2d810a2109d24fb43230412)':
     dependencies:
       '@tscircuit/copper-pour-solver': 0.0.59(typescript@5.9.3)
-      '@tscircuit/core': file:vendor/tscircuit-core-4e95d06.tgz(71445a29cff8a64e15779d677f0cbd65)
+      '@tscircuit/core': https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(902ad919f2173e1a17e79c0c9383b2a5)
       '@tscircuit/infer-cable-insertion-point': 0.0.4(typescript@5.9.3)
       '@tscircuit/miniflex': 0.0.4(typescript@5.9.3)
       '@tscircuit/schematic-trace-solver': 0.0.208(typescript@5.9.3)
@@ -2819,16 +2609,16 @@ snapshots:
       - typescript
       - zod
 
-  '@tscircuit/props@0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)':
+  '@tscircuit/props@0.0.707(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)':
     dependencies:
       circuit-json: 0.0.531(format-si-unit@0.0.12(typescript@5.9.3))
       react: 19.2.4
       zod: 3.25.76
 
-  '@tscircuit/runframe@0.0.3012(bb9e9cc184c6c82f6f7978128a433216)':
+  '@tscircuit/runframe@0.0.3012(fb789195dca37994be6250ffac0e7cda)':
     dependencies:
-      '@tscircuit/core': file:vendor/tscircuit-core-4e95d06.tgz(cd6395b3948749f6dd6815dde951ce88)
-      '@tscircuit/eval': 0.0.1538(@tscircuit/core@file:vendor/tscircuit-core-4e95d06.tgz(71445a29cff8a64e15779d677f0cbd65))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)
+      '@tscircuit/core': https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(e58d23c6cef893230e894930c4caf8f7)
+      '@tscircuit/eval': 0.0.1538(@tscircuit/core@https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(902ad919f2173e1a17e79c0c9383b2a5))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)
       '@tscircuit/solver-utils': 0.0.16(graphics-debug@0.0.95(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
       debug: 4.4.3
       format-si-unit: 0.0.12(typescript@5.9.3)
@@ -3059,8 +2849,6 @@ snapshots:
 
   chownr@1.1.4: {}
 
-  chownr@3.0.0: {}
-
   circuit-json-to-bpc@0.0.14(bpc-graph@0.0.67(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3):
     dependencies:
       bpc-graph: 0.0.67(typescript@5.9.3)
@@ -3120,6 +2908,25 @@ snapshots:
   circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)):
     dependencies:
       format-si-unit: 0.0.12(typescript@5.9.3)
+
+  circuit-to-svg@0.0.447(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3):
+    dependencies:
+      '@tscircuit/alphabet': 0.0.25(typescript@5.9.3)
+      '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
+      '@types/node': 22.20.5
+      bun-types: 1.4.3
+      calculate-elbow: 0.0.12(typescript@5.9.3)
+      circuit-json: 0.0.531(format-si-unit@0.0.12(typescript@5.9.3))
+      circuit-json-to-connectivity-map: 0.0.33(typescript@5.9.3)
+      color: 5.0.3
+      debug: 4.4.3
+      schematic-symbols: 0.0.248(typescript@5.9.3)
+      svg-path-commander: 2.3.3
+      svgson: 5.3.1
+      transformation-matrix: 2.16.1
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
 
   circuit-to-svg@0.0.450(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3):
     dependencies:
@@ -3245,35 +3052,6 @@ snapshots:
   entities@4.5.0: {}
 
   es-errors@1.3.0: {}
-
-  esbuild@0.27.0:
-    optionalDependencies:
-      '@esbuild/aix-ppc64': 0.27.0
-      '@esbuild/android-arm': 0.27.0
-      '@esbuild/android-arm64': 0.27.0
-      '@esbuild/android-x64': 0.27.0
-      '@esbuild/darwin-arm64': 0.27.0
-      '@esbuild/darwin-x64': 0.27.0
-      '@esbuild/freebsd-arm64': 0.27.0
-      '@esbuild/freebsd-x64': 0.27.0
-      '@esbuild/linux-arm': 0.27.0
-      '@esbuild/linux-arm64': 0.27.0
-      '@esbuild/linux-ia32': 0.27.0
-      '@esbuild/linux-loong64': 0.27.0
-      '@esbuild/linux-mips64el': 0.27.0
-      '@esbuild/linux-ppc64': 0.27.0
-      '@esbuild/linux-riscv64': 0.27.0
-      '@esbuild/linux-s390x': 0.27.0
-      '@esbuild/linux-x64': 0.27.0
-      '@esbuild/netbsd-arm64': 0.27.0
-      '@esbuild/netbsd-x64': 0.27.0
-      '@esbuild/openbsd-arm64': 0.27.0
-      '@esbuild/openbsd-x64': 0.27.0
-      '@esbuild/openharmony-arm64': 0.27.0
-      '@esbuild/sunos-x64': 0.27.0
-      '@esbuild/win32-arm64': 0.27.0
-      '@esbuild/win32-ia32': 0.27.0
-      '@esbuild/win32-x64': 0.27.0
 
   esbuild@0.28.2:
     optionalDependencies:
@@ -3598,12 +3376,6 @@ snapshots:
 
   minimist@1.2.8: {}
 
-  minipass@7.1.3: {}
-
-  minizlib@3.1.0:
-    dependencies:
-      minipass: 7.1.3
-
   mkdirp-classic@0.5.3: {}
 
   ms@2.1.3: {}
@@ -3653,25 +3425,6 @@ snapshots:
   path-expression-matcher@1.6.2: {}
 
   path-parse@1.0.7: {}
-
-  pcb-spice-pipeline@https://codeload.github.com/tscircuit/pcb-spice-pipeline/tar.gz/dda5a5833d5fdd629953aa26ed47c533b042093b(@tscircuit/core@file:vendor/tscircuit-core-4e95d06.tgz(71445a29cff8a64e15779d677f0cbd65))(@tscircuit/props@0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(format-si-unit@0.0.12(typescript@5.9.3)):
-    dependencies:
-      '@tscircuit/core': file:vendor/tscircuit-core-4e95d06.tgz(71445a29cff8a64e15779d677f0cbd65)
-      '@tscircuit/ibis-to-spice': https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/0945ad11d0bf4b48a059b60bb9764ead784d2748
-      '@tscircuit/props': 0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
-      '@types/node': 22.20.5
-      circuit-json: 0.0.531(format-si-unit@0.0.12(typescript@5.9.3))
-      earcut: 3.2.4
-      esbuild: 0.27.0
-      fflate: 0.8.2
-      polygon-clipping: 0.15.7
-      react: 19.2.4
-      tar: 7.5.22
-      tsx: 4.23.15
-      typescript: 5.9.3
-      zod: 3.25.76
-    transitivePeerDependencies:
-      - format-si-unit
 
   performance-now@2.1.0: {}
 
@@ -3996,14 +3749,6 @@ snapshots:
       - bare-buffer
       - react-native-b4a
 
-  tar@7.5.22:
-    dependencies:
-      '@isaacs/fs-minipass': 4.0.1
-      chownr: 3.0.0
-      minipass: 7.1.3
-      minizlib: 3.1.0
-      yallist: 5.0.0
-
   teex@1.0.1:
     dependencies:
       streamx: 2.28.1
@@ -4048,15 +3793,15 @@ snapshots:
       '@rollup/plugin-node-resolve': 16.0.3(rollup@4.64.6)
       '@rollup/plugin-typescript': 12.3.0(rollup@4.64.6)(tslib@2.8.1)(typescript@5.9.3)
       '@tscircuit/alphabet': 0.0.25(typescript@5.9.3)
-      '@tscircuit/capacity-autorouter': 0.0.974(a3dcdaa3680c6d159245539d06668275)
+      '@tscircuit/capacity-autorouter': 0.0.974(6dd87e2e8ca64e9e6ffc3d12ab6f712c)
       '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76)
-      '@tscircuit/cli': 0.1.2237(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(tscircuit@0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))
+      '@tscircuit/cli': https://api.github.com/repos/tscircuit/cli/tarball/0ddc075c607d0f679e4e6af5462ef29042c3628d(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(circuit-to-svg@0.0.450(@tscircuit/alphabet@0.0.25(typescript@5.9.3))(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@2.16.1)(zod@3.25.76))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(schematic-symbols@0.0.248(typescript@5.9.3))(typescript@5.9.3))(tscircuit@0.0.2940(@jscad/modeling@2.13.0)(@tscircuit/cableprinter@0.0.6)(@types/react@19.3.0)(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-reconciler@0.32.0(react@19.2.4))(three@0.179.1)(typescript@5.9.3))
       '@tscircuit/copper-pour-solver': 0.0.67(typescript@5.9.3)
-      '@tscircuit/core': file:vendor/tscircuit-core-4e95d06.tgz(cd6395b3948749f6dd6815dde951ce88)
+      '@tscircuit/core': https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(e58d23c6cef893230e894930c4caf8f7)
       '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.8)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
-      '@tscircuit/eval': 0.0.1538(@tscircuit/core@file:vendor/tscircuit-core-4e95d06.tgz(71445a29cff8a64e15779d677f0cbd65))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)
-      '@tscircuit/fanout-solver': 0.0.81(a3dcdaa3680c6d159245539d06668275)
+      '@tscircuit/eval': 0.0.1538(@tscircuit/core@https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322(902ad919f2173e1a17e79c0c9383b2a5))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)(zod@3.25.76)
+      '@tscircuit/fanout-solver': 0.0.81(6dd87e2e8ca64e9e6ffc3d12ab6f712c)
       '@tscircuit/footprinter': 0.0.437(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       '@tscircuit/image-utils': 0.0.8
       '@tscircuit/infer-cable-insertion-point': 0.0.4(typescript@5.9.3)
@@ -4067,9 +3812,9 @@ snapshots:
       '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
       '@tscircuit/miniflex': 0.0.4(typescript@5.9.3)
       '@tscircuit/modelprinter': 0.0.34(typescript@5.9.3)(zod@3.25.76)
-      '@tscircuit/ngspice-spice-engine': 0.0.20(@tscircuit/props@0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
-      '@tscircuit/props': 0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
-      '@tscircuit/runframe': 0.0.3012(bb9e9cc184c6c82f6f7978128a433216)
+      '@tscircuit/ngspice-spice-engine': 0.0.20(@tscircuit/props@0.0.707(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76))(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(spicets@0.0.5(typescript@5.9.3))(typescript@5.9.3)
+      '@tscircuit/props': 0.0.707(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      '@tscircuit/runframe': 0.0.3012(fb789195dca37994be6250ffac0e7cda)
       '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
       '@tscircuit/simple-3d-svg': 0.0.41
       '@tscircuit/solver-utils': 0.0.16(graphics-debug@0.0.95(bun-match-svg@0.0.17(typescript@5.9.3))(looks-same@9.0.1)(react-dom@19.3.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
@@ -4167,7 +3912,5 @@ snapshots:
     dependencies:
       eventemitter3: 2.0.3
       xml-lexer: 0.2.2
-
-  yallist@5.0.0: {}
 
   zod@3.25.76: {}
