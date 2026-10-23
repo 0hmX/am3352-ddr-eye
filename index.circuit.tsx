@@ -1,15 +1,14 @@
 import { analog } from "@tscircuit/core"
 import { ImportedBoard } from "@tscircuit/pcb-spice-pipeline/tsx"
 import routedBoard from "./am3352.circuit.json"
-import { driver, receiver } from "./simulation.config"
-
-export { modeling } from "./simulation.config"
+import { driver, receiver, routedDdrChannel } from "./ddr-buffers"
 
 export default function Board() {
   return (
     <ImportedBoard circuitJson={routedBoard} fabricatorPreset="jlcpcb_standard">
       <ibismodel componentRef="chip.U1" {...driver} />
       <ibismodel componentRef="chip.U3" {...receiver} />
+      <voltagesource name="VDDQ" voltage="1.5V" connections={{ pin1: ".U1 > .E5", pin2: ".U1 > .A1" }} />
       <analog.transientsimulation
         name="DDR_SI"
         duration="100ns"
@@ -21,6 +20,7 @@ export default function Board() {
           ".U3 > .F3": { isOutput: false },
           ".U3 > .G3": { isOutput: false },
         }}
+        pcbSpiceChannel={routedDdrChannel}
       />
       <analog.digitalstimulus name="DQS_P" simulationRef=".DDR_SI"
         sourcePinRef=".U1 > .P1" bitDuration="2.5ns" startTime="0ns"

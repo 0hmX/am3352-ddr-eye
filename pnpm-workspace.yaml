@@ -8,9 +8,9 @@ allowBuilds:
   '@resvg/resvg-js': true
   sharp: false
 overrides:
-  '@tscircuit/core': https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322
-  '@tscircuit/props': 0.0.707
-  '@tscircuit/cli': https://api.github.com/repos/tscircuit/cli/tarball/0ddc075c607d0f679e4e6af5462ef29042c3628d
+  '@tscircuit/core': https://api.github.com/repos/tscircuit/core/tarball/ac28ffa59da8bf3b016bcabfc35e249a2c20fce4
+  '@tscircuit/props': https://api.github.com/repos/tscircuit/props/tarball/96dae5c65597cdb8535c547568aa5cb510816858
+  '@tscircuit/cli': https://api.github.com/repos/tscircuit/cli/tarball/d0d965fbe7ffbc29029424a811f5363fe1ce5e85
   '@tscircuit/eval': 0.0.1538
   tscircuit: 0.0.2940
   "@tscircuit/cableprinter": "0.0.6"
@@ -25,13 +25,14 @@ overrides:
   "@tscircuit/modelprinter": "0.0.34"
   "@tscircuit/schematic-match-adapt": "0.0.22"
   "bpc-graph": "0.0.67"
-  "circuit-json": 0.0.531
+  "circuit-json": https://api.github.com/repos/tscircuit/circuit-json/tarball/f9f7c98f687ebea5dd8111548ab60fe7df975eac
   "circuit-json-to-bpc": "0.0.14"
   "circuit-json-to-connectivity-map": "0.0.33"
   "circuit-json-to-spice": "0.0.46"
   "schematic-symbols": "0.0.248"
   "spicets": "0.0.5"
   '@tscircuit/fanout-solver': 0.0.81
+  '@tscircuit/pcb-spice-pipeline': https://api.github.com/repos/tscircuit/pcb-spice-pipeline/tarball/825a6d321a10102393986e91bedf72f9905e204f
 minimumReleaseAgeExclude:
   - '@tscircuit/runframe@0.0.3012'
   - tscircuit@0.0.2940

@@ -2,35 +2,33 @@ import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import test from "node:test"
 import { Circuit } from "@tscircuit/core"
-import { stackupFromCircuitJson, type PipelineModeling } from "@tscircuit/pcb-spice-pipeline"
+import { modelingFromCircuitJson, stackupFromCircuitJson } from "@tscircuit/pcb-spice-pipeline"
 import { serializeSimulation } from "@tscircuit/pcb-spice-pipeline/tsx"
 import { any_circuit_element } from "circuit-json"
 import { createElement } from "react"
-import RootBoard, { modeling as rootModeling } from "../index.circuit"
-import DdrBoard, { modeling as ddrModeling } from "../examples/ddr-dq/index.circuit"
-import StripBoard, { modeling as stripModeling } from "../examples/ddr-dq-strip/index.circuit"
-import CmosBoard, { modeling as cmosModeling } from "../examples/single-ended/index.circuit"
-import Rs485Board, { modeling as rs485Modeling } from "../examples/differential-data/index.circuit"
+import RootBoard from "../index.circuit"
+import DdrBoard from "../examples/ddr-dq/index.circuit"
+import StripBoard from "../examples/ddr-dq-strip/index.circuit"
+import CmosBoard from "../examples/single-ended/index.circuit"
+import Rs485Board from "../examples/differential-data/index.circuit"
 import projectConfig from "../tscircuit.config.json"
 
 const saved = JSON.parse(await readFile(new URL("../am3352.circuit.json", import.meta.url), "utf8"))
 const examples = [
-  { name: "DDR strobes", Board: RootBoard, modeling: rootModeling, saved: true, counts: [1, 4, 2, 2, 2], timing: [0.0001, 1e-8, 2.5e-6, 2e-5] },
-  { name: "routed DDR DQ", Board: DdrBoard, modeling: ddrModeling, saved: true, counts: [2, 12, 6, 6, 4], timing: [0.00016, 1e-8, 2.5e-6, 4e-5] },
-  { name: "historical DDR strip", Board: StripBoard, modeling: stripModeling, saved: true, counts: [2, 12, 6, 6, 4], timing: [0.00016, 1e-8, 2.5e-6, 4e-5] },
-  { name: "CMOS", Board: CmosBoard, modeling: cmosModeling, saved: false, counts: [1, 2, 1, 2, 2], timing: [0.0016, 5e-8, 5e-5, 0.0002] },
-  { name: "RS-485", Board: Rs485Board, modeling: rs485Modeling, saved: false, counts: [1, 4, 2, 2, 2], timing: [0.128, 5e-6, 0.004, 0.016] },
+  { name: "DDR strobes", Board: RootBoard, lanes: [["DQS", "U1.P1", "U3.F3"], ["DQSn", "U1.P2", "U3.G3"]], saved: true, counts: [1, 4, 2, 2, 2], timing: [0.0001, 1e-8, 2.5e-6, 2e-5] },
+  { name: "routed DDR DQ", Board: DdrBoard, lanes: [["DQ0", "U1.M3", "U3.E3"], ["DQS", "U1.P1", "U3.F3"], ["DQSn", "U1.P2", "U3.G3"]], saved: true, counts: [2, 12, 6, 6, 4], timing: [0.00016, 1e-8, 2.5e-6, 4e-5] },
+  { name: "historical DDR strip", Board: StripBoard, lanes: [["DQ0", "U1.M3", "U3.E3"], ["DQS", "U1.P1", "U3.F3"], ["DQSn", "U1.P2", "U3.G3"]], saved: true, counts: [2, 12, 6, 6, 4], timing: [0.00016, 1e-8, 2.5e-6, 4e-5] },
+  { name: "CMOS", Board: CmosBoard, lanes: [["DATA", "TX.Y", "RX.A"]], saved: false, counts: [1, 2, 1, 2, 2], timing: [0.0016, 5e-8, 5e-5, 0.0002] },
+  { name: "RS-485", Board: Rs485Board, lanes: [["A", "TX.A", "RX.A"], ["B", "TX.B", "RX.B"]], saved: false, counts: [1, 4, 2, 2, 2], timing: [0.128, 5e-6, 0.004, 0.016] },
 ]
 
 for (const example of examples) test(example.name, async () => {
-  const modeling: PipelineModeling = example.modeling
   const circuit = new Circuit({ platform: projectConfig.platformConfig })
   circuit.add(createElement(example.Board))
   await circuit.renderUntilSettled()
   const records = serializeSimulation(circuit)
   const stackup = stackupFromCircuitJson(records)
   assert.equal(stackup.copperLayers.length, 4)
-  assert.equal("stackup" in modeling, false)
   if (example.saved) {
     // Compare every saved field, including routes, physical IDs and existing diagnostics.
     assert.deepEqual(records.slice(0, saved.length), saved)
@@ -71,7 +69,22 @@ for (const example of examples) test(example.name, async () => {
       for (const id of Object.values(refs)) assert.ok(ids.has(id))
     }
   }
-  if (example.Board === RootBoard || !example.saved || !("supplies" in example.modeling)) return
+  const modeling = modelingFromCircuitJson(records)
+  const portName = (selector: { sourcePortId?: string }) => {
+    const port = records.filter(record => record.type === "source_port").find(record => record.source_port_id === selector.sourcePortId)!
+    const component = records.filter(record => record.type === "source_component").find(record => record.source_component_id === port.source_component_id)!
+    return `${component.name}.${port.name}`
+  }
+  assert.deepEqual(modeling.lanes.map(lane => [lane.port, portName(lane.from), portName(lane.to)]), example.lanes)
+  if (!example.saved) return
+  const supplies = records.filter(record => record.type === "simulation_voltage_source")
+  assert.equal(supplies.length, 1)
+  const supply = supplies[0]
+  assert.ok(!supply.is_dc_source)
+  assert.deepEqual([supply.terminal1_source_port_id, supply.terminal2_source_port_id].map(id => portName({ sourcePortId: id })), ["U1.E5", "U1.A1"])
+  assert.equal(supply.voltage, 1.5)
+  assert.equal(portName(modeling.channelReference!), "U1.A1")
+  if (example.Board === RootBoard) return
   const experiments = records.filter(record => record.type === "simulation_experiment")
   assert.deepEqual(experiments.map(record => record.name), ["DDR_QUIET", "DDR_SWITCHING"])
   const memory = records.filter(record => record.type === "source_component").find(record => record.name === "U3")!
@@ -79,10 +92,10 @@ for (const example of examples) test(example.name, async () => {
   const probe = records.filter(record => record.type === "simulation_voltage_probe").find(record => record.name === "DQ0_RX")!
   assert.equal(probe.signal_input_source_port_id, memoryPort("E3"))
   assert.equal(probe.reference_input_source_port_id, memoryPort("B1"))
-  assert.equal(example.modeling.supplies[0].voltageV, 1.5)
-  if (example.modeling !== stripModeling) return
-  assert.equal(example.modeling.reduction, "straightened-stages")
-  assert.deepEqual(example.modeling.lanes.map(lane => [lane.from.port, lane.to.port]),
-    [["M3", "E3"], ["P1", "F3"], ["P2", "G3"]])
-  assert.ok(Object.values(stripModeling.profiles).every(profile => profile.spacingMm === 0.75))
+  if (example.Board !== StripBoard) {
+    assert.equal(modeling.reduction, "routed-copper")
+    return
+  }
+  assert.equal(modeling.reduction, "straightened-stages")
+  assert.ok(Object.values(modeling.profiles!).every(profile => profile.spacingMm === 0.75))
 })

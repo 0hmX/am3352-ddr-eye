@@ -1,15 +1,30 @@
 import { analog } from "@tscircuit/core"
 import { inputPad, outputPad } from "./models"
 import { BenchSupply, RoutedTrace, Sc70Pads } from "../differential-data/pcb"
-import construction from "./board-construction.json"
-export { modeling } from "./simulation.config"
+import type { PcbSpiceChannelProps } from "@tscircuit/props"
+
+const channel: PcbSpiceChannelProps = {
+  reduction: "straightened-stages",
+  sections: 12,
+  lanes: [{ name: "DATA", from: ".TX > .Y", to: ".RX > .A" }],
+  referencePinRef: ".TX > .GND",
+  extraction: {
+    minimumFrequency: "1Hz", maximumFrequency: "1GHz", modelFrequency: "100MHz",
+    filaments: 11, refinementFilaments: 17, convergenceTolerance: 0.05,
+    capacitanceTolerance: 0.02, maxPanelLength: "2mm", reciprocityTolerance: 0.025,
+    dcResistanceTolerance: 0.002,
+  },
+  straightenedStageProfiles: { top: {
+    spacing: "1mm", relativePermittivity: 4.1,
+    return: { width: "0.35mm", thickness: "0.035mm", lengthFactor: 1, centerY: "-6mm", centerZ: "-1.5292mm" },
+  } },
+}
 
 const pins = { pin1: "NC", pin2: "A", pin3: "GND", pin4: "Y", pin5: "VCC" }
 
 /** Explicit CMOS output-pad data; this does not simulate the inverter core. */
 export default function Board() {
-  return <board width={construction.widthMm} height={construction.heightMm}
-    thickness={construction.thicknessMm} layers={4} fabricatorPreset="jlcpcb_standard" routingDisabled schematicDisabled>
+  return <board width={52} height={22} thickness={1.6} layers={4} fabricatorPreset="jlcpcb_standard" routingDisabled schematicDisabled>
     <chip name="TX" manufacturerPartNumber="SN74LVC1G04DCK" pcbX={-15} pcbY={0}
       pinLabels={pins} footprint={<Sc70Pads />}  />
     <chip name="RX" manufacturerPartNumber="SN74LVC1G04DCK" pcbX={15} pcbY={0}
@@ -29,7 +44,7 @@ export default function Board() {
       points={[{ x: -17, y: -0.65, via: true, fromLayer: "top", toLayer: "bottom" }, { x: -17, y: -6 }, { x: 13, y: -6 }, { x: 13, y: -0.65, via: true, fromLayer: "bottom", toLayer: "top" }]} />
     <analog.transientsimulation spiceEngine="pcb_spice" name="SI" duration="1600ns" timePerStep="50ps" ibisPinStates={{
       ".TX > .Y": { isOutput: true, isOutputEnabled: true }, ".RX > .A": { isOutput: false },
-    }} />
+    }} pcbSpiceChannel={channel} />
     <analog.digitalstimulus name="DATA" simulationRef=".SI" sourcePinRef=".TX > .Y"
       bitDuration="50ns" startTime="0ns" initialState={0}
       transmittedData={{ transmissionType: "bits", bits: "001110100101011000101101", repeat: true }} />

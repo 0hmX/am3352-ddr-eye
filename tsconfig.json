@@ -20,7 +20,7 @@
   },
   "include": [
     "index.circuit.tsx",
-    "simulation.config.ts",
+    "ddr-buffers.ts",
     "examples/**/*.tsx",
     "examples/**/*.ts",
     "tests/**/*.ts"

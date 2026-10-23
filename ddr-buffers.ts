@@ -1,16 +1,9 @@
-import type { Modeling } from "@tscircuit/pcb-spice-pipeline"
-import type { IbisModelDefinition } from "@tscircuit/props"
-import settings from "./simulation.json"
-import boardConstruction from "./board-construction.json"
-import sourceProvenance from "./source-provenance.json"
-import vendorModels from "./vendor-models.json"
-
-const [ti, winbond] = vendorModels
+import type { IbisModelDefinition, PcbSpiceChannelProps } from "@tscircuit/props"
 
 export const driver: IbisModelDefinition = {
   ibisModelAsset: {
-    project_relative_path: `models/${ti.file}`,
-    url: `./models/${ti.file}`,
+    project_relative_path: "models/sprm552c.ibs",
+    url: "./models/sprm552c.ibs",
     mimetype: "text/plain",
   },
   ibisComponentName: "am335x_zcz",
@@ -26,8 +19,8 @@ export const driver: IbisModelDefinition = {
 
 export const receiver: IbisModelDefinition = {
   ibisModelAsset: {
-    project_relative_path: `models/${winbond.file}`,
-    url: `./models/${winbond.file}`,
+    project_relative_path: "models/W631GG6MB-12.ibs",
+    url: "./models/W631GG6MB-12.ibs",
     mimetype: "text/plain",
   },
   ibisComponentName: "W631GG6MB-12",
@@ -41,12 +34,27 @@ export const receiver: IbisModelDefinition = {
   includePackageParasitics: false,
 }
 
-export const modeling = {
-  ...settings,
-  reduction: settings.reduction as Modeling["reduction"],
-  ibisModelAssetSha256: Object.fromEntries(vendorModels.map(vendor => [`models/${vendor.file}`, vendor.sha256])),
-  supplies: [{ positive: { component: "U1", port: "E5" }, negative: { component: "U1", port: "A1" }, voltageV: 1.5 }],
-  channelReference: { component: "U1", port: "A1" },
-  boardConstruction,
-  sourceProvenance,
+export const routedDdrChannel: PcbSpiceChannelProps = {
+  reduction: "routed-copper",
+  sections: 12,
+  lanes: [
+    { name: "DQS", from: ".U1 > .P1", to: ".U3 > .F3" },
+    { name: "DQSn", from: ".U1 > .P2", to: ".U3 > .G3" },
+  ],
+  referencePinRef: ".U1 > .A1",
+  extraction: {
+    minimumFrequency: "1Hz",
+    maximumFrequency: "1GHz",
+    modelFrequency: "100MHz",
+    filaments: 7,
+    refinementFilaments: 11,
+    convergenceTolerance: 0.05,
+    capacitanceTolerance: 0.02,
+    reciprocityTolerance: 0.025,
+    dcResistanceTolerance: 0.002,
+    maxPanelLength: "2mm",
+    groundMeshSize: "2mm",
+  },
+  relativePermittivity: 4.1,
+  via: { platingThickness: "0.025mm", equivalentWidth: "0.1mm", omitThroughViaStubs: true },
 }
