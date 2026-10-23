@@ -1,17 +1,16 @@
 packages:
   - .
 # Keep one core/props/Circuit JSON version throughout the tscircuit tree.
-# Local sibling checkouts (../core, ../props, ../circuit-json, ../cli,
-# ../pcb-spice-pipeline) carry the pcbSpiceChannel / ibis sha256 support.
+# Prepared immutable builds carry pcbSpiceChannel and IBIS SHA-256 support.
 blockExoticSubdeps: false
 allowBuilds:
   esbuild: true
   '@resvg/resvg-js': true
   sharp: false
 overrides:
-  '@tscircuit/core': file:../core
-  '@tscircuit/props': file:../props
-  '@tscircuit/cli': file:../cli
+  '@tscircuit/core': https://api.github.com/repos/tscircuit/core/tarball/13b54b3d9d1fb04f0f2ae0842001edbe77c59e41
+  '@tscircuit/props': https://api.github.com/repos/tscircuit/props/tarball/e4134dce802e121f5eaf6ed1bc81e26c4b7e59f1
+  '@tscircuit/cli': https://api.github.com/repos/tscircuit/cli/tarball/286298279bcc2ea8abfd5ae8e61e911f0e90ea18
   '@tscircuit/eval': 0.0.1538
   tscircuit: 0.0.2940
   "@tscircuit/cableprinter": "0.0.6"
@@ -26,14 +25,14 @@ overrides:
   "@tscircuit/modelprinter": "0.0.34"
   "@tscircuit/schematic-match-adapt": "0.0.22"
   "bpc-graph": "0.0.67"
-  "circuit-json": file:../circuit-json
+  "circuit-json": https://api.github.com/repos/tscircuit/circuit-json/tarball/8c7668157aff58b8b729f64d7a396b029f405946
   "circuit-json-to-bpc": "0.0.14"
   "circuit-json-to-connectivity-map": "0.0.33"
   "circuit-json-to-spice": "0.0.46"
   "schematic-symbols": "0.0.248"
   "spicets": "0.0.5"
   '@tscircuit/fanout-solver': 0.0.81
-  '@tscircuit/pcb-spice-pipeline': file:../pcb-spice-pipeline
+  '@tscircuit/pcb-spice-pipeline': https://api.github.com/repos/tscircuit/pcb-spice-pipeline/tarball/61604969163860cdc0135b31761490d73bc68a6f
 minimumReleaseAgeExclude:
   - '@tscircuit/runframe@0.0.3012'
   - tscircuit@0.0.2940
