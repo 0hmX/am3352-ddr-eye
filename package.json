@@ -11,15 +11,15 @@
     "dev": "tsci dev",
     "build": "tsci build --disable-parts-engine",
     "typecheck": "tsc --noEmit",
-    "simulate": "tsci simulate analog index.circuit.tsx",
+    "simulate": "tsci simulate index.circuit.tsx",
     "postinstall": "node scripts/prepare-types.mjs",
     "test": "node --import tsx --test tests/*.test.ts",
     "test:native": "pnpm simulate:ddr-dq-strip",
-    "simulate:non-ddr": "tsci simulate analog examples/differential-data/index.circuit.tsx",
-    "simulate:single-ended": "tsci simulate analog examples/single-ended/index.circuit.tsx",
-    "simulate:ddr-dq": "tsci simulate analog examples/ddr-dq/index.circuit.tsx",
+    "simulate:non-ddr": "tsci simulate examples/differential-data/index.circuit.tsx",
+    "simulate:single-ended": "tsci simulate examples/single-ended/index.circuit.tsx",
+    "simulate:ddr-dq": "tsci simulate examples/ddr-dq/index.circuit.tsx",
     "simulate:models": "node scripts/prepare-models.mjs",
-    "simulate:ddr-dq-strip": "tsci simulate analog examples/ddr-dq-strip/index.circuit.tsx"
+    "simulate:ddr-dq-strip": "tsci simulate examples/ddr-dq-strip/index.circuit.tsx"
   },
   "dependencies": {
     "tscircuit": "0.0.2940",
