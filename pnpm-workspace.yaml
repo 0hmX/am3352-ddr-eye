@@ -1,16 +1,15 @@
 packages:
   - .
 # Keep one core/props/Circuit JSON version throughout the tscircuit tree.
-# Core is an immutable preview with IBIS and pcb_stackup support.
 blockExoticSubdeps: false
 allowBuilds:
   esbuild: true
   '@resvg/resvg-js': true
   sharp: false
 overrides:
-  '@tscircuit/core': https://api.github.com/repos/tscircuit/core/tarball/0e13e8d99ff958a4fe418833db50fc5f54e91dae
+  '@tscircuit/core': 0.0.2199
   '@tscircuit/props': 0.0.709
-  '@tscircuit/cli': https://api.github.com/repos/tscircuit/cli/tarball/4426108049f09b4bf4f66e861e43b8c5838458d2
+  '@tscircuit/cli': 0.1.2402
   '@tscircuit/eval': 0.0.1538
   tscircuit: 0.0.2940
   "@tscircuit/cableprinter": "0.0.6"
@@ -38,3 +37,5 @@ minimumReleaseAgeExclude:
   - tscircuit@0.0.2940
   - "@tscircuit/props@0.0.709"
   - "circuit-json@0.0.534"
+  - "@tscircuit/cli@0.1.2402"
+  - "@tscircuit/core@0.0.2199"
