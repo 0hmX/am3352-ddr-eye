@@ -14,7 +14,7 @@ TI's [product page](https://www.ti.com/product/SN74LVC1G04) supplies the [SCEM21
 
 The source's output model has no Polarity keyword. The declared bits directly control output-buffer state; this example does not invent an A-to-Y inverter-core model or propagation delay. Vendor fixture tails extend to 23.6 ns; the 50 ns UI preserves them without overlapping adjacent transitions. It includes repeated bits and both transition directions. Two probes/eyes share one transient run: RX A relative to RX GND and TX Y relative to TX GND. Construction and the finite bottom return-strip approximation are explicit; ground bends/vias, surrounding copper, losses and receiver logic are omitted.
 
-Prepare local vendor models with `pnpm simulate:models`; install FastHenry, FasterCap, and ngspice separately. The simulation uses the scoped programmatic pipeline through `tsci simulate analog`; it performs no automatic tool setup.
+Prepare local vendor models with `pnpm simulate:models`; make `fasthenry`, `FasterCap`, and `ngspice` available on `PATH`. The simulation uses the scoped programmatic pipeline through `tsci simulate`; it performs no automatic tool setup.
 
 Package parasitics are explicitly omitted for both chips: the files declare nonzero supply-pin package impedance that this backend cannot preserve. Real vendor I/V, clamp, die-capacitance and switching tables remain in use; the emitted provenance records package exclusion.
 
