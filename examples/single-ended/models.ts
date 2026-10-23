@@ -6,6 +6,7 @@ const ibisModelAsset = {
   project_relative_path: `models/${vendor.file}`,
   url: `./models/${vendor.file}`,
   mimetype: "text/plain",
+  sha256: vendor.sha256,
 }
 
 export const outputPad: IbisModelDefinition = {

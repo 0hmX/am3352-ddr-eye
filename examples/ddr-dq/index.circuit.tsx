@@ -1,12 +1,8 @@
-import type { IbisModelDefinition } from "@tscircuit/props"
+import type { IbisModelDefinition, PcbSpiceChannelProps } from "@tscircuit/props"
 import { analog } from "@tscircuit/core"
 import { ImportedBoard } from "@tscircuit/pcb-spice-pipeline/tsx"
 import routedBoard from "../../am3352.circuit.json"
-import {
-  driver as dqsDriver,
-  receiver as dqsReceiver,
-  modeling as dqsModeling,
-} from "../../simulation.config"
+import { driver as dqsDriver, receiver as dqsReceiver, routedDdrChannel } from "../../ddr-buffers"
 
 const driver: IbisModelDefinition = {
   ...dqsDriver,
@@ -28,25 +24,23 @@ const receiver: IbisModelDefinition = {
   },
 }
 
-export const modeling = {
-  ...dqsModeling,
-  circuit: "../../am3352.circuit.json",
-  description: "AM3352 DQ0 victim with quiet and switching DQS/DQSn neighbors; original routed traces and inferred GND copper",
-  lanes: [
-    {
-      port: "DQ0", driverPort: "M3", receiverPort: "E3",
-      from: { component: "U1", port: "M3" },
-      to: { component: "U3", port: "E3" },
-    },
-    ...dqsModeling.lanes,
-  ],
+/** DQ0 victim first, then the DQS/DQSn neighbors; original routed traces and GND copper. */
+export const routedDqChannel: PcbSpiceChannelProps = {
+  ...routedDdrChannel,
+  lanes: [{ name: "DQ0", from: ".U1 > .M3", to: ".U3 > .E3" }, ...routedDdrChannel.lanes],
 }
 
 export default function Board() {
+  return <DdrDqBoard channel={routedDqChannel} />
+}
+
+/** Same routed board, buffers, rails and traffic; only the channel extraction differs between callers. */
+export function DdrDqBoard({ channel }: { channel: PcbSpiceChannelProps }) {
   return (
     <ImportedBoard circuitJson={routedBoard} fabricatorPreset="jlcpcb_standard">
       <ibismodel componentRef="chip.U1" {...driver} />
       <ibismodel componentRef="chip.U3" {...receiver} />
+      <voltagesource name="VDDQ" voltage="1.5V" connections={{ pin1: ".U1 > .E5", pin2: ".U1 > .A1" }} />
       <voltageprobe name="DDR_RX" connectsTo=".U3 > .F3" referenceTo=".U3 > .G3" />
       <voltageprobe name="DDR_TX" connectsTo=".U1 > .P1" referenceTo=".U1 > .P2" />
       <voltageprobe name="DQ0_RX" connectsTo=".U3 > .E3" referenceTo=".U3 > .B1" />
@@ -66,7 +60,7 @@ export default function Board() {
               ".U3 > .E3": { isOutput: false },
               ".U3 > .F3": { isOutput: false },
               ".U3 > .G3": { isOutput: false },
-            }} />,
+            }} pcbSpiceChannel={channel} />,
           // Fixed 00010111 (not PRBS), 2.5 ns/bit = 400 MT/s; covers all eight three-bit histories.
           <analog.digitalstimulus key={`victim-${activity}`} name={`DQ0_${activity}`} simulationRef={simulationRef}
             sourcePinRef=".U1 > .M3" bitDuration="2.5ns" startTime="0ns"

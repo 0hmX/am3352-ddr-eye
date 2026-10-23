@@ -8,6 +8,7 @@ export const rs485Pads: IbisModelDefinition = {
     project_relative_path: `models/${vendor.file}`,
     url: `./models/${vendor.file}`,
     mimetype: "text/plain",
+    sha256: vendor.sha256,
   },
   ibisComponentName: vendor.component,
   ibisPinNameToPortLabel: { "6": "A", "7": "B", "8": "VCC", "5": "GND" },

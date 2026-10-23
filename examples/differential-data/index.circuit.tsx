@@ -1,16 +1,41 @@
 import { analog } from "@tscircuit/core"
 import { rs485Pads } from "./models"
 import { BenchSupply, RoutedTrace, Soic8Pads } from "./pcb"
-import construction from "./board-construction.json"
-export { modeling } from "./simulation.config"
+import type { PcbSpiceChannelProps } from "@tscircuit/props"
+
+
+// Designed board; the bus traces keep their total length/width but are
+// straightened into parallel strips at 6 mm center spacing over a finite
+// 0.35 mm bottom return strip (y=-6 mm, 1.5292 mm separation). Homogeneous
+// εr=4.1; air fields, dielectric loss and package coupling are omitted. RTERM is
+// the real routed 120-ohm resistor, included in the simulated scope.
+const channel: PcbSpiceChannelProps = {
+  reduction: "straightened-stages",
+  sections: 12,
+  lanes: [
+    { name: "A", from: ".TX > .A", to: ".RX > .A" },
+    { name: "B", from: ".TX > .B", to: ".RX > .B" },
+  ],
+  referencePinRef: ".TX > .GND",
+  passiveComponentRefs: [".RTERM"],
+  extraction: {
+    minimumFrequency: "1Hz", maximumFrequency: "100MHz", modelFrequency: "1MHz",
+    filaments: 7, refinementFilaments: 11, convergenceTolerance: 0.05,
+    capacitanceTolerance: 0.02, maxPanelLength: "2mm", reciprocityTolerance: 0.025,
+    dcResistanceTolerance: 0.002,
+  },
+  straightenedStageProfiles: { top: {
+    spacing: "6mm", relativePermittivity: 4.1,
+    return: { width: "0.35mm", thickness: "0.035mm", lengthFactor: 1, centerY: "-6mm", centerZ: "-1.5292mm" },
+  } },
+}
 
 const pins = { pin1: "R", pin2: "RE_N", pin3: "DE", pin4: "D", pin5: "GND", pin6: "A", pin7: "B", pin8: "VCC" }
 const bits = "0011101001010110"
 
 /** Designed routed RS-485 pad/channel experiment; no receiver/core logic model. */
 export default function Board() {
-  return <board width={construction.widthMm} height={construction.heightMm}
-    thickness={construction.thicknessMm} layers={4} fabricatorPreset="jlcpcb_standard" routingDisabled schematicDisabled>
+  return <board width={52} height={22} thickness={1.6} layers={4} fabricatorPreset="jlcpcb_standard" routingDisabled schematicDisabled>
     <chip name="TX" manufacturerPartNumber="SN65HVD72D" pcbX={-15} pcbY={0}
       pinLabels={pins} footprint={<Soic8Pads />}  />
     <chip name="RX" manufacturerPartNumber="SN65HVD72D" pcbX={15} pcbY={0}
@@ -36,7 +61,7 @@ export default function Board() {
     <analog.transientsimulation spiceEngine="pcb_spice" name="SI" duration="128us" timePerStep="5ns" ibisPinStates={{
       ".TX > .A": { isOutput: true, isOutputEnabled: true }, ".TX > .B": { isOutput: true, isOutputEnabled: true },
       ".RX > .A": { isOutput: false }, ".RX > .B": { isOutput: false },
-    }} />
+    }} pcbSpiceChannel={channel} />
     <analog.digitalstimulus name="DATA_A" simulationRef=".SI" sourcePinRef=".TX > .A"
       bitDuration="4us" startTime="0us" initialState={0} transmittedData={{ transmissionType: "bits", bits, repeat: true }} />
     <analog.digitalstimulus name="DATA_B" simulationRef=".SI" sourcePinRef=".TX > .B"
