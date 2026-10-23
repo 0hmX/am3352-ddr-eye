@@ -23,19 +23,19 @@
   },
   "dependencies": {
     "tscircuit": "0.0.2940",
-    "@tscircuit/core": "https://api.github.com/repos/tscircuit/core/tarball/ac28ffa59da8bf3b016bcabfc35e249a2c20fce4",
-    "@tscircuit/props": "https://api.github.com/repos/tscircuit/props/tarball/96dae5c65597cdb8535c547568aa5cb510816858",
+    "@tscircuit/core": "https://api.github.com/repos/tscircuit/core/tarball/0e13e8d99ff958a4fe418833db50fc5f54e91dae",
+    "@tscircuit/props": "0.0.709",
     "react": "19.2.4",
-    "circuit-json": "https://api.github.com/repos/tscircuit/circuit-json/tarball/f9f7c98f687ebea5dd8111548ab60fe7df975eac"
+    "circuit-json": "0.0.534"
   },
   "devDependencies": {
-    "@tscircuit/cli": "https://api.github.com/repos/tscircuit/cli/tarball/d0d965fbe7ffbc29029424a811f5363fe1ce5e85",
+    "@tscircuit/cli": "https://api.github.com/repos/tscircuit/cli/tarball/4426108049f09b4bf4f66e861e43b8c5838458d2",
     "@tscircuit/eval": "0.0.1538",
     "@types/react": "19.3.0",
     "typescript": "5.9.3",
     "fflate": "0.8.2",
     "tsx": "4.23.15",
-    "@tscircuit/pcb-spice-pipeline": "https://api.github.com/repos/tscircuit/pcb-spice-pipeline/tarball/825a6d321a10102393986e91bedf72f9905e204f",
+    "@tscircuit/pcb-spice-pipeline": "https://api.github.com/repos/tscircuit/pcb-spice-pipeline/tarball/63d15671ec68833225132066df317a8d7e4820e7",
     "@tscircuit/ibis-to-spice": "https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317",
     "@types/node": "22.20.5"
   },
