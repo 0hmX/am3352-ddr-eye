@@ -15,7 +15,7 @@ pnpm typecheck
 pnpm test
 ```
 
-The lockfile pins prepared builds of [pipeline #5](https://github.com/tscircuit/pcb-spice-pipeline/pull/5) and [CLI #5541](https://github.com/tscircuit/cli/pull/5541), with the CLI override applying the same build to the `tsci` executable. Core is an immutable [preview at a120fd8](https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322) containing IBIS declarations and `pcb_stackup` emission; the published release with the same version number is not interchangeable. The preview requires props `0.0.707`; the earlier `0.0.705` pin lacks a required core export. No checked-in core build or pipeline Git preparation is needed. The existing fanout-solver declaration workaround still runs during installation.
+The lockfile pins CLI **0.1.2406** and the pipeline commit in `package.json`. The CLI override applies the same release to the `tsci` executable. Core, props, and Circuit JSON are pinned across the dependency tree in `pnpm-workspace.yaml`. The existing fanout-solver declaration workaround still runs during installation.
 
 `simulate:models` explicitly downloads the four vendor archives into a local cache, checks their SHA-256 hashes, extracts only the locked IBIS members, checks their hashes, and writes `models/`. [DDR vendor locks](vendor-models.json) and [CMOS/RS-485 locks](examples/vendor-models.lock.json) retain their source URLs and checksums. Vendor model bytes are not redistributed. Simulations read these prepared local assets; the library does not fetch missing models.
 
@@ -24,10 +24,10 @@ Install **FastHenry, FasterCap, and ngspice separately** before a native run. Th
 ## Run an example
 
 ```sh
-pnpm simulate:ddr-dq-strip --output .tscircuit/ddr-strip
+pnpm simulate:ddr-dq-strip
 ```
 
-This invokes `tsci simulate examples/ddr-dq-strip/index.circuit.tsx`. Open the generated `results.html` and keep its `csv/` folder beside it. Use a fresh output directory for another run. Reports, waveforms, Circuit JSON results, and solver artifacts are written by the CLI after an explicit simulation request.
+This invokes `tsci simulate examples/ddr-dq-strip/index.circuit.tsx`. Reports default to `.tscircuit/simulation-examples-ddr-dq-strip-index-<timestamp>/` under the project root. Open the generated `results.html` and keep its `csv/` folder beside it. Reports, waveforms, Circuit JSON results, and solver artifacts are written by the CLI after a successful simulation.
 
 | Circuit | Command | Electrical model |
 | --- | --- | --- |
@@ -37,10 +37,10 @@ This invokes `tsci simulate examples/ddr-dq-strip/index.circuit.tsx`. Open the g
 | [CMOS](examples/single-ended/index.circuit.tsx) | `pnpm simulate:single-ended` | SN74LVC1G04 output-pad/input-pad channel, explicit 20-Mbps data |
 | [RS-485](examples/differential-data/index.circuit.tsx) | `pnpm simulate:non-ddr` | SN65HVD72 pair, 120-ohm termination, explicit 250-kbps data |
 
-Append `--output <directory>` to select a report directory. The equivalent direct invocation is:
+Append `--output <directory>` to select a fresh report directory. The equivalent direct invocation is:
 
 ```sh
-pnpm exec tsci simulate examples/ddr-dq-strip/index.circuit.tsx --output .tscircuit/ddr-strip
+pnpm exec tsci simulate examples/ddr-dq-strip/index.circuit.tsx
 ```
 
 `tscircuit.config.json` disables the parts engine for this project. `pnpm dev` previews the circuit design; `pnpm build` builds it with the parts engine disabled. Neither command runs the native PCB simulation. The former standalone pipeline setup, repeat, and compare commands have been removed.
