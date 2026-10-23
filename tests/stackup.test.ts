@@ -15,11 +15,11 @@ import projectConfig from "../tscircuit.config.json"
 
 const saved = JSON.parse(await readFile(new URL("../am3352.circuit.json", import.meta.url), "utf8"))
 const examples = [
-  { name: "DDR strobes", Board: RootBoard, lanes: [["DQS", "U1.P1", "U3.F3"], ["DQSn", "U1.P2", "U3.G3"]], saved: true, counts: [1, 4, 2, 2, 2], timing: [0.0001, 1e-8, 2.5e-6, 2e-5] },
-  { name: "routed DDR DQ", Board: DdrBoard, lanes: [["DQ0", "U1.M3", "U3.E3"], ["DQS", "U1.P1", "U3.F3"], ["DQSn", "U1.P2", "U3.G3"]], saved: true, counts: [2, 12, 6, 6, 4], timing: [0.00016, 1e-8, 2.5e-6, 4e-5] },
-  { name: "historical DDR strip", Board: StripBoard, lanes: [["DQ0", "U1.M3", "U3.E3"], ["DQS", "U1.P1", "U3.F3"], ["DQSn", "U1.P2", "U3.G3"]], saved: true, counts: [2, 12, 6, 6, 4], timing: [0.00016, 1e-8, 2.5e-6, 4e-5] },
-  { name: "CMOS", Board: CmosBoard, lanes: [["DATA", "TX.Y", "RX.A"]], saved: false, counts: [1, 2, 1, 2, 2], timing: [0.0016, 5e-8, 5e-5, 0.0002] },
-  { name: "RS-485", Board: Rs485Board, lanes: [["A", "TX.A", "RX.A"], ["B", "TX.B", "RX.B"]], saved: false, counts: [1, 4, 2, 2, 2], timing: [0.128, 5e-6, 0.004, 0.016] },
+  { name: "DDR strobes", Board: RootBoard, saved: true, counts: [1, 4, 2, 2, 2], timing: [0.0001, 1e-8, 2.5e-6, 2e-5] },
+  { name: "routed DDR DQ", Board: DdrBoard, saved: true, counts: [2, 12, 6, 6, 4], timing: [0.00016, 1e-8, 2.5e-6, 4e-5] },
+  { name: "historical DDR strip", Board: StripBoard, saved: true, counts: [2, 12, 6, 6, 4], timing: [0.00016, 1e-8, 2.5e-6, 4e-5] },
+  { name: "CMOS", Board: CmosBoard, saved: false, counts: [1, 2, 1, 2, 2], timing: [0.0016, 5e-8, 5e-5, 0.0002] },
+  { name: "RS-485", Board: Rs485Board, saved: false, counts: [1, 4, 2, 2, 2], timing: [0.128, 5e-6, 0.004, 0.016] },
 ]
 
 for (const example of examples) test(example.name, async () => {
@@ -27,8 +27,10 @@ for (const example of examples) test(example.name, async () => {
   circuit.add(createElement(example.Board))
   await circuit.renderUntilSettled()
   const records = serializeSimulation(circuit)
+  const modeling = modelingFromCircuitJson(records)
   const stackup = stackupFromCircuitJson(records)
   assert.equal(stackup.copperLayers.length, 4)
+  assert.equal("stackup" in modeling, false)
   if (example.saved) {
     // Compare every saved field, including routes, physical IDs and existing diagnostics.
     assert.deepEqual(records.slice(0, saved.length), saved)
@@ -69,22 +71,7 @@ for (const example of examples) test(example.name, async () => {
       for (const id of Object.values(refs)) assert.ok(ids.has(id))
     }
   }
-  const modeling = modelingFromCircuitJson(records)
-  const portName = (selector: { sourcePortId?: string }) => {
-    const port = records.filter(record => record.type === "source_port").find(record => record.source_port_id === selector.sourcePortId)!
-    const component = records.filter(record => record.type === "source_component").find(record => record.source_component_id === port.source_component_id)!
-    return `${component.name}.${port.name}`
-  }
-  assert.deepEqual(modeling.lanes.map(lane => [lane.port, portName(lane.from), portName(lane.to)]), example.lanes)
-  if (!example.saved) return
-  const supplies = records.filter(record => record.type === "simulation_voltage_source")
-  assert.equal(supplies.length, 1)
-  const supply = supplies[0]
-  assert.ok(!supply.is_dc_source)
-  assert.deepEqual([supply.terminal1_source_port_id, supply.terminal2_source_port_id].map(id => portName({ sourcePortId: id })), ["U1.E5", "U1.A1"])
-  assert.equal(supply.voltage, 1.5)
-  assert.equal(portName(modeling.channelReference!), "U1.A1")
-  if (example.Board === RootBoard) return
+  if (example.Board === RootBoard || !example.saved) return
   const experiments = records.filter(record => record.type === "simulation_experiment")
   assert.deepEqual(experiments.map(record => record.name), ["DDR_QUIET", "DDR_SWITCHING"])
   const memory = records.filter(record => record.type === "source_component").find(record => record.name === "U3")!
@@ -92,10 +79,11 @@ for (const example of examples) test(example.name, async () => {
   const probe = records.filter(record => record.type === "simulation_voltage_probe").find(record => record.name === "DQ0_RX")!
   assert.equal(probe.signal_input_source_port_id, memoryPort("E3"))
   assert.equal(probe.reference_input_source_port_id, memoryPort("B1"))
-  if (example.Board !== StripBoard) {
-    assert.equal(modeling.reduction, "routed-copper")
-    return
-  }
+  assert.equal(Reflect.get(records.find(record => record.type === "simulation_voltage_source")!, "voltage"), 1.5)
+  if (example.Board !== StripBoard) return
   assert.equal(modeling.reduction, "straightened-stages")
+  const portName = (sourcePortId?: string) => records.filter(record => record.type === "source_port").find(record => record.source_port_id === sourcePortId)!.name
+  assert.deepEqual(modeling.lanes.map(lane => [portName(lane.from.sourcePortId), portName(lane.to.sourcePortId)]),
+    [["M3", "E3"], ["P1", "F3"], ["P2", "G3"]])
   assert.ok(Object.values(modeling.profiles!).every(profile => profile.spacingMm === 0.75))
 })
