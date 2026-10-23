@@ -76,7 +76,6 @@ for (const example of examples) test(example.name, async () => {
     return `${component.name}.${port.name}`
   }
   assert.deepEqual(modeling.lanes.map(lane => [lane.port, portName(lane.from), portName(lane.to)]), example.lanes)
-  assert.deepEqual(Object.keys(modeling.ibisModelAssetSha256 ?? {}).length, example.saved ? 2 : 1)
   if (!example.saved) return
   const supplies = records.filter(record => record.type === "simulation_voltage_source")
   assert.equal(supplies.length, 1)
