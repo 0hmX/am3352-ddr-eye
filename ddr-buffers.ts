@@ -1,7 +1,5 @@
 import type { IbisModelDefinition, PcbSpiceChannelProps } from "@tscircuit/props"
 
-// Vendor bytes are prepared locally by `pnpm simulate:models` (see vendor-models.json).
-// The pipeline rejects a run whose model bytes differ from these SHA-256 hashes.
 export const driver: IbisModelDefinition = {
   ibisModelAsset: {
     project_relative_path: "models/sprm552c.ibs",
@@ -38,11 +36,6 @@ export const receiver: IbisModelDefinition = {
   includePackageParasitics: false,
 }
 
-/**
- * Routed-copper extraction of the saved AM3352 board. The return path is the
- * is_ground net (GND) connected to U1.A1: its real pours, cutouts and the two
- * routed endpoint ground leads. Dielectric is a homogeneous εr=4.1 assumption.
- */
 export const routedDdrChannel: PcbSpiceChannelProps = {
   reduction: "routed-copper",
   sections: 12,

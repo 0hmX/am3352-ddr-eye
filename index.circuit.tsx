@@ -8,7 +8,6 @@ export default function Board() {
     <ImportedBoard circuitJson={routedBoard} fabricatorPreset="jlcpcb_standard">
       <ibismodel componentRef="chip.U1" {...driver} />
       <ibismodel componentRef="chip.U3" {...receiver} />
-      {/* Ideal 1.5 V VDDQ between the AM3352 supply/ground pads (simulation only). */}
       <voltagesource name="VDDQ" voltage="1.5V" connections={{ pin1: ".U1 > .E5", pin2: ".U1 > .A1" }} />
       <analog.transientsimulation
         name="DDR_SI"

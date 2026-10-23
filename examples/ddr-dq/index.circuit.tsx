@@ -24,7 +24,6 @@ const receiver: IbisModelDefinition = {
   },
 }
 
-/** DQ0 victim first, then the DQS/DQSn neighbors; original routed traces and GND copper. */
 export const routedDqChannel: PcbSpiceChannelProps = {
   ...routedDdrChannel,
   lanes: [{ name: "DQ0", from: ".U1 > .M3", to: ".U3 > .E3" }, ...routedDdrChannel.lanes],
@@ -34,7 +33,6 @@ export default function Board() {
   return <DdrDqBoard channel={routedDqChannel} />
 }
 
-/** Same routed board, buffers, rails and traffic; only the channel extraction differs between callers. */
 export function DdrDqBoard({ channel }: { channel: PcbSpiceChannelProps }) {
   return (
     <ImportedBoard circuitJson={routedBoard} fabricatorPreset="jlcpcb_standard">

@@ -69,7 +69,6 @@ for (const example of examples) test(example.name, async () => {
       for (const id of Object.values(refs)) assert.ok(ids.has(id))
     }
   }
-  // Channel modeling comes only from the TSX declarations serialized into Circuit JSON.
   const modeling = modelingFromCircuitJson(records)
   const portName = (selector: { sourcePortId?: string }) => {
     const port = records.filter(record => record.type === "source_port").find(record => record.source_port_id === selector.sourcePortId)!
@@ -79,7 +78,6 @@ for (const example of examples) test(example.name, async () => {
   assert.deepEqual(modeling.lanes.map(lane => [lane.port, portName(lane.from), portName(lane.to)]), example.lanes)
   assert.deepEqual(Object.keys(modeling.ibisModelAssetSha256 ?? {}).length, example.saved ? 2 : 1)
   if (!example.saved) return
-  // The ideal VDDQ rail is a TSX <voltagesource> remapped onto the saved AM3352 pads.
   const supplies = records.filter(record => record.type === "simulation_voltage_source")
   assert.equal(supplies.length, 1)
   const supply = supplies[0]

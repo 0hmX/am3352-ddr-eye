@@ -15,7 +15,7 @@ pnpm typecheck
 pnpm test
 ```
 
-The lockfile pins prepared immutable builds of [Circuit JSON #923](https://github.com/tscircuit/circuit-json/pull/923), [props #954](https://github.com/tscircuit/props/pull/954), [core #4856](https://github.com/tscircuit/core/pull/4856), [pipeline #6](https://github.com/tscircuit/pcb-spice-pipeline/pull/6) and [CLI #5547](https://github.com/tscircuit/cli/pull/5547). Together they support the `pcbSpiceChannel` prop, the `simulation_experiment.pcb_spice_channel` record, `ibis_model_asset.sha256`, and deriving pipeline modeling from Circuit JSON. Replace these archives with published versions when released. The existing fanout-solver declaration workaround still runs during installation.
+The lockfile pins prepared builds of [pipeline #5](https://github.com/tscircuit/pcb-spice-pipeline/pull/5) and [CLI #5541](https://github.com/tscircuit/cli/pull/5541), with the CLI override applying the same build to the `tsci` executable. Core is an immutable [preview at a120fd8](https://pkg.pr.new/@tscircuit/core@a120fd8e036b2348f2dfe1e58592cf54a5f24322) containing IBIS declarations and `pcb_stackup` emission; the published release with the same version number is not interchangeable. The preview requires props `0.0.707`; the earlier `0.0.705` pin lacks a required core export. No checked-in core build or pipeline Git preparation is needed. The existing fanout-solver declaration workaround still runs during installation.
 
 `simulate:models` explicitly downloads the four vendor archives into a local cache, checks their SHA-256 hashes, extracts only the locked IBIS members, checks their hashes, and writes `models/`. [DDR vendor locks](vendor-models.json) and [CMOS/RS-485 locks](examples/vendor-models.lock.json) retain their source URLs and checksums. Vendor model bytes are not redistributed. Simulations read these prepared local assets; the library does not fetch missing models.
 
@@ -59,7 +59,7 @@ import {
   createNativeSolver, loadIbisSources, writePipelineOutput,
 } from "@tscircuit/pcb-spice-pipeline/node"
 import { createElement } from "react"
-import Board from "./examples/ddr-dq-strip/index.circuit"
+import Board, { modeling } from "./examples/ddr-dq-strip/index.circuit"
 import project from "./tscircuit.config.json"
 
 const circuit = new Circuit({ platform: project.platformConfig })
@@ -72,30 +72,25 @@ const runSolver = createNativeSolver({ tools: {
   fastercap: "/absolute/path/to/FasterCap",
   ngspice: "/absolute/path/to/ngspice",
 } })
-// Modeling is derived from the serialized pcb_spice_channel declarations.
-const result = await runPipeline({ circuitJson, ibisSources, runSolver })
+const result = await runPipeline({ circuitJson, modeling, ibisSources, runSolver })
 await writePipelineOutput({ result, outputDir: ".tscircuit/programmatic-strip" })
 ```
 
-The root import accepts Circuit JSON (an explicit `modeling` object is now an optional override), caller-resolved IBIS bytes keyed by `ibis_model_asset.project_relative_path`, and a `runSolver` capability. It returns structured matrices, experiments, waveforms/eyes, assessments, limitations, `simulationResultCircuitJson`, and artifact strings in memory. `generateReport(result)` returns HTML/CSV file contents without writing them. A caller can merge results, save selected artifacts, or display them in another UI.
+The root import accepts Circuit JSON, modeling, caller-resolved IBIS bytes keyed by `ibis_model_asset.project_relative_path`, and a `runSolver` capability. It returns structured matrices, experiments, waveforms/eyes, assessments, limitations, `simulationResultCircuitJson`, and artifact strings in memory. `generateReport(result)` returns HTML/CSV file contents without writing them. A caller can merge results, save selected artifacts, or display them in another UI.
 
 Only the explicit `/node` import performs local asset reads, requested native processes, and requested output writes. A custom `runSolver` can own another execution environment, but must return genuine validated extraction/transient output. Missing assets, unsupported models, incomplete solver results, and convergence failures remain errors; approximate matrices are not an implicit fallback. `/tsx` is the optional React/core adapter, separate from the main library.
 
 ## Authored inputs
 
-Everything a run needs is declared in TSX and serialized into Circuit JSON; entries no longer export a `modeling` object, and there is no `simulation.config.ts`, `simulation.json`, `board-construction.json` or `profiles.json`.
+The entry imports and exports its `modeling` object. `simulation.config.ts`, `models.ts`, and `simulation.json` organize those authored inputs; they are not automatically discovered file formats.
 
 | Input | Purpose |
 | --- | --- |
-| [Circuit TSX](examples/ddr-dq/index.circuit.tsx) | IBIS bindings, pad states, transient timing, stimulus bits, probes, eyes, and the `pcbSpiceChannel` prop on `<analog.transientsimulation>` |
-| [DDR buffers and routed channel](ddr-buffers.ts) | AM3352/Winbond IBIS bindings with model `sha256`, and the shared routed-copper `pcbSpiceChannel` |
-| `<voltagesource name="VDDQ">` | Ideal 1.5 V rail between `U1.E5` and `U1.A1`; inside `ImportedBoard` it is simulation-only and is remapped onto the saved pads (replaces `modeling.supplies`) |
-| [Saved board](am3352.circuit.json) | Original 100 × 80 mm PCB geometry, physical IDs, 750 traces, 835 vias, 27 pours, and pre-existing diagnostics; `fabricatorPreset="jlcpcb_standard"` makes core emit the four-layer JLC `pcb_stackup` |
-| [Source provenance](source-provenance.json) | Board attribution, input hash, evidence, assumptions, and limitations (documentation only) |
-
-`pcbSpiceChannel` holds the settings Circuit JSON could not express before: `reduction`, `sections`, ordered `lanes` (`from`/`to` port selectors), `referencePinRef` (SPICE ground), `passiveComponentRefs`, `extraction` (frequencies, filaments, tolerances, `maxPanelLength`, `groundMeshSize`), `relativePermittivity`, `via` approximations, and, for `straightened-stages` only, `straightenedStageProfiles`. Core resolves the selectors to `source_port_id`s and writes `simulation_experiment.pcb_spice_channel`; the pipeline's `modelingFromCircuitJson` reads it back. All `pcb_spice` experiments in one entry must declare the same channel because they share one extraction. `tsci simulate analog --modeling <file>` still overrides it.
-
-The straightened-strip profiles (CMOS, RS-485, historical DDR strip) remain declared assumptions, not board geometry: uniform signal pitch, an artificial finite return strip per layer and a homogeneous εr. Routed DDR omits other ground routing and stitching, unselected nets and power copper, via pads/antipads/stubs, dielectric loss, copper roughness, broadband R/L dispersion, PDN impedance and package parasitics.
+| [Circuit TSX](examples/ddr-dq/index.circuit.tsx) | IBIS bindings, pad states, transient timing, stimulus bits, probes, eyes |
+| [Modeling](simulation.config.ts), [physical settings](simulation.json) | One to three selected channels, reference/supplies, extraction settings, sections, dielectric and via assumptions |
+| [Board construction](board-construction.json) | Construction evidence and approximation notes; `fabricatorPreset="jlcpcb_standard"` makes core emit the four-layer JLC `pcb_stackup` |
+| [Saved board](am3352.circuit.json) | Original 100 × 80 mm PCB geometry, physical IDs, 750 traces, 835 vias, 27 pours, and pre-existing diagnostics |
+| [Source provenance](source-provenance.json) | Board attribution, input hash, evidence, assumptions, and limitations |
 
 Saved-board examples import `ImportedBoard` from `@tscircuit/pcb-spice-pipeline/tsx` and put simulation children inside it. Always call `serializeSimulation(circuit)` for these examples: ordinary `getCircuitJson()` contains an inflated preview rather than the preserved saved records. Additional physical children and ambiguous simulation bindings are rejected. Selectors such as `chip.U1` disambiguate chip names from BGA pin names.
 

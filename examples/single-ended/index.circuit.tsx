@@ -3,11 +3,6 @@ import { inputPad, outputPad } from "./models"
 import { BenchSupply, RoutedTrace, Sc70Pads } from "../differential-data/pcb"
 import type { PcbSpiceChannelProps } from "@tscircuit/props"
 
-
-// Designed board; the extraction straightens the single top trace to its total
-// length/width and replaces the bottom ground route with a finite 0.35 mm strip
-// at y=-6 mm, 1.5292 mm copper-center separation. Ground escape bends, ground
-// vias, excess return length, dielectric loss and surrounding copper are omitted.
 const channel: PcbSpiceChannelProps = {
   reduction: "straightened-stages",
   sections: 12,

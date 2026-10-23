@@ -3,12 +3,6 @@ import { rs485Pads } from "./models"
 import { BenchSupply, RoutedTrace, Soic8Pads } from "./pcb"
 import type { PcbSpiceChannelProps } from "@tscircuit/props"
 
-
-// Designed board; the bus traces keep their total length/width but are
-// straightened into parallel strips at 6 mm center spacing over a finite
-// 0.35 mm bottom return strip (y=-6 mm, 1.5292 mm separation). Homogeneous
-// εr=4.1; air fields, dielectric loss and package coupling are omitted. RTERM is
-// the real routed 120-ohm resistor, included in the simulated scope.
 const channel: PcbSpiceChannelProps = {
   reduction: "straightened-stages",
   sections: 12,
