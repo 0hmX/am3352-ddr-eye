@@ -14,7 +14,7 @@ TI's [product page](https://www.ti.com/product/SN65HVD72) supplies the [SLLM183 
 
 RTERM is a routed 120-ohm receiver termination; SPICE attaches it ideally at RX and omits its short stub-route parasitics. Power comes from the declared 3.3-V bench source at PWR. Four-layer JLC construction, copper thickness, ground route, dielectric assumption and reduced solver geometry are explicit. The solver straightens routed bends and uses a finite bottom return strip; it omits ground-route bends/vias, nearby copper, loss and complete package/PDN behavior. The same transient run produces the differential A-minus-B eye and the A-to-ground leg eye under explicit data. It does not model receiver logic, turnaround or full RS-485 compliance.
 
-Prepare local vendor models with `pnpm simulate:models`; install FastHenry, FasterCap, and ngspice separately. The simulation uses the scoped programmatic pipeline through `tsci simulate analog`; it performs no automatic tool setup.
+Prepare local vendor models with `pnpm simulate:models`; make `fasthenry`, `FasterCap`, and `ngspice` available on `PATH`. The simulation uses the scoped programmatic pipeline through `tsci simulate`; it performs no automatic tool setup.
 
 Package parasitics are explicitly omitted for both chips: the files declare nonzero supply-pin package impedance that this backend cannot preserve. Real vendor I/V, clamp, die-capacitance and switching tables remain in use; the emitted provenance records package exclusion.
 

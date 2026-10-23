@@ -1,6 +1,6 @@
 # IBIS + PCB simulation in tscircuit
 
-These five TSX examples attach real vendor IBIS pad models to PCB channels and declare transient experiments, digital stimulus, voltage probes, and eyes using normal tscircuit elements. `tsci simulate analog` renders the circuit and calls `@tscircuit/pcb-spice-pipeline` as an in-memory library. The CLI owns local files, native solver execution, and report output.
+These five TSX examples attach real vendor IBIS pad models to PCB channels and declare transient experiments, digital stimulus, voltage probes, and eyes using normal tscircuit elements. `tsci simulate` renders the circuit and calls `@tscircuit/pcb-spice-pipeline` as an in-memory library. The CLI owns local files, native solver execution, and report output.
 
 **Routed DDR remains blocked by a recorded FastHenry numerical failure.** The downloadable report and measurements below describe the historical straightened-strip model, which uses different return geometry. They do not establish routed-board success, DDR compliance, or BER.
 
@@ -19,9 +19,7 @@ The lockfile pins prepared builds of [pipeline #5](https://github.com/tscircuit/
 
 `simulate:models` explicitly downloads the four vendor archives into a local cache, checks their SHA-256 hashes, extracts only the locked IBIS members, checks their hashes, and writes `models/`. [DDR vendor locks](vendor-models.json) and [CMOS/RS-485 locks](examples/vendor-models.lock.json) retain their source URLs and checksums. Vendor model bytes are not redistributed. Simulations read these prepared local assets; the library does not fetch missing models.
 
-Install **FastHenry, FasterCap, and ngspice separately** before a native run. The CLI uses installed executables; programmatic callers can supply absolute executable paths through the Node adapter shown below. Installation of compiler dependencies or solver binaries is outside this repository's simulation commands. The library never installs tools, downloads vendors, or enforces a build receipt. Native tools remain an external prerequisite; an in-process/WASM replacement has not been validated for this pipeline's coupled extraction and IBIS decks.
-
-For executables outside PATH, set `PCB_SPICE_TOOLS` to a JSON file containing their absolute `fasthenry`, `fastercap`, and `ngspice` paths. Existing tool maps can be supplied explicitly through this variable.
+Install **FastHenry, FasterCap, and ngspice separately** before a native run. The CLI resolves `fasthenry`, `FasterCap`, and `ngspice` from `PATH`; add their installation directories to `PATH` before running it. Programmatic callers can supply absolute executable paths through the Node adapter below. Installation of compiler dependencies or solver binaries is outside this repository's simulation commands. The library never installs tools, downloads vendors, or enforces a build receipt. Native tools remain an external prerequisite; an in-process/WASM replacement has not been validated for this pipeline's coupled extraction and IBIS decks.
 
 ## Run an example
 
@@ -29,7 +27,7 @@ For executables outside PATH, set `PCB_SPICE_TOOLS` to a JSON file containing th
 pnpm simulate:ddr-dq-strip --output .tscircuit/ddr-strip
 ```
 
-This invokes `tsci simulate analog examples/ddr-dq-strip/index.circuit.tsx`. Open the generated `results.html` and keep its `csv/` folder beside it. Use a fresh output directory for another run. Reports, waveforms, Circuit JSON results, and solver artifacts are written by the CLI after an explicit simulation request.
+This invokes `tsci simulate examples/ddr-dq-strip/index.circuit.tsx`. Open the generated `results.html` and keep its `csv/` folder beside it. Use a fresh output directory for another run. Reports, waveforms, Circuit JSON results, and solver artifacts are written by the CLI after an explicit simulation request.
 
 | Circuit | Command | Electrical model |
 | --- | --- | --- |
@@ -42,7 +40,7 @@ This invokes `tsci simulate analog examples/ddr-dq-strip/index.circuit.tsx`. Ope
 Append `--output <directory>` to select a report directory. The equivalent direct invocation is:
 
 ```sh
-pnpm exec tsci simulate analog examples/ddr-dq-strip/index.circuit.tsx --output .tscircuit/ddr-strip
+pnpm exec tsci simulate examples/ddr-dq-strip/index.circuit.tsx --output .tscircuit/ddr-strip
 ```
 
 `tscircuit.config.json` disables the parts engine for this project. `pnpm dev` previews the circuit design; `pnpm build` builds it with the parts engine disabled. Neither command runs the native PCB simulation. The former standalone pipeline setup, repeat, and compare commands have been removed.
